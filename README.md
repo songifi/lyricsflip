@@ -139,4 +139,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Contact
 
-For inquiries, reach out to **[Your Name]** at **[Your Email]** or via the project repository on [GitHub](https://github.com/your-username/lyricflip).
+For inquiries, reach out to us on TG at https://t.me/lyricflip
