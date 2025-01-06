@@ -5,7 +5,7 @@ const Admin = require("../../models/Admin");
 //@Desc Create Song
 //@Route POST api/v1/song
 //@Access private
-exports.createSubject = asyncHandler(async (req, res) => {
+exports.createSong = asyncHandler(async (req, res) => {
   const {
     title,
     artist,
@@ -49,7 +49,7 @@ exports.createSubject = asyncHandler(async (req, res) => {
 //@Desc Get All Song
 //@Route GET api/v1/songs
 //@Access private
-exports.getAllSubjects = asyncHandler(async (req, res) => {
+exports.getAllSongs = asyncHandler(async (req, res) => {
   const songs = await Song.find();
 
   if (!songs) {
