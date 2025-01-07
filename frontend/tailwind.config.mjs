@@ -19,6 +19,10 @@ export default {
       backgroundImage: {
         'custom-gradient' : 'linear-gradient(90.14deg, #6CCBBE 0.12%, #4A0978 77.9%)'
       },
+      animation: {
+        customBounce: 'bounce 4s infinite',
+        slowPulse: 'pulse 3s infinite'
+      },
     },
   },
   plugins: [

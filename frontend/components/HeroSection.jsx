@@ -16,7 +16,7 @@ const HeroSection = () => {
           </p>
         </div>
         <div className="mt-14 sm:mt-24 lg:mt-20 lg:shrink-0 lg:grow">
-          <FaMusic className="text-[350px] text-[#70E3C7]" />
+          <FaMusic className="text-[350px] text-[#70E3C7] animate-customBounce " />
         </div>
       </div>
     </div>
