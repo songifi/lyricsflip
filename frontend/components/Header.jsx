@@ -59,7 +59,7 @@ const Header = () => {
             ))}
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-            <Link href="#" className="text-sm/6 font-semibold text-[#490878] px-3 py-1.5 text-center rounded-lg bg-[##]">
+            <Link href="#" className="text-sm/6 font-semibold text-[#490878] px-3 py-1.5 text-center rounded-lg bg-[#70E3C7]">
               Connect Wallet
             </Link>
           </div>
