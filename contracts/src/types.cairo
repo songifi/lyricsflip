@@ -2,7 +2,7 @@ use starknet::ContractAddress;
 
 #[derive(Drop, Serde, starknet::Store)]
 pub struct Card {
-    pub cardId: u64,
+    pub card_id: u64,
     pub genre: felt252,
     pub artist: ByteArray,
     pub title: ByteArray,
@@ -26,9 +26,9 @@ pub enum Genre {
 pub struct Round {
     pub round_id: u64,
     pub player: ContractAddress,
+    // pub category: Category,
     pub wager_amount: u256,
     pub start_time: u64,
-    pub is_active: bool,
+    pub is_started: bool,
     pub end_time: u64,
 }
-
