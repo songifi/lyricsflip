@@ -104,21 +104,21 @@ const GameCard = ({ lyricsSnippet, correctAnswer, onTimeout, onSuccess }) => {
       )}
 
       <motion.div
-        className="relative mt-40 w-96 h-64 mx-auto"
+        className="relative mt-32 w-[560px] h-72 mx-auto"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: 1.5 }}
         style={{
           transformStyle: "preserve-3d",
           perspective: "1000px",
         }}
       >
         {/* Front of card */}
-        <div className="absolute w-full h-full backface-hidden bg-white p-4 rounded-lg shadow-6xl">
+        <div className="absolute w-full h-full backface-hidden bg-white p-4 rounded-lg shadow-2xl">
           <div className="lyrics-snippet mt-8 text-lg pt-8 font-medium text-black sm:text-2xl/8">
             <h2>{lyricsSnippet}</h2>
           </div>
           <div
-            className={` px-10 py-2 rounded-full border mx-20 ${
+            className={` px-4 py-4 rounded-full border mx-auto max-w-28 text-xs whitespace-nowrap ${
               timeLeft < 5 ? "bg-red-500" : "bg-gray-700"
             } text-white mt-4`}
           >

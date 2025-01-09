@@ -36,7 +36,7 @@ const Game = () => {
   return (
     <div
       id="game"
-      className=""
+      // className="bg-[#70E3C7]"
       style={{
         backgroundImage: "url('/img/hero-background.svg')",
         backgroundRepeat: "no-repeat",
