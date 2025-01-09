@@ -9,7 +9,7 @@ const { hashPassword, isPasswordMatched } = require("../../utils/helpers");
 //@Route POST api/v1/admins/register
 //@Access Private
 exports.registerAdminController = asyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, email, password,  } = req.body;
 
   //check if email exist
   const adminFound = await Admin.findOne({ email });
