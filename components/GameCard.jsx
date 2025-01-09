@@ -50,6 +50,48 @@ const GameCard = ({ lyricsSnippet, correctAnswer, onTimeout, onSuccess }) => {
     }
   };
 
+  const getButtonText = () => {
+    switch (gameState) {
+      case "playing":
+        return "Submit";
+      case "success":
+        return "Keep Going!";
+      case "failed":
+        return "Play Again";
+      default:
+        return "Submit";
+    }
+  };
+
+  const getButtonStyles = () => {
+    const baseStyles =
+      "text-sm/6 font-semibold px-3 py-1.5 text-center rounded-lg transition-colors ";
+
+    switch (gameState) {
+      case "playing":
+        return baseStyles + "text-[#490878] bg-[#92f2da] hover:bg-[#5bc4ab]";
+      case "success":
+        return baseStyles + "text-white bg-green-500 hover:bg-green-600";
+      case "failed":
+        return baseStyles + "text-white bg-red-500 hover:bg-red-600";
+      default:
+        return baseStyles + "text-[#490878] bg-[#70E3C7]";
+    }
+  };
+
+  const handleButtonClick = () => {
+    if (gameState === "playing") {
+      handleSubmit();
+    } else {
+      // Reset game state
+      setGameState("playing");
+      setIsFlipped(false);
+      setGuess("");
+      setTimeLeft(15);
+      setShowConfetti(false);
+    }
+  };
+
   return (
     <div className="relative">
       {showConfetti && (
@@ -62,7 +104,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer, onTimeout, onSuccess }) => {
       )}
 
       <motion.div
-        className="relative w-96 h-96 mx-auto"
+        className="relative mt-40 w-96 h-64 mx-auto"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 0.6 }}
         style={{
@@ -86,7 +128,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer, onTimeout, onSuccess }) => {
 
         {/* Back of card */}
         <div
-          className="absolute w-full h-full backface-hidden bg-white p-4 rounded-lg shadow-6xl"
+          className="absolute w-full h-full backface-hidden bg-white p-4 rounded-lg shadow-2xl"
           style={{ transform: "rotateY(180deg)" }}
         >
           <div className="flex flex-col items-center justify-center h-full">
@@ -95,14 +137,18 @@ const GameCard = ({ lyricsSnippet, correctAnswer, onTimeout, onSuccess }) => {
                 <h3 className="text-2xl font-bold text-green-600 mb-4">
                   Correct!
                 </h3>
-                <p className="text-lg">The answer is: {correctAnswer}</p>
+                <p className="text-lg text-black">
+                  The answer is: {correctAnswer}
+                </p>
               </div>
             ) : (
               <div className="text-center">
                 <h3 className="text-2xl font-bold text-red-600 mb-4">
                   {timeLeft === 0 ? "Time's Up!" : "Incorrect!"}
                 </h3>
-                <p className="text-lg">The answer was: {correctAnswer}</p>
+                <p className="text-lg text-black">
+                  The answer was: {correctAnswer}
+                </p>
               </div>
             )}
           </div>
@@ -121,14 +167,10 @@ const GameCard = ({ lyricsSnippet, correctAnswer, onTimeout, onSuccess }) => {
                      disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <button
-          onClick={handleSubmit}
-          disabled={gameState !== "playing"}
-          className="ml-36 text-sm/6 font-semibold text-[#490878] px-3 py-1.5 
-                   text-center rounded-lg bg-[#70E3C7] 
-                   disabled:opacity-50 disabled:cursor-not-allowed
-                   hover:bg-[#5bc4ab] transition-colors"
+          onClick={handleButtonClick}
+          className={`ml-32 ${getButtonStyles()}`}
         >
-          Submit
+          {getButtonText()}
         </button>
       </div>
     </div>
