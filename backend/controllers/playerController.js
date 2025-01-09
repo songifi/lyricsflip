@@ -4,10 +4,10 @@ const { hashPassword, isPassMatched } = require("../../utils/helpers");
 const generateToken = require("../../utils/generateToken");
 
 //@Desc Admin Register Player
-//@Route POST api/v1/player/admins/register
-//@Access private - Admin only
+//@Route POST api/v1/player/register
+//@Access public - 
 exports.registerPlayer = AsyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { email, username, password } = req.body;
 
   //check if player already exist
   const playerFound = await Player.findOne({ email });
@@ -20,8 +20,8 @@ exports.registerPlayer = AsyncHandler(async (req, res) => {
 
   //Create
   const playerCreated = await Player.create({
-    name,
-    email,
+      email,
+      username,
     password: hashedPassword,
   });
 
@@ -114,7 +114,7 @@ exports.getSinglePlayerByAdminController = AsyncHandler(async (req, res) => {
 //@Route PUT api/v1/players/:sutudentId/update
 //@Access private - Player only
 exports.playerUpdateProfileController = AsyncHandler(async (req, res) => {
-  const { name, email, password } = req.body;
+  const { email, username, password } = req.body;
 
   const emailExist = await Player.findOne({ email });
 
@@ -128,9 +128,9 @@ exports.playerUpdateProfileController = AsyncHandler(async (req, res) => {
     const player = await Player.findByIdAndUpdate(
       req.userAuth._id,
       {
-        email,
+          email,
+          username,
         password: await hashPassword(password),
-        name,
       },
       {
         new: true,
@@ -141,15 +141,15 @@ exports.playerUpdateProfileController = AsyncHandler(async (req, res) => {
     res.status(200).json({
       status: "success",
       data: player,
-      message: "Admin Profile Updated Successfully",
+      message: "Player Profile Updated Successfully",
     });
   } else {
-    //Update Teacher
+    //Update Player
     const player = await Teacher.findByIdAndUpdate(
       req.userAuth._id,
       {
         email,
-        name,
+          username
       },
       {
         new: true,
