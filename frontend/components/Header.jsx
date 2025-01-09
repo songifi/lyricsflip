@@ -1,19 +1,29 @@
-'use client'
+"use client";
 
 import { useState } from "react";
-import { Dialog, DialogPanel } from '@headlessui/react'
+import { Dialog, DialogPanel } from "@headlessui/react";
 import Link from "next/link";
 import Image from "next/image";
 import { MdOutlineMenu } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
 
-
 const navigation = [
-    { name: 'Play Now ', href: '#' },
-  { name: 'How to Play', href: '#' },
+  { name: "Play Now", href: "#game", isScroll: true },
+  { name: "Categories", href: "#", isScroll: false },
+  { name: "Leaderboard", href: "#", isScroll: false },
+  { name: "How to Play", href: "#", isScroll: false },
+];
 
-    { name: 'Leaderboard', href: '#' },
-]
+const handleScroll = (e, isScroll) => {
+  if (!isScroll) return;
+
+  e.preventDefault();
+  const element = document.getElementById("game");
+  if (element) {
+    element.scrollIntoView({ behavior: "smooth" });
+    setMobileMenuOpen(false);
+  }
+};
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -52,6 +62,7 @@ const Header = () => {
               <a
                 key={item.name}
                 href={item.href}
+                onClick={(e) => handleScroll(e, item.isScroll)}
                 className="text-sm/6 font-semibold text-white"
               >
                 {item.name}
@@ -59,7 +70,10 @@ const Header = () => {
             ))}
           </div>
           <div className="hidden lg:flex lg:flex-1 lg:justify-end">
-            <Link href="#" className="text-sm/6 font-semibold text-[#490878] px-3 py-1.5 text-center rounded-lg bg-[#70E3C7]">
+            <Link
+              href="#"
+              className="text-sm/6 font-semibold text-[#490878] px-3 py-1.5 text-center rounded-lg bg-[#70E3C7]"
+            >
               Connect Wallet
             </Link>
           </div>

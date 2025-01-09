@@ -19,3 +19,32 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.game-card {
+  @apply bg-gray-800 text-white p-6 rounded-lg shadow-lg;
+}
+.lyrics-snippet {
+  @apply text-lg font-semibold mb-4;
+}
+.timer {
+  @apply text-red-500 font-bold text-xl mb-4;
+}
+.guess-input {
+  @apply w-full p-2 border rounded-lg mb-4;
+}
+.submit-btn {
+  @apply bg-blue-500 text-white px-4 py-2 rounded-lg;
+}
+.success-message {
+  @apply text-green-500 font-bold mt-4;
+}
+.timeout-message {
+  @apply text-yellow-500 font-bold mt-4;
+}
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
