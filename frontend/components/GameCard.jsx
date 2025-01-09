@@ -155,7 +155,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer, onTimeout, onSuccess }) => {
         </div>
       </motion.div>
 
-      <div className="w-96 mx-auto p-4 mt-4">
+      <div className="w-96 mx-auto p-4 mt-4 flex flex-col items-center">
         <input
           type="text"
           value={guess}
@@ -164,12 +164,9 @@ const GameCard = ({ lyricsSnippet, correctAnswer, onTimeout, onSuccess }) => {
           placeholder="Type your guess here"
           disabled={gameState !== "playing"}
           className="input input-bordered input-lg w-full max-w-sm mb-4 text-black bg-gray-200 
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+               disabled:opacity-50 disabled:cursor-not-allowed"
         />
-        <button
-          onClick={handleButtonClick}
-          className={`ml-32 ${getButtonStyles()}`}
-        >
+        <button onClick={handleButtonClick} className={getButtonStyles()}>
           {getButtonText()}
         </button>
       </div>
