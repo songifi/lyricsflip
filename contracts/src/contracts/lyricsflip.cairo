@@ -14,6 +14,7 @@ pub mod LyricsFlip {
         pub const NOT_ROUND_ADMIN: felt252 = 'Only round admin can start';
         pub const ROUND_ALREADY_STARTED: felt252 = 'Round already started';
         pub const NON_EXISTING_GENRE: felt252 = 'Genre does not exists';
+        pub const ROUND_ALREADY_JOINED: felt252 = 'You are already a player';
     }
 
     #[storage]
@@ -146,9 +147,7 @@ pub mod LyricsFlip {
                 .emit(
                     Event::RoundCreated(
                         RoundCreated {
-                            round_id,
-                            admin: caller_address,
-                            created_time: get_block_timestamp()
+                            round_id, admin: caller_address, created_time: get_block_timestamp()
                         }
                     )
                 );
@@ -177,13 +176,14 @@ pub mod LyricsFlip {
         }
 
         fn join_round(ref self: ContractState, round_id: u64) {
+            let caller_address = get_caller_address();
             assert(self.rounds.entry(round_id).round_id.read() != 0, Errors::NON_EXISTING_ROUND);
+            assert(!self.is_round_player(round_id, caller_address), Errors::ROUND_ALREADY_JOINED);
 
             let round = self.rounds.entry(round_id);
 
             assert(!round.is_started.read(), Errors::ROUND_ALREADY_STARTED);
 
-            let caller_address = get_caller_address();
             let round_players_count = self.round_players_count.entry(round_id).read();
             self.round_players.entry(round_id).entry(round_players_count).write(caller_address);
             self.round_players_count.entry(round_id).write(round_players_count + 1);

@@ -167,7 +167,7 @@ fn test_create_round_should_panic_with_unknown_genre() {
 
 #[test]
 #[should_panic(expected: ('Only round admin can start',))]
-fn test_start_round_should_panic_with_invalid_player() {
+fn test_start_round_should_panic_with_only_admin() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
@@ -208,6 +208,24 @@ fn test_join_round_should_panic_with_round_already_started() {
     stop_cheat_caller_address(lyricsflip.contract_address);
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());
 
+    lyricsflip.join_round(round_id);
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+#[should_panic(expected: ('You are already a player',))]
+fn test_join_round_should_panic_with_already_joined() {
+    let lyricsflip = deploy();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop));
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());
+
+    lyricsflip.join_round(round_id);
     lyricsflip.join_round(round_id);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
