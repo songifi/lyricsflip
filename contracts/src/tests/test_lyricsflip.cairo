@@ -82,8 +82,15 @@ fn test_start_round() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     let round = lyricsflip.get_round(round_id);
+
     assert(round.start_time == get_block_timestamp(), 'wrong start_time');
     assert(round.is_started == true, 'wrong is_started');
+
+    let round_players = lyricsflip.get_round_players(round_id);
+
+    assert(lyricsflip.get_players_round_count(round_id) == 1, 'wrong players count');
+    assert(*round_players.at(0) == PLAYER_1(), 'wrong player address');
+    assert(lyricsflip.is_round_player(round_id, PLAYER_1()), 'wrong is_player value');
 
     spy
         .assert_emitted(
@@ -141,8 +148,8 @@ fn test_join_round() {
 
     let round_players = lyricsflip.get_round_players(round_id);
 
-    assert(lyricsflip.get_players_round_count(round_id) == 1, 'wrong players count');
-    assert(*round_players.at(0) == PLAYER_2(), 'wrong player address');
+    assert(lyricsflip.get_players_round_count(round_id) == 2, 'wrong players count');
+    assert(*round_players.at(1) == PLAYER_2(), 'wrong player address');
     assert(lyricsflip.is_round_player(round_id, PLAYER_2()), 'wrong is_player value');
 }
 

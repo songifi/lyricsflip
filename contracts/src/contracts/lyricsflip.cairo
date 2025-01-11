@@ -118,6 +118,7 @@ pub mod LyricsFlip {
         fn create_round(ref self: ContractState, genre: Option<Genre>) -> u64 {
             assert(genre.is_some(), Errors::NON_EXISTING_GENRE);
 
+            let caller_address = get_caller_address();
             let cards = self.get_random_cards();
 
             let round_id = self.round_count.read() + 1;
@@ -131,7 +132,11 @@ pub mod LyricsFlip {
                 end_time: 0, //TODO
             };
 
+            let round_players_count = self.round_players_count.entry(round_id).read();
+            self.round_players.entry(round_id).entry(round_players_count).write(caller_address);
+            self.round_players_count.entry(round_id).write(round_players_count + 1);
             self.rounds.entry(round_id).write(round);
+
             for i in 0
                 ..cards.len() {
                     self.round_cards.entry(round_id).append().write(*cards.at(i))
