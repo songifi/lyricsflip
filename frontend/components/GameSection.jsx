@@ -1,6 +1,7 @@
 "use client";
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import GameCard from "../components/GameCard";
+import { useGameData } from "@/hooks/useGameData";
 
 const POINTS_PER_CORRECT = 10;
 const REVIVE_COST = 5;
@@ -8,47 +9,8 @@ const REVIVE_COST = 5;
 const Game = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [points, setPoints] = useState(0);
-  const [questions, setQuestions] = useState([
-    {
-      lyricsSnippet:
-        "I hate a bitch that's hatin' on a bitch and they both hoes",
-      correctAnswer: "TV OFF",
-    },
-    {
-      lyricsSnippet: "Just a small-town girl, living in a lonely world...",
-      correctAnswer: "Don't Stop Believin'",
-    },
-    {
-      lyricsSnippet: "Is this the real life? Is this just fantasy?",
-      correctAnswer: "Bohemian Rhapsody",
-    },
-    {
-      lyricsSnippet:
-        "I chop akara when moi moi no dey, as long as e full my belle me i'm ok",
-      correctAnswer: "Bundle by Bundle",
-    },
-    {
-      lyricsSnippet:
-        "In my tiny apartment, I loved your body often. And I don't even know when you're coming home",
-      correctAnswer: "Tiny Apartment",
-    },
-  ]);
 
-  // Fisher-Yates shuffle algorithm for randomizing questions
-  const shuffleQuestions = useCallback(() => {
-    const shuffled = [...questions];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    setQuestions(shuffled);
-    setCurrentQuestionIndex(0);
-  }, [questions]);
-
-  // Initialize game with shuffled questions
-  useState(() => {
-    shuffleQuestions();
-  }, [shuffleQuestions]);
+  const { questions, loading, error, refreshQuestions } = useGameData(5); // Fetch 5 questions
 
   const handleTimeout = () => {
     console.log("Time's up!");
@@ -58,7 +20,6 @@ const Game = () => {
     setPoints((prev) => prev + POINTS_PER_CORRECT);
     console.log("Congratulations! +10 points awarded.");
 
-    // Only increment question index if there are more questions
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
@@ -73,9 +34,37 @@ const Game = () => {
   };
 
   const handleGameReset = () => {
-    shuffleQuestions();
+    refreshQuestions();
     setPoints(0);
+    setCurrentQuestionIndex(0);
   };
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            Error Loading Questions
+          </h2>
+          <p className="text-gray-700 mb-4">{error}</p>
+          <button
+            onClick={refreshQuestions}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -88,8 +77,8 @@ const Game = () => {
     >
       <div className="p-10 h-full w-full">
         <GameCard
-          lyricsSnippet={questions[currentQuestionIndex].lyricsSnippet}
-          correctAnswer={questions[currentQuestionIndex].correctAnswer}
+          lyricsSnippet={questions[currentQuestionIndex]?.lyricsSnippet}
+          correctAnswer={questions[currentQuestionIndex]?.correctAnswer}
           onTimeout={handleTimeout}
           onSuccess={handleSuccess}
           onRevive={handleRevive}

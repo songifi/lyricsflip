@@ -22,9 +22,10 @@ const GameCard = ({
   const [gameState, setGameState] = useState("playing");
   const [isFlipped, setIsFlipped] = useState(false);
   const [showReviveOption, setShowReviveOption] = useState(false);
-  const [currentAnswer, setCurrentAnswer] = useState(correctAnswer); // Store current answer
+  const [currentAnswer, setCurrentAnswer] = useState(correctAnswer);
 
-  // Update currentAnswer when a new question is loaded and card is front-facing
+  // Update currentAnswer when a new question is loaded and card is front-facing,
+  // try adding a few seconds timer so that the answer does not show before the question is displayed
   useEffect(() => {
     if (!isFlipped) {
       setCurrentAnswer(correctAnswer);
@@ -70,7 +71,6 @@ const GameCard = ({
     // First, flip the card back
     setIsFlipped(false);
 
-    // Reset the game state after the flip animation
     setTimeout(() => {
       setGameState("playing");
       setGuess("");
