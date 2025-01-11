@@ -60,6 +60,12 @@ fn test_create_round() {
     assert(round.start_time == 0, 'wrong start_time');
     assert(round.is_started == false, 'wrong is_started');
     assert(round.end_time == 0, 'wrong end_time');
+
+    let round_cards = lyricsflip.get_round_cards(round_id);
+    // Atm following assertions are hardcoded
+    // Must be dynamic when the `get_random_cards()` function is coded
+    assert(*round_cards.at(0) == 1, 'wrong card 0');
+    assert(*round_cards.at(1) == 2, 'wrong card 1');
 }
 
 #[test]
