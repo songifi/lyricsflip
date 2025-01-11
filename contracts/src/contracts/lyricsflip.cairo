@@ -124,7 +124,7 @@ pub mod LyricsFlip {
             let round_id = self.round_count.read() + 1;
             let round = Round {
                 round_id,
-                admin: get_caller_address(),
+                admin: caller_address,
                 genre: genre.unwrap(),
                 wager_amount: 0, // TODO
                 start_time: 0,
@@ -147,7 +147,7 @@ pub mod LyricsFlip {
                     Event::RoundCreated(
                         RoundCreated {
                             round_id,
-                            admin: get_caller_address(),
+                            admin: caller_address,
                             created_time: get_block_timestamp()
                         }
                     )
