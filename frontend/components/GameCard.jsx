@@ -14,7 +14,8 @@ const GameCard = ({
   onRevive,
   onReset,
   points,
-  isLastQuestion,
+  questionsCompleted,
+  // isLastQuestion,
 }) => {
   const [guess, setGuess] = useState("");
   const [timeLeft, setTimeLeft] = useState(15);
@@ -160,14 +161,17 @@ const GameCard = ({
                 <p className="text-lg text-black mb-4">
                   The answer is: {currentAnswer}
                 </p>
-                {!isLastQuestion && (
+                <div className="flex flex-col gap-2">
                   <button
                     onClick={handleNextQuestion}
                     className="text-white bg-green-500 hover:bg-green-600 font-semibold px-4 py-2 rounded-lg"
                   >
                     Next Question
                   </button>
-                )}
+                  <p className="text-sm text-gray-600">
+                    Questions completed: {questionsCompleted}
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="text-center">

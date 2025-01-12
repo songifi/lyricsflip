@@ -9,8 +9,9 @@ const REVIVE_COST = 5;
 const Game = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [points, setPoints] = useState(0);
+  const [questionsCompleted, setQuestionsCompleted] = useState(0);
 
-  const { questions, loading, error, refreshQuestions } = useGameData(5); // Fetch 5 questions
+  const { questions, loading, error, refreshQuestions } = useGameData(10);
 
   const handleTimeout = () => {
     console.log("Time's up!");
@@ -18,9 +19,14 @@ const Game = () => {
 
   const handleSuccess = () => {
     setPoints((prev) => prev + POINTS_PER_CORRECT);
+    setQuestionsCompleted((prev) => prev + 1);
     console.log("Congratulations! +10 points awarded.");
 
-    if (currentQuestionIndex < questions.length - 1) {
+    // If we're at the end of questions array, refresh questions and reset index
+    if (currentQuestionIndex === questions.length - 1) {
+      refreshQuestions();
+      setCurrentQuestionIndex(0);
+    } else {
       setCurrentQuestionIndex((prev) => prev + 1);
     }
   };
@@ -37,6 +43,7 @@ const Game = () => {
     refreshQuestions();
     setPoints(0);
     setCurrentQuestionIndex(0);
+    setQuestionsCompleted(0);
   };
 
   if (loading) {
@@ -84,7 +91,8 @@ const Game = () => {
           onRevive={handleRevive}
           onReset={handleGameReset}
           points={points}
-          isLastQuestion={currentQuestionIndex === questions.length - 1}
+          questionsCompleted={questionsCompleted}
+          // isLastQuestion={false}
         />
       </div>
     </div>

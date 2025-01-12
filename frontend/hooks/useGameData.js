@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import GeniusService from "../services/geniusService";
 
-export function useGameData(questionCount = 5) {
+export function useGameData(questionCount = 10) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,7 +14,7 @@ export function useGameData(questionCount = 5) {
       // Fetch random song snippets from GeniusService
       const geniusService = GeniusService.getInstance();
       const snippets = await geniusService.getRandomLyricSnippets(
-        "popular",
+        "a",
         questionCount
       );
 
