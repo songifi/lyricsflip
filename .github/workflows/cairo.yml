@@ -1,32 +1,27 @@
 name: LyricsFlip Contracts
 
 on:
+  workflow_dispatch:
   push:
+    branches:
+      - main
   pull_request:
+permissions: read-all
 jobs:
-  check:
+  build:
     runs-on: ubuntu-latest
-    env:
-      working-directory: contracts
     steps:
-      - uses: actions/checkout@v3
-      - uses: software-mansion/setup-scarb@v1
-        with:
-            scarb-version: "2.8.4"
-    
-      - name: Install StarkNet Foundry
-        run: |
-          curl -L https://raw.githubusercontent.com/foundry-rs/starknet-foundry/master/scripts/install.sh | sh
-          snfoundryup -v 0.31.0
-
-      - name: Check format
-        working-directory: ${{env.working-directory}}
-        run: scarb fmt --check
-
-      - name: Tests Contracts
-        working-directory: ${{env.working-directory}}
-        run: scarb test
-
-      - name: Build Contracts
-        working-directory: ${{env.working-directory}}
-        run: scarb build
+      - uses: actions/checkout@v4
+      - uses: asdf-vm/actions/install@v3
+      - run: scarb fmt --check
+        working-directory: contracts
+      - run: scarb build
+        working-directory: contracts
+  
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: asdf-vm/actions/install@v3
+      - run: snforge test
+        working-directory: contracts
