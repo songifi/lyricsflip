@@ -32,7 +32,13 @@ export default async function handler(req, res) {
 
     res.status(200).json({ lyrics });
   } catch (error) {
-    console.error("Error fetching lyrics:", error);
+    console.error("Detailed error info:", {
+      errorMessage: error.message,
+      errorStack: error.stack,
+      memoryUsage: process.memoryUsage(),
+      nodeEnv: process.env.NODE_ENV,
+      hasGeniusToken: !!process.env.GENIUS_ACCESS_TOKEN,
+    });
     res.status(500).json({ message: "Failed to fetch lyrics" });
   }
 }
