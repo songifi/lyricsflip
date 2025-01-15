@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, forwardRef, Inject } from '@nestjs/common';
 import { UserService } from 'src/user/providers/user.service';
+import { SignInDto } from '../dtos/signIn.dto';
 
 @Injectable()
 export class AuthService {
@@ -8,17 +9,11 @@ export class AuthService {
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
   ) {}
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public login(email: string, password: string) {
-    //Check if the user exists in the database
-    const user = this.userService.findOneBy({email});
-    // your login logic
 
-    // Token
-    return 'SAMPLE TOKEN';
-  }
-
-  public isAuth() {
-    return true;
+  public signIn(signInDto: SignInDto) {
+    //Find the user using email
+    //If the user is not found throw an error
+    //Compare the password
+    // Confirmation Message
   }
 }
