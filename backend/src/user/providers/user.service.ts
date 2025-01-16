@@ -10,9 +10,9 @@ export class UserService {
 
     //Inject findoneuserbyemailprovider
     private readonly findOneUserByEmailProvider: FindOneUserByEmailProvider,
-  ) { }
-  
+  ) {}
+
   public async findUserByEmail(email: string) {
     return await this.findOneUserByEmailProvider.findOneUserByEmail(email);
-   }
+  }
 }
