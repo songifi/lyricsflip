@@ -1,11 +1,11 @@
-import axios from "axios";
-import { load } from "cheerio";
+import songsData from "./songs-data.json";
 
 class GeniusService {
   static instance = null;
 
   constructor() {
     this.cache = new Map();
+    this.songs = songsData.songs;
   }
 
   static getInstance() {
@@ -16,30 +16,13 @@ class GeniusService {
   }
 
   async fetchSongs(query) {
-    try {
-      const response = await axios.get("/api/genius/songs", {
-        params: { query },
-      });
-      return response.data.response.hits.map((hit) => hit.result);
-    } catch (error) {
-      console.error("Error fetching songs:", error);
-      throw new Error("Failed to fetch songs from Genius API");
-    }
-  }
-
-  async fetchLyrics(songUrl) {
-    try {
-      const response = await axios.get("/api/genius/lyrics", {
-        params: { songUrl },
-      });
-
-      const rawLyrics = response.data.lyrics;
-      const cleanedLyrics = rawLyrics.replace(/<[^>]*>/g, ""); // Strip HTML tags
-      return cleanedLyrics;
-    } catch (error) {
-      console.error("Error fetching lyrics:", error);
-      throw new Error("Failed to fetch lyrics");
-    }
+    // Filter songs based on the query
+    return this.songs.filter(
+      (song) =>
+        song.title.toLowerCase().includes(query.toLowerCase()) ||
+        song.artist.toLowerCase().includes(query.toLowerCase()) ||
+        song.genre.toLowerCase().includes(query.toLowerCase())
+    );
   }
 
   async getRandomLyricSnippets(query, count = 5) {
@@ -53,11 +36,11 @@ class GeniusService {
           continue;
         }
 
-        const lyrics = await this.fetchLyrics(song.url);
         const snippet = {
-          lyricsSnippet: this.extractSnippet(lyrics),
+          lyricsSnippet: this.extractSnippet(song.lyrics),
           songTitle: song.title,
-          artist: song.primary_artist.name,
+          artist: song.artist,
+          genre: song.genre,
         };
 
         this.cache.set(song.id, snippet);
@@ -72,19 +55,17 @@ class GeniusService {
   }
 
   extractSnippet(lyrics) {
-    // Split lyrics into sentences or phrases based on logical separators
     const lines = lyrics
-      .split(/(?:[.!?]|\[.*?\])/)
+      .split(/\n/)
       .map((line) => line.trim())
       .filter(Boolean);
 
     if (lines.length === 0) return "Lyrics unavailable";
 
-    const snippetLength = 1; // Number of phrases to include in the snippet
-    const startIndex = Math.max(
-      0,
-      Math.floor(Math.random() * (lines.length - snippetLength + 1))
-    ); // Random start index
+    const snippetLength = 1;
+    const startIndex = Math.floor(
+      Math.random() * (lines.length - snippetLength + 1)
+    );
 
     let snippet = lines.slice(startIndex, startIndex + snippetLength).join(" ");
 
