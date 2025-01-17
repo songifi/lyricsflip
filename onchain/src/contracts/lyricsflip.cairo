@@ -1,7 +1,7 @@
 #[starknet::contract]
 pub mod LyricsFlip {
-    use core::traits::Into;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
+    use lyricsflip::utils::errors::Errors;
     use lyricsflip::utils::types::{Card, Genre, Round};
     use starknet::storage::{
         StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry, Map, Vec,
@@ -9,13 +9,6 @@ pub mod LyricsFlip {
     };
     use starknet::{get_caller_address, get_block_timestamp, ContractAddress};
 
-    pub mod Errors {
-        pub const NON_EXISTING_ROUND: felt252 = 'Round does not exists';
-        pub const NOT_ROUND_ADMIN: felt252 = 'Only round admin can start';
-        pub const ROUND_ALREADY_STARTED: felt252 = 'Round already started';
-        pub const NON_EXISTING_GENRE: felt252 = 'Genre does not exists';
-        pub const ROUND_ALREADY_JOINED: felt252 = 'You are already a player';
-    }
 
     #[storage]
     struct Storage {
@@ -24,8 +17,9 @@ pub mod LyricsFlip {
         cards_per_round: u8,
         cards: Map<u64, Card>,
         rounds: Map<u64, Round>, // round_id -> Round
-        round_owner: Map<ContractAddress, Round>,
-        round_players: Map<u64, Map<u256, ContractAddress>>,
+        round_players: Map<
+            u64, Map<u256, ContractAddress>
+        >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
         round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
     }
