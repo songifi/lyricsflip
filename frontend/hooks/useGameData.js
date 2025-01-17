@@ -14,7 +14,7 @@ export function useGameData(questionCount = 10) {
       // Fetch random song snippets from GeniusService
       const geniusService = GeniusService.getInstance();
       const snippets = await geniusService.getRandomLyricSnippets(
-        "a",
+        "",
         questionCount
       );
 
