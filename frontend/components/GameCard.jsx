@@ -114,7 +114,7 @@ const GameCard = ({
   };
 
   return (
-    <div className="relative">
+    <div className="relative  ">
       {showConfetti && (
         <Confetti
           width={window.innerWidth}
@@ -125,7 +125,7 @@ const GameCard = ({
       )}
 
       <motion.div
-        className="relative mt-32 w-[560px] h-72 mx-auto"
+        className="relative mt-32 w-72 md:w-[560px] h-72 mx-auto"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 1.5 }}
         style={{
@@ -135,7 +135,7 @@ const GameCard = ({
       >
         {/* Front of card */}
         <div className="absolute w-full h-full backface-hidden bg-gray-100 opacity-85 p-4 rounded-lg shadow-2xl">
-          <div className="lyrics-snippet mt-8 text-lg pt-8 font-medium text-black sm:text-2xl/8">
+          <div className="lyrics-snippet mt-8 mx-auto text-lg pt-8 font-medium text-black sm:text-2xl/8">
             <h2>{lyricsSnippet}</h2>
           </div>
           <div
@@ -213,7 +213,7 @@ const GameCard = ({
           onKeyPress={handleKeyPress}
           placeholder="Type your guess here"
           disabled={gameState !== "playing"}
-          className="input input-bordered input-lg w-full max-w-sm mb-4 text-black bg-gray-200 
+          className="input input-bordered input-lg md:w-full max-w-xs md:max-w-sm mb-4 text-black bg-gray-200 
                disabled:opacity-50 disabled:cursor-not-allowed"
         />
         {gameState === "playing" && (
