@@ -10,7 +10,7 @@ pub struct Card {
     pub lyrics: ByteArray,
 }
 
-#[derive(Drop, Copy, Serde, starknet::Store)]
+#[derive(Drop, Copy, Serde, PartialEq, starknet::Store)]
 pub enum Genre {
     HipHop,
     Pop,
@@ -25,7 +25,8 @@ pub enum Genre {
 #[derive(Drop, Copy, Serde, starknet::Store)]
 pub struct Round {
     pub round_id: u64,
-    pub player: ContractAddress,
+    pub admin: ContractAddress,
+    pub genre: Genre,
     // pub category: Category,
     pub wager_amount: u256,
     pub start_time: u64,
