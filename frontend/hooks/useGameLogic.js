@@ -1,24 +1,22 @@
 import { useState, useEffect } from "react";
+import { useGameStore } from "../store/gameStore";
 import GeniusService from "../services/geniusService";
 
-export function useGameData(questionCount = 10) {
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export function useGameLogic(questionCount = 10) {
+  const { setQuestions, setLoading, setError, questions, loading, error } =
+    useGameStore();
 
   const fetchQuestions = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch random song snippets from GeniusService
       const geniusService = GeniusService.getInstance();
       const snippets = await geniusService.getRandomLyricSnippets(
         "",
         questionCount
       );
 
-      // data structure needed by the game
       setQuestions(
         snippets.map((snippet) => ({
           lyricsSnippet: snippet.lyricsSnippet,
@@ -34,7 +32,6 @@ export function useGameData(questionCount = 10) {
 
   useEffect(() => {
     fetchQuestions();
-    // console.log(lyricsSnippet);
   }, [questionCount]);
 
   return {

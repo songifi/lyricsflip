@@ -25,7 +25,7 @@ class GeniusService {
     );
   }
 
-  async getRandomLyricSnippets(query, count = 5) {
+  async getRandomLyricSnippets(query, count) {
     try {
       const songs = await this.fetchSongs(query);
       const snippets = [];
