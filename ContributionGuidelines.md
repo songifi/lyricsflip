@@ -2,6 +2,8 @@
 
 Hey there, music lover and coding wizard! 🎤 Ready to flip some lyrics and create magic? Before diving in, here are a few fun ground rules to keep things harmonious:  
 
+IF AN ISSUE IS TAGGED FOR AN EVENT AND YOU APPLY FOR IT BEFORE THE EVENT, YOU ARE AUTOMATICALLY DISQUALIFIED FOR THAT ISSUE!!!
+
 1. Be Respectful, Stay Cool 😎
    We’re all here to have fun and build something awesome. Treat everyone with respect, even if their code is offbeat.  
 
