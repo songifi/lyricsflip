@@ -1,83 +1,100 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Confetti from "react-confetti";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import Confetti from "react-confetti";
+import { useGameStore } from "../../store/gameStore";
 
-const REVIVE_COST = 5;
+const GameCard = ({ lyricsSnippet, correctAnswer }) => {
+  const {
+    handleSuccess,
+    handleRevive,
+    resetGame,
+    setRandomQuestion,
+    points,
+    questionsCompleted,
+    gameStatus,
+    setGameStatus,
+  } = useGameStore();
 
-const GameCard = ({
-  lyricsSnippet,
-  correctAnswer,
-  onTimeout,
-  onSuccess,
-  onRevive,
-  onReset,
-  points,
-  questionsCompleted,
-  // isLastQuestion,
-}) => {
   const [guess, setGuess] = useState("");
   const [timeLeft, setTimeLeft] = useState(15);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [gameState, setGameState] = useState("playing");
   const [isFlipped, setIsFlipped] = useState(false);
   const [showReviveOption, setShowReviveOption] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState(correctAnswer);
 
-  // Update currentAnswer when a new question is loaded and card is front-facing,
-  // try adding a few seconds timer so that the answer does not show before the question is displayed
+  // Update answer when new question loads
   useEffect(() => {
     if (!isFlipped) {
       setCurrentAnswer(correctAnswer);
     }
   }, [correctAnswer, isFlipped]);
 
+  // Timer logic
   useEffect(() => {
-    if (timeLeft > 0 && gameState === "playing") {
+    if (timeLeft > 0 && gameStatus === "playing") {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && gameState === "playing") {
+    } else if (timeLeft === 0 && gameStatus === "playing") {
       handleTimeout();
     }
-  }, [timeLeft, gameState]);
+  }, [timeLeft, gameStatus]);
 
   const handleTimeout = () => {
-    setGameState("failed");
+    setGameStatus("failed");
     setIsFlipped(true);
     setShowReviveOption(true);
-    onTimeout();
   };
 
   const handleSubmit = () => {
-    if (gameState !== "playing") return;
+    if (gameStatus !== "playing") return;
 
     if (guess.toLowerCase().trim() === currentAnswer.toLowerCase().trim()) {
-      setGameState("success");
+      handleSuccess();
       setShowConfetti(true);
       setIsFlipped(true);
-      onSuccess();
 
       setTimeout(() => {
         setShowConfetti(false);
       }, 5000);
     } else {
-      setGameState("failed");
+      setGameStatus("failed");
       setIsFlipped(true);
       setShowReviveOption(true);
     }
   };
 
   const handleNextQuestion = () => {
-    // First, flip the card back
     setIsFlipped(false);
 
     setTimeout(() => {
-      setGameState("playing");
+      setGameStatus("playing");
       setGuess("");
       setTimeLeft(15);
       setShowReviveOption(false);
-    }, 1500); // Match the flip animation duration
+    }, 1500);
+  };
+
+  const handlePlayAgain = () => {
+    setIsFlipped(false);
+
+    setTimeout(() => {
+      resetGame(); // This now includes setting a random question
+      setGuess("");
+      setTimeLeft(15);
+      setShowReviveOption(false);
+    }, 1500);
+  };
+
+  const handleReviveAttempt = () => {
+    if (handleRevive()) {
+      // handleRevive now includes setting a random question
+      setIsFlipped(false);
+      setShowReviveOption(false);
+      setTimeLeft(15);
+      setGuess("");
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -86,35 +103,9 @@ const GameCard = ({
     }
   };
 
-  const handleReviveClick = () => {
-    if (onRevive()) {
-      handleNextQuestion();
-    }
-  };
-
-  const handleResetClick = () => {
-    onReset();
-    handleNextQuestion();
-  };
-
-  const getButtonStyles = () => {
-    const baseStyles =
-      "text-sm/6 font-semibold px-3 py-1.5 text-center rounded-lg transition-colors ";
-
-    switch (gameState) {
-      case "playing":
-        return baseStyles + "text-[#490878] bg-[#92f2da] hover:bg-[#5bc4ab]";
-      case "success":
-        return baseStyles + "text-white bg-green-500 hover:bg-green-600";
-      case "failed":
-        return baseStyles + "text-white bg-red-500 hover:bg-red-600";
-      default:
-        return baseStyles + "text-[#490878] bg-[#70E3C7]";
-    }
-  };
-
+  // Rest of your component remains the same
   return (
-    <div className="relative  ">
+    <div className="relative">
       {showConfetti && (
         <Confetti
           width={window.innerWidth}
@@ -125,7 +116,7 @@ const GameCard = ({
       )}
 
       <motion.div
-        className="relative mt-32 w-72 md:w-[560px] h-72 mx-auto"
+        className="relative mt-32 w-[560px] h-72 mx-auto"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 1.5 }}
         style={{
@@ -135,7 +126,7 @@ const GameCard = ({
       >
         {/* Front of card */}
         <div className="absolute w-full h-full backface-hidden bg-gray-100 opacity-85 p-4 rounded-lg shadow-2xl">
-          <div className="lyrics-snippet mt-8 mx-auto text-lg pt-8 font-medium text-black sm:text-2xl/8">
+          <div className="lyrics-snippet mt-8 text-lg pt-8 font-medium text-black sm:text-2xl/8">
             <h2>{lyricsSnippet}</h2>
           </div>
           <div
@@ -153,7 +144,7 @@ const GameCard = ({
           style={{ transform: "rotateY(180deg)" }}
         >
           <div className="flex flex-col items-center justify-center h-full">
-            {gameState === "success" ? (
+            {gameStatus === "success" ? (
               <div className="text-center">
                 <h3 className="text-2xl font-bold text-green-600 mb-4">
                   Correct!
@@ -183,16 +174,16 @@ const GameCard = ({
                 </p>
                 {showReviveOption && (
                   <div className="space-y-2">
-                    {points >= REVIVE_COST && (
+                    {points >= 5 && (
                       <button
-                        onClick={handleReviveClick}
+                        onClick={handleReviveAttempt}
                         className="w-full text-white bg-blue-500 hover:bg-blue-600 font-semibold px-4 py-2 rounded-lg mb-2"
                       >
-                        Revive (-{REVIVE_COST} points)
+                        Revive (-5 points)
                       </button>
                     )}
                     <button
-                      onClick={handleResetClick}
+                      onClick={handlePlayAgain}
                       className="w-full text-white bg-red-500 hover:bg-red-600 font-semibold px-4 py-2 rounded-lg"
                     >
                       Play Again
@@ -212,12 +203,15 @@ const GameCard = ({
           onChange={(e) => setGuess(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder="Type your guess here"
-          disabled={gameState !== "playing"}
-          className="input input-bordered input-lg md:w-full max-w-xs md:max-w-sm mb-4 text-black bg-gray-200 
+          disabled={gameStatus !== "playing"}
+          className="input input-bordered input-lg w-full max-w-sm mb-4 text-black bg-gray-200 
                disabled:opacity-50 disabled:cursor-not-allowed"
         />
-        {gameState === "playing" && (
-          <button onClick={handleSubmit} className={getButtonStyles()}>
+        {gameStatus === "playing" && (
+          <button
+            onClick={handleSubmit}
+            className="text-sm/6 font-semibold px-3 py-1.5 text-center rounded-lg transition-colors text-[#490878] bg-[#92f2da] hover:bg-[#5bc4ab]"
+          >
             Submit
           </button>
         )}
