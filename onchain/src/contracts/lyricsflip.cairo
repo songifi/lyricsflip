@@ -16,6 +16,9 @@ pub mod LyricsFlip {
         card_count: u64,
         cards_per_round: u8,
         cards: Map<u64, Card>,
+        genre_cards: Map<Genre, Vec<u64>>, // genre -> vec<card_ids>
+        artist_cards: Map<ByteArray, Vec<u64>>, // artist -> vec<card_ids>
+        year_cards: Map<u64, Vec<u64>>, // year -> vec<card_ids>
         rounds: Map<u64, Round>, // round_id -> Round
         round_players: Map<
             u64, Map<u256, ContractAddress>
@@ -124,7 +127,9 @@ pub mod LyricsFlip {
                 wager_amount: 0, // TODO
                 start_time: 0,
                 is_started: false,
+                is_completed: false,
                 end_time: 0, //TODO
+                current_card_index: 0,
             };
 
             let round_players_count = self.round_players_count.entry(round_id).read();
@@ -193,11 +198,41 @@ pub mod LyricsFlip {
         }
     }
 
+    // // TODO
+    // fn add_card(ref self: ContractState, card: Card) {}
+
+    // // TODO
+    // fn get_card(self: @ContractState, card_id: u64) -> Card {}
+
+    // // TODO
+    // fn set_cards_per_round(ref self: ContractState, value: u8) {}
+
+    // // TODO
+    // fn get_cards_per_round(self: @ContractState) -> u8 {}
+
+    // // TODO
+    // fn next_card(ref self: ContractState, round_id: u64) -> Card {
+    //     self._next_round_card()
+    // }
+
+    // // TODO
+    // fn get_cards_of_genre(self: @ContractState, genre: Genre) -> Span<Card> {}
+
+    // // TODO
+    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray) -> Span<Card> {}
+
+    // //TODO
+    // fn get_cards_of_a_year(self: @ContractState, year: u64) -> Span<Card> {}
+
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         //TODO
         fn get_random_cards(ref self: ContractState) -> Span<u64> {
             array![1, 2].span()
         }
+        // // TODO
+    // fn _next_round_card(ref self: ContractState, round_id: u64) -> Card {
+    //     // check round is started and is_completed is false
+    // }
     }
 }
