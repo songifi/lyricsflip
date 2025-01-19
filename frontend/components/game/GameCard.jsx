@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect , useRef } from "react";
 import { motion } from "framer-motion";
 import Confetti from "react-confetti";
 import { useGameStore } from "../../store/gameStore";
@@ -23,6 +23,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [showReviveOption, setShowReviveOption] = useState(false);
   const [currentAnswer, setCurrentAnswer] = useState(correctAnswer);
+  const inputRef = useRef(null);
 
   // Update answer when new question loads
   useEffect(() => {
@@ -49,6 +50,11 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
 
   const handleSubmit = () => {
     if (gameStatus !== "playing") return;
+
+    if (guess.trim() === "") {
+      inputRef.current.focus(); 
+      return;
+    }
 
     if (guess.toLowerCase().trim() === currentAnswer.toLowerCase().trim()) {
       handleSuccess();
@@ -95,6 +101,10 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
       setTimeLeft(15);
       setGuess("");
     }
+  };
+
+  const handleInputChange = (e) => {
+    setGuess(e.target.value);
   };
 
   const handleKeyPress = (e) => {
@@ -198,9 +208,10 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
 
       <div className="w-96 mx-auto p-4 mt-4 flex flex-col items-center">
         <input
+          ref={inputRef}
           type="text"
           value={guess}
-          onChange={(e) => setGuess(e.target.value)}
+          onChange={handleInputChange}
           onKeyPress={handleKeyPress}
           placeholder="Type your guess here"
           disabled={gameStatus !== "playing"}
