@@ -33,4 +33,5 @@ pub struct Round {
     pub is_started: bool,
     pub is_completed: bool,
     pub end_time: u64,
+    pub current_card_index: u8,
 }
