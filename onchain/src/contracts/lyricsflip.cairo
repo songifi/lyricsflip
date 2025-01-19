@@ -16,6 +16,9 @@ pub mod LyricsFlip {
         card_count: u64,
         cards_per_round: u8,
         cards: Map<u64, Card>,
+        genre_cards: Map<ByteArray, Vec<u64>>, // genre -> vec<card_ids>
+        artist_cards: Map<ByteArray, Vec<u64>>, // artist -> vec<card_ids>
+        year_cards: Map<u64, Vec<u64>>, // year -> vec<card_ids>
         rounds: Map<u64, Round>, // round_id -> Round
         round_players: Map<
             u64, Map<u256, ContractAddress>
@@ -124,6 +127,7 @@ pub mod LyricsFlip {
                 wager_amount: 0, // TODO
                 start_time: 0,
                 is_started: false,
+                is_completed: false,
                 end_time: 0, //TODO
             };
 
