@@ -15,6 +15,16 @@ pub enum Genre {
     HipHop,
     Pop,
     Rock,
+    RnB,
+    Electronic,
+    Classical,
+    Jazz,
+    Country,
+    Blues,
+    Reggae,
+    Afrobeat,
+    Gospel,
+    Folk,
 }
 
 // TODO
