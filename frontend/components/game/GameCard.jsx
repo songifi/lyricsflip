@@ -5,16 +5,19 @@ import { motion } from "framer-motion";
 import Confetti from "react-confetti";
 import { useGameStore } from "../../store/gameStore";
 
-const GameCard = ({ lyricsSnippet, correctAnswer }) => {
+const GameCard = () => {
   const {
     handleSuccess,
     handleRevive,
     resetGame,
-    setRandomQuestion,
     points,
     questionsCompleted,
     gameStatus,
     setGameStatus,
+    handleSubmitGuess,
+    handleNextQuestion: storeHandleNextQuestion,
+    handleTimeout: storeHandleTimeout,
+    getCurrentQuestion,
   } = useGameStore();
 
   const [guess, setGuess] = useState("");
@@ -22,14 +25,18 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showReviveOption, setShowReviveOption] = useState(false);
-  const [currentAnswer, setCurrentAnswer] = useState(correctAnswer);
 
-  // Update answer when new question loads
-  useEffect(() => {
-    if (!isFlipped) {
-      setCurrentAnswer(correctAnswer);
-    }
-  }, [correctAnswer, isFlipped]);
+  const currentQuestion = getCurrentQuestion();
+
+  // debug logging
+  console.log("GameCard current question:", currentQuestion);
+
+  if (!currentQuestion) {
+    console.log("No question data in GameCard");
+    return null;
+  }
+
+  const { lyricsSnippet, correctAnswer } = currentQuestion;
 
   // Timer logic
   useEffect(() => {
@@ -37,30 +44,24 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
     } else if (timeLeft === 0 && gameStatus === "playing") {
-      handleTimeout();
+      storeHandleTimeout();
+      setIsFlipped(true);
+      setShowReviveOption(true);
     }
-  }, [timeLeft, gameStatus]);
-
-  const handleTimeout = () => {
-    setGameStatus("failed");
-    setIsFlipped(true);
-    setShowReviveOption(true);
-  };
+  }, [timeLeft, gameStatus, storeHandleTimeout]);
 
   const handleSubmit = () => {
     if (gameStatus !== "playing") return;
 
-    if (guess.toLowerCase().trim() === currentAnswer.toLowerCase().trim()) {
-      handleSuccess();
-      setShowConfetti(true);
-      setIsFlipped(true);
+    const isCorrect = handleSubmitGuess(guess, correctAnswer);
+    setIsFlipped(true);
 
+    if (isCorrect) {
+      setShowConfetti(true);
       setTimeout(() => {
         setShowConfetti(false);
       }, 5000);
     } else {
-      setGameStatus("failed");
-      setIsFlipped(true);
       setShowReviveOption(true);
     }
   };
@@ -69,7 +70,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
     setIsFlipped(false);
 
     setTimeout(() => {
-      setGameStatus("playing");
+      storeHandleNextQuestion();
       setGuess("");
       setTimeLeft(15);
       setShowReviveOption(false);
@@ -80,7 +81,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
     setIsFlipped(false);
 
     setTimeout(() => {
-      resetGame(); // This now includes setting a random question
+      resetGame();
       setGuess("");
       setTimeLeft(15);
       setShowReviveOption(false);
@@ -89,7 +90,6 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
 
   const handleReviveAttempt = () => {
     if (handleRevive()) {
-      // handleRevive now includes setting a random question
       setIsFlipped(false);
       setShowReviveOption(false);
       setTimeLeft(15);
@@ -103,7 +103,6 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
     }
   };
 
-  // Rest of your component remains the same
   return (
     <div className="relative">
       {showConfetti && (
@@ -150,7 +149,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
                   Correct!
                 </h3>
                 <p className="text-lg text-black mb-4">
-                  The answer is: {currentAnswer}
+                  The answer is: {correctAnswer}
                 </p>
                 <div className="flex flex-col gap-2">
                   <button
@@ -170,7 +169,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
                   {timeLeft === 0 ? "Time's Up!" : "Incorrect!"}
                 </h3>
                 <p className="text-lg text-black mb-4">
-                  The answer was: {currentAnswer}
+                  The answer was: {correctAnswer}
                 </p>
                 {showReviveOption && (
                   <div className="space-y-2">

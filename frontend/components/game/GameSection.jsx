@@ -5,9 +5,19 @@ import { useGameLogic } from "../../hooks/useGameLogic";
 import { useGameStore } from "../../store/gameStore";
 
 const Game = () => {
-  const { loading, error, refreshQuestions } = useGameLogic(10);
-  const { currentQuestionIndex, questions, gameStatus, setGameStatus } =
+  const { loading, error, refreshQuestions } = useGameLogic();
+  const { gameStatus, setGameStatus, getCurrentQuestion, questions } =
     useGameStore();
+
+  const currentQuestion = getCurrentQuestion();
+
+  //  debug logging
+  console.log("Current game state:", {
+    loading,
+    gameStatus,
+    currentQuestion,
+    totalQuestions: questions.length,
+  });
 
   if (loading) {
     return (
@@ -40,7 +50,7 @@ const Game = () => {
     return (
       <div className="h-screen flex items-center justify-center">
         <button
-          onClick={() => setGameStatus("playing")} // Transition to "playing"
+          onClick={() => setGameStatus("playing")}
           className="px-6 py-3 text-[#490878] bg-[#92f2da] rounded-lg text-lg font-bold hover:shadow-2xl"
         >
           Start Game
@@ -49,22 +59,15 @@ const Game = () => {
     );
   }
 
-  const currentQuestion = questions[currentQuestionIndex];
+  if (!currentQuestion) {
+    console.log("No current question available");
+    return null;
+  }
 
   return (
-    <div
-      id="game"
-      style={{
-        backgroundImage: "url('/img/hero-background.svg')",
-        backgroundRepeat: "no-repeat",
-        height: "100vh",
-      }}
-    >
+    <div id="game">
       <div className="p-10 h-full w-full">
-        <GameCard
-          lyricsSnippet={currentQuestion?.lyricsSnippet}
-          correctAnswer={currentQuestion?.correctAnswer}
-        />
+        <GameCard />
       </div>
     </div>
   );

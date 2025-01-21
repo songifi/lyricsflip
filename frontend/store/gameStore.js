@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 const POINTS_PER_CORRECT = 10;
 const REVIVE_COST = 5;
+const INITIAL_TIME = 15;
 
 export const useGameStore = create((set, get) => ({
   // State
@@ -13,80 +14,97 @@ export const useGameStore = create((set, get) => ({
   loading: false,
   error: null,
 
-  // Actions
+  // Basic setters
   setPoints: (points) => set({ points }),
-  addPoints: () =>
-    set((state) => ({ points: state.points + POINTS_PER_CORRECT })),
-  deductPoints: (amount) => set((state) => ({ points: state.points - amount })),
   setQuestions: (questions) => set({ questions }),
   setGameStatus: (status) => set({ gameStatus: status }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
 
-  // Get a random question index different from current
+  // Question management
+  getCurrentQuestion: () => {
+    const state = get();
+    return state.questions[state.currentQuestionIndex] || null;
+  },
+
   getRandomQuestionIndex: () => {
     const state = get();
     const currentIndex = state.currentQuestionIndex;
     const questionsLength = state.questions.length;
-
     if (questionsLength <= 1) return 0;
-
     let newIndex;
     do {
       newIndex = Math.floor(Math.random() * questionsLength);
     } while (newIndex === currentIndex);
-
     return newIndex;
   },
 
-  // Set a random question
   setRandomQuestion: () => {
     const newIndex = get().getRandomQuestionIndex();
     set({ currentQuestionIndex: newIndex });
   },
 
-  incrementQuestion: () =>
-    set((state) => {
-      // If we're at the end of questions, use random question
-      if (state.currentQuestionIndex >= state.questions.length - 1) {
-        const newIndex = state.getRandomQuestionIndex();
-        return {
-          currentQuestionIndex: newIndex,
-          questionsCompleted: state.questionsCompleted + 1,
-        };
-      }
+  // Game actions
+  handleTimeout: () => {
+    set({ gameStatus: "failed" });
+  },
 
-      return {
-        currentQuestionIndex: state.currentQuestionIndex + 1,
+  handleSubmitGuess: (guess, currentAnswer) => {
+    const state = get();
+    if (state.gameStatus !== "playing") return false;
+
+    const isCorrect =
+      guess.toLowerCase().trim() === currentAnswer.toLowerCase().trim();
+
+    if (isCorrect) {
+      set({
+        points: state.points + POINTS_PER_CORRECT,
         questionsCompleted: state.questionsCompleted + 1,
-      };
-    }),
+        gameStatus: "success",
+      });
+      return true;
+    } else {
+      set({ gameStatus: "failed" });
+      return false;
+    }
+  },
 
-  resetGame: () =>
-    set((state) => ({
+  handleNextQuestion: () => {
+    const state = get();
+    let newIndex;
+
+    if (state.currentQuestionIndex >= state.questions.length - 1) {
+      newIndex = state.getRandomQuestionIndex();
+    } else {
+      newIndex = state.currentQuestionIndex + 1;
+    }
+
+    set({
+      currentQuestionIndex: newIndex,
+      gameStatus: "playing",
+    });
+  },
+
+  resetGame: () => {
+    const state = get();
+    const newIndex = state.getRandomQuestionIndex();
+    set({
       points: 0,
       questionsCompleted: 0,
-      currentQuestionIndex: state.getRandomQuestionIndex(),
+      currentQuestionIndex: newIndex,
       gameStatus: "playing",
-    })),
-
-  // Game actions
+    });
+  },
 
   handleSuccess: () => {
     const state = get();
+
     set({
       points: state.points + POINTS_PER_CORRECT,
       questionsCompleted: state.questionsCompleted + 1,
       gameStatus: "success",
+      currentQuestionIndex: newIndex,
     });
-
-    // If at end of questions, get random question
-    if (state.currentQuestionIndex >= state.questions.length - 1) {
-      const newIndex = state.getRandomQuestionIndex();
-      set({ currentQuestionIndex: newIndex });
-    } else {
-      set({ currentQuestionIndex: state.currentQuestionIndex + 1 });
-    }
   },
 
   handleRevive: () => {
@@ -96,12 +114,10 @@ export const useGameStore = create((set, get) => ({
       set({
         points: state.points - REVIVE_COST,
         gameStatus: "playing",
-        currentQuestionIndex: newIndex, // Set new random question
+        currentQuestionIndex: newIndex,
       });
       return true;
     }
     return false;
   },
-
-  handleGameOver: () => set({ gameStatus: "finished" }),
 }));
