@@ -23,9 +23,9 @@ body {
 .game-card {
   @apply bg-gray-800 text-white p-6 rounded-lg shadow-lg;
 }
-.lyrics-snippet {
+/* .lyrics-snippet {
   @apply text-lg font-semibold mb-4;
-}
+} */
 .timer {
   @apply text-red-500 font-bold text-xl mb-4;
 }
