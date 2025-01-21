@@ -3,7 +3,7 @@ use starknet::ContractAddress;
 #[derive(Drop, Serde, starknet::Store)]
 pub struct Card {
     pub card_id: u64,
-    pub genre: felt252,
+    pub genre: Genre,
     pub artist: ByteArray,
     pub title: ByteArray,
     pub year: u64,
@@ -43,5 +43,5 @@ pub struct Round {
     pub is_started: bool,
     pub is_completed: bool,
     pub end_time: u64,
-    pub current_card_index: u8,
+    pub next_card_index: u8,
 }
