@@ -13,7 +13,7 @@ pub mod LyricsFlip {
     #[storage]
     struct Storage {
         round_count: u64,
-        card_count: u64,
+        cards_count: u64,
         cards_per_round: u8,
         cards: Map<u64, Card>,
         genre_cards: Map<Genre, Vec<u64>>, // genre -> vec<card_ids>
@@ -129,7 +129,7 @@ pub mod LyricsFlip {
                 is_started: false,
                 is_completed: false,
                 end_time: 0, //TODO
-                current_card_index: 0,
+                next_card_index: 0,
             };
 
             let round_players_count = self.round_players_count.entry(round_id).read();
@@ -216,13 +216,13 @@ pub mod LyricsFlip {
     // }
 
     // // TODO
-    // fn get_cards_of_genre(self: @ContractState, genre: Genre) -> Span<Card> {}
+    // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
 
     // // TODO
-    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray) -> Span<Card> {}
+    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) -> Span<Card> {}
 
     // //TODO
-    // fn get_cards_of_a_year(self: @ContractState, year: u64) -> Span<Card> {}
+    // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
@@ -230,9 +230,14 @@ pub mod LyricsFlip {
         fn get_random_cards(ref self: ContractState) -> Span<u64> {
             array![1, 2].span()
         }
+
         // // TODO
-    // fn _next_round_card(ref self: ContractState, round_id: u64) -> Card {
-    //     // check round is started and is_completed is false
-    // }
+        // fn _next_round_card(ref self: ContractState, round_id: u64) -> Card {
+        //     // check round is started and is_completed is false
+        // }
+
+        fn _get_random_numbers(amount: u64, limit: u64, for_index: bool) -> Span<u64> {
+            array![].span()
+        }
     }
 }
