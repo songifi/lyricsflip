@@ -1,0 +1,1 @@
+{"version":3,"file":"game-session.module.js","sourceRoot":"","sources":["../../src/game-session/game-session.module.ts"],"names":[],"mappings":";;;;;;;;;AAAA,2CAAwC;AACxC,uEAAkE;AAClE,2EAAsE;AAM/D,IAAM,iBAAiB,GAAvB,MAAM,iBAAiB;CAAG,CAAA;AAApB,8CAAiB;4BAAjB,iBAAiB;IAJ7B,IAAA,eAAM,EAAC;QACN,WAAW,EAAE,CAAC,+CAAqB,CAAC;QACpC,SAAS,EAAE,CAAC,yCAAkB,CAAC;KAChC,CAAC;GACW,iBAAiB,CAAG"}
