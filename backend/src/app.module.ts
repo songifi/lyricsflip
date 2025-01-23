@@ -11,9 +11,10 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from './config/config.module';
 
 @Module({
   imports: [
@@ -26,6 +27,13 @@ import { APP_GUARD } from '@nestjs/core';
     LeaderboardModule,
     NotificationModule,
     AdminModule,
+    ConfigModule,
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      url: process.env.DATABASE_URL,
+      autoLoadEntities: true,
+      synchronize: process.env.NODE_ENV === 'development',
+    }),
   ],
   controllers: [AppController],
   providers: [
