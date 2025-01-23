@@ -52,7 +52,7 @@ const Header = () => {
               onClick={() => setMobileMenuOpen(true)}
               className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700">
               <span className="sr-only">Open main menu</span>
-              <MdOutlineMenu aria-hidden="true" className="size-6" />
+              <MdOutlineMenu aria-hidden="true" className="size-6 text-white " />
             </button>
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
