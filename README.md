@@ -11,6 +11,9 @@ LyricFlip is an on-chain card-based music guessing game built on the Starknet ec
 - **Song Categories**: Choose categories based on genres and decades.
 - **Real-Time Feedback**: Instant response with animations (e.g., confetti) for correct guesses.
 
+-Figma Design Link
+-- https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1
+
 ## Tech Stack
 
 ### Frontend
