@@ -10,18 +10,36 @@ export class NotificationController {
 
   // Retrieve all notifications.
   @Get()
-  @ApiOperation({ summary: 'Get notifications' })
-  @ApiResponse({ status: 200, description: 'Notifications retrieved' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiOperation({ 
+    summary: 'Get notifications', 
+    description: 'Retrieve all user notifications' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Notifications successfully retrieved' 
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Internal server error occurred' 
+  })
   getNotifications() {
     return this.notificationService.getNotifications();
   }
 
   // Mark all notifications as read.
   @Post('mark-read')
-  @ApiOperation({ summary: 'Mark notifications as read' })
-  @ApiResponse({ status: 200, description: 'Notifications marked as read' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiOperation({ 
+    summary: 'Mark notifications as read', 
+    description: 'Mark all user notifications as read' 
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Notifications successfully marked as read' 
+  })
+  @ApiResponse({ 
+    status: 500, 
+    description: 'Internal server error occurred' 
+  })
   markNotificationsRead() {
     return this.notificationService.markNotificationsRead();
   }

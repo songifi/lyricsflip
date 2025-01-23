@@ -30,30 +30,73 @@ let GameSessionController = class GameSessionController {
 exports.GameSessionController = GameSessionController;
 __decorate([
     (0, common_1.Post)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Start a new game session' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Start a new game session',
+        description: 'Creates a new game session and returns the session details.',
+    }),
     (0, swagger_1.ApiResponse)({
         status: 201,
-        description: 'Game session successfully created',
+        description: 'Game session successfully created.',
     }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error.',
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], GameSessionController.prototype, "startGameSession", null);
 __decorate([
     (0, common_1.Post)(':id/guess'),
-    (0, swagger_1.ApiOperation)({ summary: 'Submit a guess for a game session' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Guess successfully submitted' }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid guess data' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Submit a guess for a game session',
+        description: 'Allows a player to submit a guess for an ongoing game session.',
+    }),
+    (0, swagger_1.ApiParam)({
+        name: 'id',
+        description: 'The ID of the game session.',
+        example: 'abc123',
+    }),
+    (0, swagger_1.ApiBody)({
+        description: 'Details of the submitted guess.',
+        schema: {
+            example: {
+                playerId: 'player1',
+                guess: 'word123',
+            },
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Guess successfully submitted.',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Invalid guess data.',
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], GameSessionController.prototype, "submitGuess", null);
 __decorate([
     (0, common_1.Get)(':id'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get game session details' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Game session details retrieved' }),
-    (0, swagger_1.ApiResponse)({ status: 404, description: 'Game session not found' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get game session details',
+        description: 'Retrieves details of a specific game session by its ID.',
+    }),
+    (0, swagger_1.ApiParam)({
+        name: 'id',
+        description: 'The ID of the game session.',
+        example: 'abc123',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Game session details retrieved.',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 404,
+        description: 'Game session not found.',
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)

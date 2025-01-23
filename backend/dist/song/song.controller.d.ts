@@ -4,6 +4,6 @@ export declare class SongController {
     constructor(songService: SongService);
     getSongs(): void;
     addSong(): void;
-    updateSong(): void;
-    deleteSong(): void;
+    updateSong(id: string): void;
+    deleteSong(id: string): void;
 }

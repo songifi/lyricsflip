@@ -16,16 +16,18 @@ exports.UserService = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("../../auth/providers/auth.service");
 const find_one_user_by_email_provider_1 = require("./find-one-user-by-email.provider");
+const create_user_services_1 = require("./create-user.services");
 let UserService = class UserService {
-    constructor(authService, findOneUserByEmailProvider) {
+    constructor(authService, findOneUserByEmailProvider, createUserProvider) {
         this.authService = authService;
         this.findOneUserByEmailProvider = findOneUserByEmailProvider;
+        this.createUserProvider = createUserProvider;
     }
     async findUserByEmail(email) {
         return await this.findOneUserByEmailProvider.findOneUserByEmail(email);
     }
-    signUp() {
-        return 'userService: Sign-up logic placeholder';
+    async signUp(userDto) {
+        return await this.createUserProvider.createUsers(userDto);
     }
     signIn() {
         return 'userService: Sign-in logic placeholder';
@@ -42,6 +44,7 @@ exports.UserService = UserService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)((0, common_1.forwardRef)(() => auth_service_1.AuthService))),
     __metadata("design:paramtypes", [auth_service_1.AuthService,
-        find_one_user_by_email_provider_1.FindOneUserByEmailProvider])
+        find_one_user_by_email_provider_1.FindOneUserByEmailProvider,
+        create_user_services_1.CreateUserProvider])
 ], UserService);
 //# sourceMappingURL=user.service.js.map

@@ -27,19 +27,40 @@ let RewardController = class RewardController {
 exports.RewardController = RewardController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Get available rewards' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'List of rewards retrieved' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get available rewards',
+        description: 'Retrieve list of all available rewards'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'List of rewards successfully retrieved'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error occurred'
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], RewardController.prototype, "getRewards", null);
 __decorate([
     (0, common_1.Post)('claim'),
-    (0, swagger_1.ApiOperation)({ summary: 'Claim a reward' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Reward successfully claimed' }),
-    (0, swagger_1.ApiResponse)({ status: 400, description: 'Invalid reward claim details' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Claim a reward',
+        description: 'Process a reward claim with provided details'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Reward successfully claimed'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 400,
+        description: 'Invalid reward claim details'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error occurred'
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
