@@ -10,11 +10,45 @@ import { RewardModule } from './reward/reward.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
-
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
-  imports: [AuthModule, UserModule, GameSessionModule, SongModule, WagerModule, RewardModule, LeaderboardModule, NotificationModule, AdminModule],
+  imports: [
+    AuthModule,
+    UserModule,
+    GameSessionModule,
+    SongModule,
+    WagerModule,
+    RewardModule,
+    LeaderboardModule,
+    NotificationModule,
+    AdminModule,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: 'localhost',
+        port: 5434,
+        username: 'postgres',
+        password: 'password',
+        database: 'lyricsflip',
+        synchronize: true,
+        autoLoadEntities: true,
+      }),
+    }),
+  ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: AccessTokenGuard,
+    },
+    AccessTokenGuard,
+  ],
 })
 export class AppModule {}

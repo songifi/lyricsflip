@@ -18,7 +18,6 @@ let UserController = class UserController {
         this.userService = userService;
     }
     signUp() {
-        return this.userService.signUp();
     }
     signIn() {
         return this.userService.signIn();

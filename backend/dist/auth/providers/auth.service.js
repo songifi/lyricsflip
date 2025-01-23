@@ -21,6 +21,9 @@ let AuthService = class AuthService {
     }
     signIn(signInDto) {
     }
+    async signUp(userDto) {
+        return await this.userService.signUp(userDto);
+    }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
