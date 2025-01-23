@@ -15,22 +15,28 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FindOneUserByEmailProvider = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+<<<<<<< HEAD
 const user_entity_1 = require("../user.entity");
 const typeorm_2 = require("typeorm");
+=======
+const hashing_provider_1 = require("../../auth/providers/hashing-provider");
+const typeorm_2 = require("typeorm");
+const user_entity_1 = require("../user.entity");
+>>>>>>> 818061761b261076822681dd1ca861393938e264
 let FindOneUserByEmailProvider = class FindOneUserByEmailProvider {
-    constructor(usersRepository) {
-        this.usersRepository = usersRepository;
+    constructor(userRepository, hashingProvider) {
+        this.userRepository = userRepository;
+        this.hashingProvider = hashingProvider;
     }
-    async findOneUserByEmail(email) {
+    async FindOneByEmail(email) {
         let user;
         try {
-            user = await this.usersRepository.findOneBy({
-                email
-            });
+            user = await this.userRepository.findOneBy({ email });
         }
         catch (error) {
-            throw new common_1.RequestTimeoutException(error, {
-                description: "Could not fetch the user"
+            throw new common_1.RequestTimeoutException('Unable to process request at the moment. Please try again later', {
+                description: 'Error connecting to the database',
+                cause: 'possible network error'
             });
         }
         if (!user) {
@@ -43,6 +49,12 @@ exports.FindOneUserByEmailProvider = FindOneUserByEmailProvider;
 exports.FindOneUserByEmailProvider = FindOneUserByEmailProvider = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+<<<<<<< HEAD
     __metadata("design:paramtypes", [typeorm_2.Repository])
+=======
+    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => hashing_provider_1.HashingProvider))),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        hashing_provider_1.HashingProvider])
+>>>>>>> 818061761b261076822681dd1ca861393938e264
 ], FindOneUserByEmailProvider);
 //# sourceMappingURL=find-one-user-by-email.provider.js.map

@@ -12,40 +12,35 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SignInProvider = void 0;
+exports.RefreshTokensProvider = void 0;
 const common_1 = require("@nestjs/common");
+const jwt_1 = require("@nestjs/jwt");
 const user_service_1 = require("../../user/providers/user.service");
-const hashing_provider_1 = require("./hashing-provider");
+const jwt_config_1 = require("../authConfig/jwt.config");
 const generate_tokens_provider_1 = require("./generate-tokens-provider");
-let SignInProvider = class SignInProvider {
-    constructor(userService, hashingProvider, generateTokenProvider) {
+let RefreshTokensProvider = class RefreshTokensProvider {
+    constructor(userService, jwtService, jwtConfiguration, generateTokenProvider) {
         this.userService = userService;
-        this.hashingProvider = hashingProvider;
+        this.jwtService = jwtService;
+        this.jwtConfiguration = jwtConfiguration;
         this.generateTokenProvider = generateTokenProvider;
     }
-    async SignIn(signInDto) {
-        let user = await this.userService.findUserByEmail(signInDto.email);
-        let isCheckedPassword = false;
-        try {
-            isCheckedPassword = await this.hashingProvider.comparePasswords(signInDto.password, user.password);
-        }
-        catch (error) {
-            throw new common_1.RequestTimeoutException(error, {
-                description: 'error  connecting to the database',
-            });
-        }
-        if (!isCheckedPassword) {
-            throw new common_1.UnauthorizedException('email or password is incorrect');
-        }
+    async refreshTokens(refreshTokenDto) {
+        const { sub } = await this.jwtService.verifyAsync(refreshTokenDto.refreshToken, {
+            secret: this.jwtConfiguration.secret,
+            audience: this.jwtConfiguration.audience,
+            issuer: this.jwtConfiguration.issuer,
+        });
+        const user = await this.userService.FindOneById(sub);
         return await this.generateTokenProvider.generateTokens(user);
     }
 };
-exports.SignInProvider = SignInProvider;
-exports.SignInProvider = SignInProvider = __decorate([
+exports.RefreshTokensProvider = RefreshTokensProvider;
+exports.RefreshTokensProvider = RefreshTokensProvider = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)((0, common_1.forwardRef)(() => user_service_1.UserService))),
+    __param(2, (0, common_1.Inject)(jwt_config_1.default.KEY)),
     __metadata("design:paramtypes", [user_service_1.UserService,
-        hashing_provider_1.HashingProvider,
-        generate_tokens_provider_1.GenerateTokensProvider])
-], SignInProvider);
-//# sourceMappingURL=sign-in.provider.js.map
+        jwt_1.JwtService, void 0, generate_tokens_provider_1.GenerateTokensProvider])
+], RefreshTokensProvider);
+//# sourceMappingURL=refresh-tokens.js.map

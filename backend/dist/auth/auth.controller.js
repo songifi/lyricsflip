@@ -22,9 +22,13 @@ let AuthController = class AuthController {
     constructor(authService) {
         this.authService = authService;
     }
+<<<<<<< HEAD
     async signIn(signInDto) {
         return this.authService.signIn(signInDto);
     }
+=======
+    async signIn(signInDto) { }
+>>>>>>> 818061761b261076822681dd1ca861393938e264
     async createUser(userDTO) {
         return await this.authService.signUp(userDTO);
     }
@@ -59,6 +63,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('sign-up'),
     (0, common_1.UseInterceptors)(common_1.ClassSerializerInterceptor),
+<<<<<<< HEAD
     (0, swagger_1.ApiOperation)({
         summary: 'Sign up a new user',
         description: 'Registers a new user and returns the user details upon successful registration.',
@@ -79,6 +84,8 @@ __decorate([
             },
         },
     }),
+=======
+>>>>>>> 818061761b261076822681dd1ca861393938e264
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_user_dto_1.UserDTO]),

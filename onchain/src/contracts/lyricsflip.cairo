@@ -201,8 +201,9 @@ pub mod LyricsFlip {
     // // TODO
     // fn add_card(ref self: ContractState, card: Card) {}
 
-    // // TODO
-    // fn get_card(self: @ContractState, card_id: u64) -> Card {}
+    fn get_card(self: @ContractState, card_id: u64) -> Card {
+        self.cards.entry(card_id).read()
+    }
 
     // // TODO
     // fn set_cards_per_round(ref self: ContractState, value: u8) {}

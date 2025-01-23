@@ -21,8 +21,12 @@ let UserController = class UserController {
     constructor(userService) {
         this.userService = userService;
     }
+<<<<<<< HEAD
     signUp(userDto) {
         return this.userService.signUp(userDto);
+=======
+    signUp() {
+>>>>>>> 818061761b261076822681dd1ca861393938e264
     }
     signIn() {
         return this.userService.signIn();
