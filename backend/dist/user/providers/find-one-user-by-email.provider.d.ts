@@ -1,5 +1,9 @@
+import { HashingProvider } from 'src/auth/providers/hashing-provider';
+import { Repository } from 'typeorm';
+import { User } from '../user.entity';
 export declare class FindOneUserByEmailProvider {
-    private readonly usersRepository;
-    constructor(usersRepository: UsersRepository<User>);
-    findOneUserByEmail(email: string): Promise<any>;
+    private userRepository;
+    private readonly hashingProvider;
+    constructor(userRepository: Repository<User>, hashingProvider: HashingProvider);
+    FindOneByEmail(email: string): Promise<User>;
 }

@@ -14,7 +14,7 @@ export class UserController {
   @ApiResponse({ status: 201, description: 'User successfully created' })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   signUp() {
-    return this.userService.signUp();
+    // return this.userService.signUp();
   }
 
   // Sign In a user

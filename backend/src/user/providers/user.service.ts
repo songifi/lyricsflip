@@ -1,6 +1,9 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { AuthService } from 'src/auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
+import { User } from '../user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm'
 import { CreateUserProvider } from './create-user.services';
 import { UserDTO } from '../dtos/create-user.dto';
 
@@ -13,14 +16,23 @@ export class UserService {
 
     //Inject findoneuserbyemailprovider
     private readonly findOneUserByEmailProvider: FindOneUserByEmailProvider,
+    /* 
+     * Inject user repository
+     */
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
 
     //Inject create user provider
     private readonly createUserProvider: CreateUserProvider,
   ) {}
 
   public async findUserByEmail(email: string) {
-    return await this.findOneUserByEmailProvider.findOneUserByEmail(email);
+    return await this.findOneUserByEmailProvider.FindOneByEmail(email);
   }
+
+  public FindOneById(id: number): Promise<User | null> {
+    return this.userRepository.findOneBy({id});
+}
 
   // Placeholder for user-related business logic
   // Sign up a user.

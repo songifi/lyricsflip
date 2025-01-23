@@ -16,16 +16,25 @@ exports.UserService = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("../../auth/providers/auth.service");
 const find_one_user_by_email_provider_1 = require("./find-one-user-by-email.provider");
+const user_entity_1 = require("../user.entity");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const create_user_services_1 = require("./create-user.services");
 let UserService = class UserService {
-    constructor(authService, findOneUserByEmailProvider) {
+    constructor(authService, findOneUserByEmailProvider, userRepository, createUserProvider) {
         this.authService = authService;
         this.findOneUserByEmailProvider = findOneUserByEmailProvider;
+        this.userRepository = userRepository;
+        this.createUserProvider = createUserProvider;
     }
     async findUserByEmail(email) {
-        return await this.findOneUserByEmailProvider.findOneUserByEmail(email);
+        return await this.findOneUserByEmailProvider.FindOneByEmail(email);
     }
-    signUp() {
-        return 'userService: Sign-up logic placeholder';
+    FindOneById(id) {
+        return this.userRepository.findOneBy({ id });
+    }
+    async signUp(userDto) {
+        return await this.createUserProvider.createUsers(userDto);
     }
     signIn() {
         return 'userService: Sign-in logic placeholder';
@@ -41,7 +50,10 @@ exports.UserService = UserService;
 exports.UserService = UserService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, common_1.Inject)((0, common_1.forwardRef)(() => auth_service_1.AuthService))),
+    __param(2, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [auth_service_1.AuthService,
-        find_one_user_by_email_provider_1.FindOneUserByEmailProvider])
+        find_one_user_by_email_provider_1.FindOneUserByEmailProvider,
+        typeorm_2.Repository,
+        create_user_services_1.CreateUserProvider])
 ], UserService);
 //# sourceMappingURL=user.service.js.map

@@ -12,15 +12,32 @@ const auth_controller_1 = require("./auth.controller");
 const auth_service_1 = require("./providers/auth.service");
 const user_module_1 = require("../user/user.module");
 const sign_in_provider_1 = require("./providers/sign-in.provider");
+const bcrypt_provider_1 = require("./providers/bcrypt-provider");
+const generate_tokens_provider_1 = require("./providers/generate-tokens-provider");
+const hashing_provider_1 = require("./providers/hashing-provider");
+const config_1 = require("@nestjs/config");
+const jwt_config_1 = require("./authConfig/jwt.config");
+const jwt_1 = require("@nestjs/jwt");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         controllers: [auth_controller_1.AuthController],
-        providers: [auth_service_1.AuthService, sign_in_provider_1.SignInProvider],
-        imports: [(0, common_1.forwardRef)(() => user_module_1.UserModule)],
-        exports: [auth_service_1.AuthService],
+        providers: [
+            auth_service_1.AuthService,
+            sign_in_provider_1.SignInProvider,
+            {
+                provide: hashing_provider_1.HashingProvider,
+                useClass: bcrypt_provider_1.BcryptProvider,
+            },
+            generate_tokens_provider_1.GenerateTokensProvider,
+        ],
+        imports: [(0, common_1.forwardRef)(() => user_module_1.UserModule),
+            config_1.ConfigModule.forFeature(jwt_config_1.default),
+            jwt_1.JwtModule.registerAsync(jwt_config_1.default.asProvider())
+        ],
+        exports: [auth_service_1.AuthService, hashing_provider_1.HashingProvider],
     })
 ], AuthModule);
 //# sourceMappingURL=auth.module.js.map

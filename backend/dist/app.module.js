@@ -19,14 +19,33 @@ const reward_module_1 = require("./reward/reward.module");
 const leaderboard_module_1 = require("./leaderboard/leaderboard.module");
 const notification_module_1 = require("./notification/notification.module");
 const admin_module_1 = require("./admin/admin.module");
+const access_token_guard_1 = require("./auth/guard/access-token/access-token.guard");
+const core_1 = require("@nestjs/core");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [auth_module_1.AuthModule, user_module_1.UserModule, game_session_module_1.GameSessionModule, song_module_1.SongModule, wager_module_1.WagerModule, reward_module_1.RewardModule, leaderboard_module_1.LeaderboardModule, notification_module_1.NotificationModule, admin_module_1.AdminModule],
+        imports: [
+            auth_module_1.AuthModule,
+            user_module_1.UserModule,
+            game_session_module_1.GameSessionModule,
+            song_module_1.SongModule,
+            wager_module_1.WagerModule,
+            reward_module_1.RewardModule,
+            leaderboard_module_1.LeaderboardModule,
+            notification_module_1.NotificationModule,
+            admin_module_1.AdminModule,
+        ],
         controllers: [app_controller_1.AppController],
-        providers: [app_service_1.AppService],
+        providers: [
+            app_service_1.AppService,
+            {
+                provide: core_1.APP_GUARD,
+                useClass: access_token_guard_1.AccessTokenGuard,
+            },
+            access_token_guard_1.AccessTokenGuard,
+        ],
     })
 ], AppModule);
 //# sourceMappingURL=app.module.js.map
