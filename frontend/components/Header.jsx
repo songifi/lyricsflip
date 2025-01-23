@@ -8,17 +8,17 @@ import { MdOutlineMenu } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
 
 const navigation = [
-  { name: "Play Now", href: "#game", isScroll: true },
+  { name: "Play Now", href: "game", isScroll: true },
   { name: "Categories", href: "#", isScroll: false },
   { name: "Leaderboard", href: "#", isScroll: false },
   { name: "How to Play", href: "#", isScroll: false },
 ];
 
-const handleScroll = (e, isScroll) => {
+const handleScroll = (e, isScroll, targetID) => {
   if (!isScroll) return;
 
   e.preventDefault();
-  const element = document.getElementById("game");
+  const element = document.getElementById(targetID);
   if (element) {
     element.scrollIntoView({ behavior: "smooth" });
     setMobileMenuOpen(false);
@@ -62,7 +62,7 @@ const Header = () => {
               <a
                 key={item.name}
                 href={item.href}
-                onClick={(e) => handleScroll(e, item.isScroll)}
+                onClick={(e) => handleScroll(e, item.isScroll, item.href)}
                 className="text-sm/6 font-semibold text-white"
               >
                 {item.name}

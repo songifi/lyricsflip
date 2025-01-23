@@ -13,18 +13,47 @@ export const useGameStore = create((set, get) => ({
   questions: [],
   loading: false,
   error: null,
+  guess: "",
+  selectedDifficulty: "",
 
   // Basic setters
   setPoints: (points) => set({ points }),
-  setQuestions: (questions) => set({ questions }),
+  setQuestions: (questions) => {
+    console.log("Questions being set in Store:", questions);
+    set({
+      questions,
+      currentQuestionIndex: 0, // Reset index to the first question
+    });
+  },
   setGameStatus: (status) => set({ gameStatus: status }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
+  setGuess: (guess) => set({ guess }),
+  setSelectedDifficulty: (difficulty) => {
+    console.log("setSelectedDifficulty Called: ", difficulty); // Log the value being set
+    set({ selectedDifficulty: difficulty });
+  },
 
   // Question management
   getCurrentQuestion: () => {
     const state = get();
-    return state.questions[state.currentQuestionIndex] || null;
+
+    // Ensure questions are available
+    if (state.questions.length === 0) {
+      console.warn("No questions available");
+      return null;
+    }
+
+    // Ensure index stays within bounds
+    const safeIndex = Math.min(
+      state.currentQuestionIndex,
+      state.questions.length - 1
+    );
+    if (state.currentQuestionIndex !== safeIndex) {
+      set({ currentQuestionIndex: safeIndex });
+    }
+
+    return state.questions[safeIndex];
   },
 
   getRandomQuestionIndex: () => {
@@ -61,27 +90,32 @@ export const useGameStore = create((set, get) => ({
         points: state.points + POINTS_PER_CORRECT,
         questionsCompleted: state.questionsCompleted + 1,
         gameStatus: "success",
+        guess: "",
       });
       return true;
     } else {
-      set({ gameStatus: "failed" });
+      set({ gameStatus: "failed", guess: "" });
       return false;
     }
   },
 
+  // gameStore.js - Update handleNextQuestion:
   handleNextQuestion: () => {
     const state = get();
-    let newIndex;
 
-    if (state.currentQuestionIndex >= state.questions.length - 1) {
-      newIndex = state.getRandomQuestionIndex();
-    } else {
-      newIndex = state.currentQuestionIndex + 1;
+    // Always reset gameStatus to playing first
+    set({ gameStatus: "playing" });
+
+    // Then check if we need to load new questions
+    if (state.currentQuestionIndex + 1 >= state.questions.length) {
+      console.log("Loading more questions...");
+      // Trigger question reload here if needed
     }
 
+    // Proceed to next question
     set({
-      currentQuestionIndex: newIndex,
-      gameStatus: "playing",
+      currentQuestionIndex: state.currentQuestionIndex + 1,
+      questionsCompleted: state.questionsCompleted + 1,
     });
   },
 
@@ -93,6 +127,8 @@ export const useGameStore = create((set, get) => ({
       questionsCompleted: 0,
       currentQuestionIndex: newIndex,
       gameStatus: "playing",
+      guess: "",
+      selectedDifficulty: "",
     });
   },
 
