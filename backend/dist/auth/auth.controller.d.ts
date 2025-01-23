@@ -5,5 +5,5 @@ export declare class AuthController {
     private readonly authService;
     constructor(authService: AuthService);
     signIn(signInDto: SignInDto): Promise<void>;
-    createUser(userDTO: UserDTO): Promise<import("../user/user.entity").User[]>;
+    createUser(userDTO: UserDTO): Promise<(import("../user/user.entity").User & import("../user/user.entity").User[])[]>;
 }

@@ -5,5 +5,5 @@ export declare class AuthService {
     private readonly userService;
     constructor(userService: UserService);
     signIn(signInDto: SignInDto): void;
-    signUp(userDto: UserDTO): Promise<import("../../user/user.entity").User[]>;
+    signUp(userDto: UserDTO): Promise<(import("../../user/user.entity").User & import("../../user/user.entity").User[])[]>;
 }

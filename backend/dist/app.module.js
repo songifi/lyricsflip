@@ -19,8 +19,6 @@ const reward_module_1 = require("./reward/reward.module");
 const leaderboard_module_1 = require("./leaderboard/leaderboard.module");
 const notification_module_1 = require("./notification/notification.module");
 const admin_module_1 = require("./admin/admin.module");
-const typeorm_1 = require("@nestjs/typeorm");
-const config_1 = require("@nestjs/config");
 const access_token_guard_1 = require("./auth/guard/access-token/access-token.guard");
 const core_1 = require("@nestjs/core");
 let AppModule = class AppModule {
@@ -38,20 +36,6 @@ exports.AppModule = AppModule = __decorate([
             leaderboard_module_1.LeaderboardModule,
             notification_module_1.NotificationModule,
             admin_module_1.AdminModule,
-            typeorm_1.TypeOrmModule.forRootAsync({
-                imports: [config_1.ConfigModule],
-                inject: [config_1.ConfigService],
-                useFactory: (configService) => ({
-                    type: 'postgres',
-                    host: 'localhost',
-                    port: 5434,
-                    username: 'postgres',
-                    password: 'password',
-                    database: 'lyricsflip',
-                    synchronize: true,
-                    autoLoadEntities: true,
-                }),
-            }),
         ],
         controllers: [app_controller_1.AppController],
         providers: [

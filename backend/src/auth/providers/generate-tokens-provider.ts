@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import { UserService } from "src/user/providers/user.service";
 import jwtConfig from "../authConfig/jwt.config";
 import { ConfigType } from "@nestjs/config";
+import { User } from "src/user/user.entity";
 // import { User } from "src/user/user.entity";
 
 @Injectable()
@@ -41,7 +42,7 @@ export class GenerateTokensProvider {
     );
   }
 
-  public async generateTokens(user/* User */) {
+  public async generateTokens(user: User) {
     const [accessToken, refreshToken] = await Promise.all([
     // generate access token
     this.signToken(user.id, this.jwtConfiguration.ttl, {email: user.email}),

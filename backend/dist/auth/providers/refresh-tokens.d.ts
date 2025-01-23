@@ -13,6 +13,6 @@ export declare class RefreshTokensProvider {
     refreshTokens(refreshTokenDto: RefreshTokenDto): Promise<{
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: import("../../user/user.entity").User;
     }>;
 }

@@ -10,7 +10,7 @@ import {
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
-  id: string; // Unique identifier for the user
+  id: number; // Unique identifier for the user
 
   @Column({ unique: true })
   username: string; // The username for the player

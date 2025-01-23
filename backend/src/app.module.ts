@@ -26,20 +26,6 @@ import { APP_GUARD } from '@nestjs/core';
     LeaderboardModule,
     NotificationModule,
     AdminModule,
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: 'localhost',
-        port: 5434,
-        username: 'postgres',
-        password: 'password',
-        database: 'lyricsflip',
-        synchronize: true,
-        autoLoadEntities: true,
-      }),
-    }),
   ],
   controllers: [AppController],
   providers: [

@@ -10,6 +10,6 @@ export declare class SignInProvider {
     SignIn(signInDto: SignInDto): Promise<{
         accessToken: string;
         refreshToken: string;
-        user: any;
+        user: import("../../user/user.entity").User;
     }>;
 }

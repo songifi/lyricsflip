@@ -30,7 +30,7 @@ export class UserService {
     return await this.findOneUserByEmailProvider.FindOneByEmail(email);
   }
 
-  public FindOneById(id: string): Promise<User | null> {
+  public FindOneById(id: number): Promise<User | null> {
     return this.userRepository.findOneBy({id});
 }
 
