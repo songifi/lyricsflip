@@ -205,11 +205,15 @@ pub mod LyricsFlip {
         self.cards.entry(card_id).read()
     }
 
-    // // TODO
-    // fn set_cards_per_round(ref self: ContractState, value: u8) {}
 
-    // // TODO
-    // fn get_cards_per_round(self: @ContractState) -> u8 {}
+    fn set_cards_per_round(ref self: ContractState, value: u8) {
+        self.cards_per_round.write(value);
+    }
+
+    
+    fn get_cards_per_round(self: @ContractState) -> u8 {
+        self.cards_per_round.read()
+    }
 
     // // TODO
     // fn next_card(ref self: ContractState, round_id: u64) -> Card {
