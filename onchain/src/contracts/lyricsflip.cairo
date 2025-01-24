@@ -34,6 +34,7 @@ pub mod LyricsFlip {
         RoundCreated: RoundCreated,
         RoundStarted: RoundStarted,
         RoundJoined: RoundJoined,
+        SetCardPerRound: SetCardPerRound,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -61,6 +62,13 @@ pub mod LyricsFlip {
         #[key]
         pub player: ContractAddress,
         pub joined_time: u64,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct SetCardPerRound {
+        #[key]
+        pub admin: ContractAddress,
+        pub new_value: u8,         
     }
 
     #[constructor]
@@ -196,6 +204,28 @@ pub mod LyricsFlip {
                     )
                 );
         }
+
+
+        fn set_cards_per_round(ref self: ContractState, value: u8) {
+            assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
+
+            self.cards_per_round.write(value);
+
+            self.emit(
+                Event::SetCardPerRound(
+                    SetCardPerRound {
+                        admin: get_caller_address(),
+                        new_value: value,
+                    }
+                )
+            );
+        }
+
+        
+        fn get_cards_per_round(self: @ContractState) -> u8 {
+            self.cards_per_round.read()
+        }
+        
     }
 
     // // TODO
@@ -203,18 +233,6 @@ pub mod LyricsFlip {
 
     fn get_card(self: @ContractState, card_id: u64) -> Card {
         self.cards.entry(card_id).read()
-    }
-
-
-    fn set_cards_per_round(ref self: ContractState, value: u8) {
-        assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
-
-        self.cards_per_round.write(value);
-    }
-
-    
-    fn get_cards_per_round(self: @ContractState) -> u8 {
-        self.cards_per_round.read()
     }
 
     // // TODO

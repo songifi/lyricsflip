@@ -243,3 +243,56 @@ fn test_join_round_should_panic_with_non_existing_round() {
 
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
+
+
+#[test]
+fn test_set_cards_per_round() {
+    let lyricsflip = deploy();
+    let mut spy = spy_events();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 3;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let cards_per_round = lyricsflip.get_cards_per_round();
+
+    assert(cards_per_round == valid_cards_per_round, 'wrong cards_per_round');
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    lyricsflip.contract_address,
+                    LyricsFlip::Event::SetCardPerRound(
+                        LyricsFlip::SetCardPerRound {
+                            admin: PLAYER_1(),
+                            new_value: valid_cards_per_round,
+                        }
+                    )
+                )
+            ]
+        );
+}
+
+#[test]
+fn test_get_cards_per_round() {
+    let lyricsflip = deploy();
+
+    let initial_cards_per_round = 3;
+    lyricsflip.set_cards_per_round(initial_cards_per_round);
+
+    let retrieved_cards_per_round = lyricsflip.get_cards_per_round();
+    assert(retrieved_cards_per_round == initial_cards_per_round, 'wrong cards_per_round value');
+}
+
+#[test]
+#[should_panic(expected: ('Invalid cards per round',))]
+fn test_set_cards_per_round_should_panic_with_invalid_value() {
+    let lyricsflip = deploy();
+
+    let invalid_cards_per_round = 0;
+    lyricsflip.set_cards_per_round(invalid_cards_per_round);
+}
