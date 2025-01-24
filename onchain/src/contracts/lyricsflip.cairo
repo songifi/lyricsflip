@@ -207,6 +207,8 @@ pub mod LyricsFlip {
 
 
     fn set_cards_per_round(ref self: ContractState, value: u8) {
+        assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
+
         self.cards_per_round.write(value);
     }
 
