@@ -268,8 +268,7 @@ fn test_set_cards_per_round() {
                     lyricsflip.contract_address,
                     LyricsFlip::Event::SetCardPerRound(
                         LyricsFlip::SetCardPerRound {
-                            admin: PLAYER_1(),
-                            new_value: valid_cards_per_round,
+                            old_value: cards_per_round, new_value: valid_cards_per_round,
                         }
                     )
                 )

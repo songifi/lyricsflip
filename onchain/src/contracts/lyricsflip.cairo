@@ -67,8 +67,8 @@ pub mod LyricsFlip {
     #[derive(Drop, starknet::Event)]
     pub struct SetCardPerRound {
         #[key]
-        pub admin: ContractAddress,
-        pub new_value: u8,         
+        pub old_value: u8,
+        pub new_value: u8,
     }
 
     #[constructor]
@@ -211,21 +211,20 @@ pub mod LyricsFlip {
 
             self.cards_per_round.write(value);
 
-            self.emit(
-                Event::SetCardPerRound(
-                    SetCardPerRound {
-                        admin: get_caller_address(),
-                        new_value: value,
-                    }
-                )
-            );
+            self
+                .emit(
+                    Event::SetCardPerRound(
+                        SetCardPerRound {
+                            old_value: self.cards_per_round.read(), new_value: value,
+                        }
+                    )
+                );
         }
 
-        
+
         fn get_cards_per_round(self: @ContractState) -> u8 {
             self.cards_per_round.read()
         }
-        
     }
 
     // // TODO
