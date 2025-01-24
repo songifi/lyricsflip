@@ -8,7 +8,7 @@ export declare class GenerateTokensProvider {
     private readonly jwtService;
     private readonly jwtConfiguration;
     constructor(userService: UserService, jwtService: JwtService, jwtConfiguration: ConfigType<typeof jwtConfig>);
-    signToken<T>(userId: number, expiresIn: number, payload?: T): Promise<string>;
+    signToken<T>(userId: string, expiresIn: number, payload?: T): Promise<string>;
     generateTokens(user: User): Promise<{
         accessToken: string;
         refreshToken: string;

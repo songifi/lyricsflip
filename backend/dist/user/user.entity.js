@@ -17,11 +17,7 @@ let User = class User {
 exports.User = User;
 __decorate([
     (0, typeorm_1.PrimaryGeneratedColumn)('uuid'),
-<<<<<<< HEAD
     __metadata("design:type", String)
-=======
-    __metadata("design:type", Number)
->>>>>>> 818061761b261076822681dd1ca861393938e264
 ], User.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Column)({ unique: true }),
