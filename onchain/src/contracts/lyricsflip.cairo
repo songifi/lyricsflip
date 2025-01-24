@@ -198,8 +198,17 @@ pub mod LyricsFlip {
         }
     }
 
-    // // TODO
-    // fn add_card(ref self: ContractState, card: Card) {}
+    
+    fn add_card(ref self: ContractState, card: Card) {
+        let card_id = self.cards_count.read();
+
+        self.artist_cards.entry(card.artist).append().write(card_id);
+        self.genre_cards.entry(card.genre).append().write(card_id);
+        self.year_cards.entry(card.year).append().write(card_id);
+
+        self.cards.entry(card_id).write(card);
+
+    }
 
     fn get_card(self: @ContractState, card_id: u64) -> Card {
         self.cards.entry(card_id).read()
