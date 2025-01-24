@@ -209,14 +209,13 @@ pub mod LyricsFlip {
         fn set_cards_per_round(ref self: ContractState, value: u8) {
             assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
 
+            let old_value = self.cards_per_round.read();
             self.cards_per_round.write(value);
 
             self
                 .emit(
                     Event::SetCardPerRound(
-                        SetCardPerRound {
-                            old_value: self.cards_per_round.read(), new_value: value,
-                        }
+                        SetCardPerRound { old_value: old_value, new_value: value, }
                     )
                 );
         }

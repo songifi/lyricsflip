@@ -253,6 +253,7 @@ fn test_set_cards_per_round() {
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
 
     let valid_cards_per_round = 3;
+    let old_value = lyricsflip.get_cards_per_round();
     lyricsflip.set_cards_per_round(valid_cards_per_round);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -268,7 +269,7 @@ fn test_set_cards_per_round() {
                     lyricsflip.contract_address,
                     LyricsFlip::Event::SetCardPerRound(
                         LyricsFlip::SetCardPerRound {
-                            old_value: cards_per_round, new_value: valid_cards_per_round,
+                            old_value: old_value, new_value: valid_cards_per_round,
                         }
                     )
                 )
