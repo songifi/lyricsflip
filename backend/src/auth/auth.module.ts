@@ -6,10 +6,10 @@ import { SignInProvider } from './providers/sign-in.provider';
 import { BcryptProvider } from './providers/bcrypt-provider';
 import { GenerateTokensProvider } from './providers/generate-tokens-provider';
 import { HashingProvider } from './providers/hashing-provider';
-import { createRoutesFromChildren } from 'react-router-dom';
-import { ConfigModule } from '@nestjs/config';
-import jwtConfig from './authConfig/jwt.config';
-import { JwtModule } from '@nestjs/jwt';
+// import { createRoutesFromChildren } from 'react-router-dom';
+// import { ConfigModule } from '@nestjs/config';
+// import jwtConfig from './authConfig/jwt.config';
+// import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   controllers: [AuthController],
@@ -23,8 +23,8 @@ import { JwtModule } from '@nestjs/jwt';
     GenerateTokensProvider,
   ],
   imports: [forwardRef(() => UserModule),
-  ConfigModule.forFeature(jwtConfig),
-  JwtModule.registerAsync(jwtConfig.asProvider())
+ // ConfigModule.forFeature(jwtConfig),
+ // JwtModule.registerAsync(jwtConfig.asProvider())
   ],
   exports: [AuthService,HashingProvider],
 })

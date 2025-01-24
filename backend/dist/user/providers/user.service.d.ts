@@ -7,6 +7,10 @@ import { UserDTO } from '../dtos/create-user.dto';
 export declare class UserService {
     private readonly authService;
     private readonly findOneUserByEmailProvider;
+    private readonly createUserProvider;
+    constructor(authService: AuthService, findOneUserByEmailProvider: FindOneUserByEmailProvider, createUserProvider: CreateUserProvider);
+    findUserByEmail(email: string): Promise<import("../user.entity").User>;
+    signUp(userDto: UserDTO): Promise<import("../user.entity").User[]>;
     private readonly userRepository;
     private readonly createUserProvider;
     constructor(authService: AuthService, findOneUserByEmailProvider: FindOneUserByEmailProvider, userRepository: Repository<User>, createUserProvider: CreateUserProvider);

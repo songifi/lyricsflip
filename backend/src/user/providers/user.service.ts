@@ -27,7 +27,7 @@ export class UserService {
   ) {}
 
   public async findUserByEmail(email: string) {
-    return await this.findOneUserByEmailProvider.FindOneByEmail(email);
+    return await this.findOneUserByEmailProvider.findOneUserByEmail(email);
   }
 
   public FindOneById(id: string): Promise<User | null> {
