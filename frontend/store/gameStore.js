@@ -1,159 +1,160 @@
+// gameStore.js
 import { create } from "zustand";
 
 const POINTS_PER_CORRECT = 10;
-const REVIVE_COST = 5;
-const INITIAL_TIME = 15;
+const DIFFICULTY_DURATIONS = {
+  Beginner: 300,
+  Intermediate: 180,
+  Advanced: 120,
+};
 
 export const useGameStore = create((set, get) => ({
-  // State
-  points: 0,
-  questionsCompleted: 0,
-  currentQuestionIndex: 0,
+  // Core Game State
   gameStatus: "idle",
-  questions: [],
-  loading: false,
-  error: null,
-  guess: "",
   selectedDifficulty: "",
+  currentQuestionIndex: -1, // Start at -1 to clearly show it's not set
+  points: 0,
+  timeLeft: 0,
+  questions: [],
+  // Derived State
 
-  // Basic setters
-  setPoints: (points) => set({ points }),
-  setQuestions: (questions) => {
-    console.log("Questions being set in Store:", questions);
-    set({
-      questions,
-      currentQuestionIndex: 0, // Reset index to the first question
-    });
-  },
-  setGameStatus: (status) => set({ gameStatus: status }),
-  setLoading: (loading) => set({ loading }),
-  setError: (error) => set({ error }),
-  setGuess: (guess) => set({ guess }),
-  setSelectedDifficulty: (difficulty) => {
-    console.log("setSelectedDifficulty Called: ", difficulty); // Log the value being set
+  setDifficulty: (difficulty) => {
+    console.log("STORE: Setting difficulty to", difficulty);
     set({ selectedDifficulty: difficulty });
   },
 
-  // Question management
   getCurrentQuestion: () => {
-    const state = get();
+    const { questions, currentQuestionIndex } = get();
+    console.log(
+      "STORE: Getting current question - Total questions:",
+      questions.length
+    );
+    console.log(
+      "STORE: Getting current question - Current index:",
+      currentQuestionIndex
+    );
 
-    // Ensure questions are available
-    if (state.questions.length === 0) {
-      console.warn("No questions available");
+    if (questions.length === 0 || currentQuestionIndex === -1) {
+      console.error("STORE: No questions available or index not set");
       return null;
     }
 
-    // Ensure index stays within bounds
-    const safeIndex = Math.min(
-      state.currentQuestionIndex,
-      state.questions.length - 1
-    );
-    if (state.currentQuestionIndex !== safeIndex) {
-      set({ currentQuestionIndex: safeIndex });
-    }
-
-    return state.questions[safeIndex];
+    const currentQuestion = questions[currentQuestionIndex];
+    console.log("STORE: Returning current question:", currentQuestion);
+    return currentQuestion;
   },
-
-  getRandomQuestionIndex: () => {
+  // Game Actions
+  initializeGame: () => {
     const state = get();
-    const currentIndex = state.currentQuestionIndex;
-    const questionsLength = state.questions.length;
-    if (questionsLength <= 1) return 0;
-    let newIndex;
-    do {
-      newIndex = Math.floor(Math.random() * questionsLength);
-    } while (newIndex === currentIndex);
-    return newIndex;
-  },
-
-  setRandomQuestion: () => {
-    const newIndex = get().getRandomQuestionIndex();
-    set({ currentQuestionIndex: newIndex });
-  },
-
-  // Game actions
-  handleTimeout: () => {
-    set({ gameStatus: "failed" });
-  },
-
-  handleSubmitGuess: (guess, currentAnswer) => {
-    const state = get();
-    if (state.gameStatus !== "playing") return false;
-
-    const isCorrect =
-      guess.toLowerCase().trim() === currentAnswer.toLowerCase().trim();
-
-    if (isCorrect) {
-      set({
-        points: state.points + POINTS_PER_CORRECT,
-        questionsCompleted: state.questionsCompleted + 1,
-        gameStatus: "success",
-        guess: "",
-      });
-      return true;
-    } else {
-      set({ gameStatus: "failed", guess: "" });
-      return false;
-    }
-  },
-
-  // gameStore.js - Update handleNextQuestion:
-  handleNextQuestion: () => {
-    const state = get();
-
-    // Always reset gameStatus to playing first
-    set({ gameStatus: "playing" });
-
-    // Then check if we need to load new questions
-    if (state.currentQuestionIndex + 1 >= state.questions.length) {
-      console.log("Loading more questions...");
-      // Trigger question reload here if needed
-    }
-
-    // Proceed to next question
-    set({
-      currentQuestionIndex: state.currentQuestionIndex + 1,
-      questionsCompleted: state.questionsCompleted + 1,
+    console.log("STORE: Initializing game", {
+      difficulty: state.selectedDifficulty,
+      questions: state.questions,
     });
-  },
 
-  resetGame: () => {
-    const state = get();
-    const newIndex = state.getRandomQuestionIndex();
+    if (!state.selectedDifficulty || state.questions.length === 0) {
+      console.error(
+        "STORE: Cannot initialize game - missing difficulty or questions"
+      );
+      return;
+    }
+
     set({
-      points: 0,
-      questionsCompleted: 0,
-      currentQuestionIndex: newIndex,
       gameStatus: "playing",
-      guess: "",
-      selectedDifficulty: "",
+      currentQuestionIndex: 0, // Explicitly set to first question
+      points: 0,
+      timeLeft: DIFFICULTY_DURATIONS[state.selectedDifficulty],
     });
+
+    get().startTimer(); // Start the timer when the game starts
+
+    console.log(
+      "STORE: Game initialized with first question index:",
+      get().currentQuestionIndex
+    );
   },
 
-  handleSuccess: () => {
-    const state = get();
+  advanceQuestion: () => {
+    const { currentQuestionIndex, questions } = get();
+    const nextIndex = currentQuestionIndex + 1;
 
-    set({
-      points: state.points + POINTS_PER_CORRECT,
-      questionsCompleted: state.questionsCompleted + 1,
-      gameStatus: "success",
-      currentQuestionIndex: newIndex,
+    console.log("STORE: Advancing Question", {
+      currentIndex: currentQuestionIndex,
+      nextIndex,
+      totalQuestions: questions.length,
     });
-  },
 
-  handleRevive: () => {
-    const state = get();
-    if (state.points >= REVIVE_COST) {
-      const newIndex = state.getRandomQuestionIndex();
+    if (nextIndex < questions.length) {
       set({
-        points: state.points - REVIVE_COST,
-        gameStatus: "playing",
-        currentQuestionIndex: newIndex,
+        currentQuestionIndex: nextIndex,
+        gameStatus: "playing", // Reset game status when moving to next question
       });
-      return true;
+    } else {
+      get().endGame();
     }
-    return false;
   },
+
+  handleAnswer: (isCorrect) => {
+    console.log("STORE: Handle Answer - Is Correct:", isCorrect);
+
+    set((state) => ({
+      points: isCorrect ? state.points + POINTS_PER_CORRECT : state.points,
+      gameStatus: isCorrect ? "success" : "failed",
+    }));
+
+    // Optional: Add a delay before moving to next question
+    if (isCorrect) {
+      setTimeout(() => {
+        get().advanceQuestion();
+      }, 1000); // 1 second delay
+    }
+  },
+  // Timer Management
+  timerId: null,
+  startTimer: () => {
+    get().stopTimer(); // Clear any existing timer
+    const timerId = setInterval(() => {
+      set((state) => {
+        if (state.timeLeft > 0) {
+          return { timeLeft: state.timeLeft - 1 };
+        } else {
+          get().endGame(); // End the game when time runs out
+          return {};
+        }
+      });
+    }, 1000); // Update time every second
+    set({ timerId });
+  },
+
+  stopTimer: () => {
+    clearInterval(get().timerId);
+    set({ timerId: null });
+  },
+
+  endGame: () => {
+    get().stopTimer();
+    set({ gameStatus: "finished" });
+  },
+
+  // State Setters
+  setQuestions: (questions) => {
+    console.log("STORE: Setting questions", questions);
+    set({
+      questions,
+      currentQuestionIndex: 0, // Explicitly set to first question
+    });
+    console.log(
+      "STORE: Current question index after setting",
+      get().currentQuestionIndex
+    );
+  },
+
+  setDifficulty: (difficulty) => set({ selectedDifficulty: difficulty }),
+  resetGame: () =>
+    set({
+      gameStatus: "idle",
+      selectedDifficulty: "",
+      currentQuestionIndex: -1,
+      points: 0,
+      questions: [],
+    }),
 }));

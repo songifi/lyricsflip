@@ -1,120 +1,123 @@
-"use client";
-import React, { memo, useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGameStore } from "../../store/gameStore";
 
-const MCQOption = memo(
-  ({ option, isCorrect, isSelected, onSelect, disabled }) => (
-    <button
-      onClick={onSelect}
-      disabled={disabled}
-      className={`w-full p-3 text-left text-[20px] text-[#090909] rounded-lg transition-colors bg-[#EEFCF8CC] border border-[#CBF6EA]
-      ${isCorrect ? "bg-[#2EAE4E] !border-green-400" : ""}
-      ${isSelected && !isCorrect ? "bg-[#CE0000] !border-red-400" : ""}
+const MCQOption = ({
+  option,
+  isCorrect,
+  isSelected,
+  onSelect,
+  isAnswerSubmitted,
+  disabled,
+}) => (
+  <button
+    onClick={onSelect}
+    disabled={disabled}
+    className={`min-w-full p-3 lg:h-[70px] text-left text-[16px] text-[#090909] rounded-lg transition-colors border disabled:cursor-not-allowed
       ${
-        !disabled ? "bg-white hover:bg-gray-100 border-gray-200" : "bg-gray-100"
+        isSelected && isCorrect
+          ? "bg-[#2EAE4E] border-green-400" // Correct answer and selected
+          : isSelected && !isCorrect
+          ? "bg-[#CE0000] border-red-400" // Selected incorrect answer
+          : !isSelected && isCorrect && isAnswerSubmitted
+          ? "bg-[#70E3C7CC] border-green-200" // Correct answer, not selected
+          : "bg-[#EEFCF8CC] border-[#CBF6EA]" // Default option
       }
-      disabled:opacity-50 disabled:cursor-not-allowed`}
-    >
-      {option}
-    </button>
-  )
+    `}
+  >
+    {option}
+  </button>
 );
 
-MCQOption.displayName = "MCQOption";
-
-const TextInput = memo(({ value, onChange, onSubmit, disabled }) => (
-  <div className="w-full space-y-2">
-    <input
-      type="text"
-      value={value}
-      onChange={onChange}
-      onKeyPress={(e) => e.key === "Enter" && !disabled && onSubmit()}
-      placeholder="Type your guess here"
-      disabled={disabled}
-      className="input input-bordered input-lg w-full text-black bg-gray-200 
-        disabled:opacity-50 disabled:cursor-not-allowed"
-    />
-    <button
-      onClick={onSubmit}
-      disabled={disabled}
-      className="w-full text-sm/6 font-semibold px-3 py-1.5 text-center rounded-lg 
-        transition-colors text-[#490878] bg-[#92f2da] hover:bg-[#5bc4ab]
-        disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      Submit
-    </button>
-  </div>
-));
-TextInput.displayName = "TextInput";
-
 const AnswerInput = () => {
-  const {
-    gameStatus,
-    handleSubmitGuess,
-    getCurrentQuestion,
-    guess,
-    setGuess,
-    handleNextQuestion,
-  } = useGameStore();
-
+  const { getCurrentQuestion, handleAnswer, selectedDifficulty } =
+    useGameStore();
+  const [userAnswer, setUserAnswer] = useState("");
   const [selectedOption, setSelectedOption] = useState(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [isAnswerSubmitted, setIsAnswerSubmitted] = useState(false);
+  const [isAnswerCorrect, setIsAnswerCorrect] = useState(false);
+
   const currentQuestion = getCurrentQuestion();
 
   useEffect(() => {
-    // Reset state when new question loads
+    // Reset state when the question changes
+    setUserAnswer("");
     setSelectedOption(null);
-    setSubmitted(false);
+    setIsAnswerSubmitted(false);
+    setIsAnswerCorrect(false);
   }, [currentQuestion]);
 
   useEffect(() => {
-    if (gameStatus === "success" || gameStatus === "failed") {
-      const timer = setTimeout(() => {
-        handleNextQuestion();
-      }, 3000);
-      return () => clearTimeout(timer);
+    // Check the answer when the selectedOption changes
+    if (selectedOption !== null) {
+      const isCorrect = selectedOption === currentQuestion.correctAnswer;
+      setIsAnswerSubmitted(true);
+      setIsAnswerCorrect(isCorrect);
+      handleAnswer(isCorrect);
     }
-  }, [gameStatus, handleNextQuestion]);
+  }, [selectedOption, currentQuestion.correctAnswer, handleAnswer]);
 
-  if (!currentQuestion) return null;
-
-  const { difficulty, options, correctAnswer } = currentQuestion;
-  const isDisabled = submitted || gameStatus !== "playing";
-
-  const handleSubmit = (submittedGuess) => {
-    if (isDisabled) return;
-    setSubmitted(true);
-    handleSubmitGuess(submittedGuess, correctAnswer);
-  };
-
-  if (difficulty === "Beginner") {
+  // Render MCQ for Beginner difficulty
+  if (selectedDifficulty === "Beginner" && currentQuestion.options) {
     return (
-      <div className="grid grid-cols-2 gap-4 w-full">
-        {options.map((option, index) => (
+      <div className="grid grid-cols-2 gap-4">
+        {currentQuestion.options.map((option, index) => (
           <MCQOption
             key={index}
             option={option}
+            isCorrect={option === currentQuestion.correctAnswer}
+            isSelected={selectedOption === option}
+            isAnswerSubmitted={isAnswerSubmitted}
+            disabled={isAnswerSubmitted} // Disable all options after submission
             onSelect={() => {
-              setSelectedOption(option);
-              handleSubmit(option);
+              if (!isAnswerSubmitted) {
+                setSelectedOption(option); // Automatically triggers answer-checking logic
+              }
             }}
-            disabled={isDisabled}
-            isCorrect={submitted && option === correctAnswer}
-            isSelected={submitted && option === selectedOption}
           />
         ))}
       </div>
     );
   }
 
+  // Default text input for Intermediate and Advanced
   return (
-    <TextInput
-      value={guess}
-      onChange={(e) => setGuess(e.target.value)}
-      onSubmit={() => handleSubmit(guess)}
-      disabled={isDisabled}
-    />
+    <div className="w-full flex flex-col items-center justify-center space-y-4  mx-auto p-4">
+      <input
+        type="text"
+        value={userAnswer}
+        onChange={(e) => setUserAnswer(e.target.value)}
+        onKeyPress={(e) =>
+          e.key === "Enter" && !isAnswerSubmitted && setIsAnswerSubmitted(true)
+        }
+        placeholder="Type your guess here"
+        disabled={isAnswerSubmitted}
+        className={`input input-bordered input-lg w-[70%] rounded-[8px] bg-white border-[#70E3C7] text-[#666666] text-[14px] ${
+          isAnswerSubmitted
+            ? isAnswerCorrect
+              ? "bg-[#2EAE4E]"
+              : "bg-[#CE0000]"
+            : "bg-gray-200"
+        } disabled:opacity-50 disabled:cursor-not-allowed`}
+      />
+      <button
+        onClick={() => setIsAnswerSubmitted(true)}
+        disabled={isAnswerSubmitted}
+        className={`w-[70%] text-sm/6 font-semibold px-[32px] py-[24px] text-center text-[16px] rounded-[1000px] transition-colors ${
+          isAnswerSubmitted
+            ? isAnswerCorrect
+              ? "text-green-700 bg-green-300 hover:bg-green-400"
+              : "text-red-700 bg-red-300 hover:bg-red-400"
+            : "text-[#490878] bg-[#92f2da] hover:bg-[#5bc4ab]"
+        } disabled:opacity-50 disabled:cursor-not-allowed`}
+      >
+        {isAnswerSubmitted
+          ? isAnswerCorrect
+            ? "Correct"
+            : "Incorrect"
+          : "Submit"}
+      </button>
+    </div>
   );
 };
 
-export default memo(AnswerInput);
+export default AnswerInput;

@@ -1,127 +1,212 @@
 "use client";
-import { useGameLogic } from "@/hooks/useGameLogic";
+import { useState, useEffect } from "react";
 import { useGameStore } from "@/store/gameStore";
-import React, { useEffect, useState } from "react";
 import GameCard from "./GameCard";
-
-const DifficultySelect = ({ onSelect }) => (
-  <select
-    onChange={(e) => onSelect(e.target.value)}
-    className="ml-4 px-4 py-2 bg-white text-[#490878] rounded-lg border-2 border-[#92f2da] 
-      focus:outline-none focus:border-[#5bc4ab]"
-  >
-    <option value="">Select Difficulty</option>
-    <option value="Beginner">Beginner</option>
-    <option value="Intermediate">Intermediate</option>
-    <option value="Advanced">Advanced</option>
-  </select>
-);
+import DifficultySelect from "./DifficultySelect";
+import GeniusService from "@/services/geniusService";
 
 const Game = () => {
   const {
-    setSelectedDifficulty,
-    setGameStatus,
-    getCurrentQuestion,
     gameStatus,
     selectedDifficulty,
-    handleNextQuestion,
+    timeLeft,
+    points,
+    getCurrentQuestion, // Use the new method
+    initializeGame,
+    setDifficulty,
+    resetGame,
+    questions,
+    setQuestions,
+    stopTimer,
   } = useGameStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const { loading, error, refreshQuestions } = useGameLogic(10); // Call useGameLogic to fetch questions
-  const [difficulty, setDifficulty] = useState("");
+  console.log("Selected Difficulty:", selectedDifficulty);
 
-  console.log("Game Status:", gameStatus);
-  console.log("Selected Difficulty one:", selectedDifficulty);
-  console.log("Current Question:", getCurrentQuestion());
-
-  const handleStartGame = () => {
-    if (!difficulty) {
-      alert("Please select a difficulty level");
-      return;
-    }
-
-    console.log("Selected Difficulty:", difficulty); // Debugging log
-    setSelectedDifficulty(difficulty); // Update the store
-    // Removed setGameStatus("playing") from here
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   useEffect(() => {
-    if (gameStatus === "success" || gameStatus === "failed") {
-      const timer = setTimeout(() => {
-        handleNextQuestion();
-      }, 3000);
-      return () => clearTimeout(timer);
+    return () => {
+      stopTimer(); // Stop the timer on component unmount
+    };
+  }, [stopTimer]);
+
+  const shuffleArray = (array) => {
+    return [...array].sort(() => Math.random() - 0.5);
+  };
+
+  const handleStartGame = async () => {
+    if (!selectedDifficulty) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const geniusService = GeniusService.getInstance();
+
+      // Fetch more snippets than needed to ensure variety
+      const snippets = await geniusService.getRandomLyricSnippets("", 20);
+
+      // Filter by difficulty
+      const filtered = snippets.filter(
+        (s) => s.difficulty === selectedDifficulty
+      );
+
+      if (filtered.length === 0) {
+        throw new Error("No questions available for selected difficulty");
+      }
+
+      const formatted = filtered.map((snippet) => {
+        // Create an option that combines song title and artist
+        const correctOption = `${snippet.songTitle} - ${snippet.artist}`;
+
+        // For Beginner difficulty, prepare multiple-choice options
+        const otherSongChoices = filtered
+          .filter((s) => s.songTitle !== snippet.songTitle)
+          .map((s) => `${s.songTitle} - ${s.artist}`);
+
+        // Randomly select up to 3 additional unique song choices
+        const additionalOptions = [];
+        while (additionalOptions.length < 3 && otherSongChoices.length > 0) {
+          const randomIndex = Math.floor(
+            Math.random() * otherSongChoices.length
+          );
+          const randomChoice = otherSongChoices.splice(randomIndex, 1)[0];
+          additionalOptions.push(randomChoice);
+        }
+
+        // Create options: correct answer + 3 random alternatives
+        const options = [correctOption, ...additionalOptions];
+
+        // Shuffle the options
+        const shuffledOptions = options.sort(() => 0.5 - Math.random());
+
+        return {
+          lyricsSnippet: snippet.lyricsSnippet,
+          correctAnswer: correctOption, // Now includes artist
+          difficulty: snippet.difficulty,
+          options: selectedDifficulty === "Beginner" ? shuffledOptions : [],
+        };
+      });
+
+      console.log("Formatted Questions:", formatted);
+      setQuestions(formatted);
+
+      initializeGame();
+    } catch (err) {
+      console.error("Game initialization failed:", err);
+      setError(err.message || "Failed to start game. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-  }, [gameStatus, handleNextQuestion]);
+  };
+  return (
+    <div className="h-screen">
+      {/* Start Screen */}
+      {gameStatus === "idle" && (
+        <div className="h-full flex items-center justify-center bg-[#F5F5F5]">
+          <div className="flex flex-col items-center space-y-6">
+            <h1 className="text-4xl font-bold text-[#490878]">Thetimleyin</h1>
 
-  const currentQuestion = getCurrentQuestion();
+            {error && (
+              <div className="text-red-600 bg-red-100 p-3 rounded-lg">
+                {error}
+              </div>
+            )}
 
-  // Handle loading state
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-blue-500"></div>
-        <p className="text-xl text-gray-700 mt-4">Loading Questions...</p>
-      </div>
-    );
-  }
+            <div className="flex flex-col items-center space-y-4">
+              <DifficultySelect />
 
-  // Handle error state
-  if (error) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">
-            Error Loading Questions
-          </h2>
-          <p className="text-gray-700 mb-4">{error}</p>
-          <button
-            onClick={refreshQuestions} // Allow retrying question fetch
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (gameStatus === "idle") {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="flex items-center">
-            <button
-              onClick={handleStartGame}
-              disabled={!difficulty}
-              className="px-6 py-3 text-[#490878] bg-[#92f2da] rounded-lg text-lg font-bold 
-                hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Start Game
-            </button>
-            <DifficultySelect onSelect={setDifficulty} />
+              <button
+                onClick={handleStartGame}
+                disabled={!selectedDifficulty || isLoading}
+                className="px-8 py-4 text-[#490878] bg-[#92f2da] rounded-xl text-xl font-bold 
+                  hover:shadow-2xl transition-all duration-200 disabled:opacity-50
+                  relative min-w-[200px]"
+              >
+                {isLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#490878]"></span>
+                    Loading...
+                  </span>
+                ) : (
+                  "Start Game"
+                )}
+              </button>
+            </div>
           </div>
-          {!difficulty && (
-            <p className="text-sm text-gray-600">
-              Please select a difficulty level to start
-            </p>
+        </div>
+      )}
+
+      {/* Game Overlay - Fixed CSS classes */}
+      {gameStatus !== "idle" && (
+        <div className="fixed inset-0 h-[95%]  z-50 my-auto rounded-[12px] flex flex-col">
+          {/* Game Header */}
+          {gameStatus === "playing" && (
+            <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-2 flex justify-between items-center rounded-t-[12px] shadow-md">
+              <div className="flex flex-col items-center justify-center">
+                <h1 className="text-[16px] font-bold text-[#090909]">
+                  Thetimleyin
+                </h1>
+                <div className="flex items-center justify-center">
+                  <div className="text-[16px] text-[#490878]">
+                    Difficulty: {selectedDifficulty}
+                  </div>
+                </div>
+              </div>
+              <div className="p-3 flex items-center justify-center gap-2">
+                <div className="text-[16px] text-center text-[#666666]">
+                  Time Left :
+                </div>
+                <div className="text-[16px] font-bold text-[#2EAE4E]">
+                  {formatTime(timeLeft)}
+                </div>
+              </div>
+            </div>
           )}
-        </div>
-      </div>
-    );
-  }
 
-  if (currentQuestion) {
-    return (
-      <div id="game">
-        <div className="p-10 h-full w-full">
-          <GameCard key={currentQuestion.correctAnswer} />
-        </div>
-      </div>
-    );
-  }
+          {/* Game Content  */}
+          <div className="flex-1 bg-white mx-auto w-full max-w-4xl p-4 overflow-auto rounded-b-[12px]">
+            {(() => {
+              const currentQuestion = getCurrentQuestion();
+              console.log(
+                "RENDER: Current Question in Game component:",
+                currentQuestion
+              );
 
-  return null;
+              return currentQuestion ? (
+                <GameCard />
+              ) : (
+                <div>No current question available</div>
+              );
+            })()}
+
+            {gameStatus === "finished" && (
+              <div className="h-full flex flex-col items-center justify-center">
+                <div className="text-center space-y-6">
+                  <h2 className="text-4xl font-bold text-[#490878]">
+                    Game Over!
+                  </h2>
+                  <button
+                    onClick={resetGame}
+                    className="px-8 py-4 bg-[#92f2da] text-[#490878] rounded-xl 
+                      text-xl font-bold hover:shadow-xl transition-all"
+                  >
+                    Play Again
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default Game;
