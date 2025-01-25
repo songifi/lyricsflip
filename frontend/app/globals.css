@@ -1,23 +1,64 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 0 0% 100%;
+    --foreground: 215 27% 27%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 27% 27%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 27% 27%;
+    --primary: 263 55% 59%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 264 100% 97%;
+    --secondary-foreground: 215 27% 27%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 264 85% 85%;
+    --accent-foreground: 215 27% 27%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 263 55% 59%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 215 27% 27%;
+    --foreground: 210 40% 98%;
+    --card: 215 27% 27%;
+    --card-foreground: 210 40% 98%;
+    --popover: 215 27% 27%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 263 55% 59%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 264 100% 97%;
+    --secondary-foreground: 215 27% 27%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 264 85% 85%;
+    --accent-foreground: 215 27% 27%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 263 55% 59%;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
 .game-card {
@@ -44,7 +85,7 @@ body {
 .perspective-1000 {
   perspective: 1000px;
 }
-
 .backface-hidden {
   backface-visibility: hidden;
 }
+
