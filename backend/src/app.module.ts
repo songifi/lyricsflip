@@ -12,7 +12,6 @@ import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
-import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 
@@ -36,13 +35,6 @@ import { ConfigModule } from './config/config.module';
     }),
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: AccessTokenGuard,
-    },
-    AccessTokenGuard,
-  ],
+  providers: [AppService],
 })
 export class AppModule {}
