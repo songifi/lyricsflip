@@ -81,14 +81,14 @@ const Header = () => {
             </Modal>
 
             {navigation.map((item) => (
-              <a
+              <Link
                 key={item.name}
                 href={item.href}
                 onClick={(e) => handleScroll(e, item.isScroll)}
                 className="text-sm/6 font-semibold text-white"
               >
                 {item.name}
-              </a>
+              </Link>
             ))}
           </div>
           {/* <div className="hidden lg:flex lg:flex-1 lg:justify-end">
