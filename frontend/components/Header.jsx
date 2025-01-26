@@ -99,7 +99,7 @@ const Header = () => {
               leaveFrom="translate-x-0"
               leaveTo="translate-x-full"
             >
-              <DialogPanel className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-gradient-to-b from-[#490878] to-[#2C1854] px-6 py-6 sm:ring-1 sm:ring-gray-900/10">
+              <DialogPanel className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-custom-gradient px-6 py-6 sm:ring-1 sm:ring-gray-900/10">
                 <div className="flex items-center justify-between">
                   <Link href="#" className="-m-1.5 p-1.5">
                     <span className="sr-only">LyricsFlip</span>
@@ -114,7 +114,7 @@ const Header = () => {
                   <button
                     type="button"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="-m-2.5 rounded-md p-2.5 text-white hover:text-[#70E3C7] transition-colors">
+                    className="-m-2.5 rounded-md p-2.5 text-[#70E3C7] hover:text-[#70E3C7] transition-colors">
                     <span className="sr-only">Close menu</span>
                     <IoMdClose aria-hidden="true" className="size-6" />
                   </button>
@@ -127,7 +127,7 @@ const Header = () => {
                           key={item.name}
                           href={item.href}
                           onClick={(e) => handleScroll(e, item.isScroll)}
-                          className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-white hover:bg-white/10 hover:text-[#70E3C7] transition-colors">
+                          className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-[#490878] hover:bg-white/10 hover:text-[#70E3C7] transition-colors">
                           {item.name}
                         </Link>
                       ))}
