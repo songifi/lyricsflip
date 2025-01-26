@@ -14,15 +14,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserService = void 0;
 const common_1 = require("@nestjs/common");
-const auth_service_1 = require("../../auth/providers/auth.service");
+const auth_service_1 = require("./../../auth/providers/auth.service");
 const find_one_user_by_email_provider_1 = require("./find-one-user-by-email.provider");
-<<<<<<< HEAD
-const create_user_services_1 = require("./create-user.services");
-let UserService = class UserService {
-    constructor(authService, findOneUserByEmailProvider, createUserProvider) {
-        this.authService = authService;
-        this.findOneUserByEmailProvider = findOneUserByEmailProvider;
-=======
 const user_entity_1 = require("../user.entity");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
@@ -32,18 +25,14 @@ let UserService = class UserService {
         this.authService = authService;
         this.findOneUserByEmailProvider = findOneUserByEmailProvider;
         this.userRepository = userRepository;
->>>>>>> 818061761b261076822681dd1ca861393938e264
         this.createUserProvider = createUserProvider;
     }
     async findUserByEmail(email) {
-        return await this.findOneUserByEmailProvider.FindOneByEmail(email);
+        return await this.findOneUserByEmailProvider.findOneUserByEmail(email);
     }
-<<<<<<< HEAD
-=======
     FindOneById(id) {
         return this.userRepository.findOneBy({ id });
     }
->>>>>>> 818061761b261076822681dd1ca861393938e264
     async signUp(userDto) {
         return await this.createUserProvider.createUsers(userDto);
     }
@@ -64,10 +53,7 @@ exports.UserService = UserService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
     __metadata("design:paramtypes", [auth_service_1.AuthService,
         find_one_user_by_email_provider_1.FindOneUserByEmailProvider,
-<<<<<<< HEAD
-=======
         typeorm_2.Repository,
->>>>>>> 818061761b261076822681dd1ca861393938e264
         create_user_services_1.CreateUserProvider])
 ], UserService);
 //# sourceMappingURL=user.service.js.map
