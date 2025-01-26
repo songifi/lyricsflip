@@ -13,8 +13,9 @@ import { AdminModule } from './admin/admin.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
+import { GlobalInterceptor } from './interceptors/global.interceptor';
 
 @Module({
   imports: [
@@ -41,6 +42,10 @@ import { ConfigModule } from './config/config.module';
     {
       provide: APP_GUARD,
       useClass: AccessTokenGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: GlobalInterceptor,
     },
     AccessTokenGuard,
   ],
