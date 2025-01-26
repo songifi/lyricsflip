@@ -11,6 +11,7 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
+        // global font
         sans: ["Poppins", "Inter", ...fontFamily.sans],
       },
       colors: {
