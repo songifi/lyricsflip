@@ -9,7 +9,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './providers/auth.service';
 import { SignInDto } from './dtos/signIn.dto';
-import { UserDTO } from 'src/user/dtos/create-user.dto';
+import { UserDTO } from './../user/dtos/create-user.dto';
 
 @ApiTags('auth') // Groups all endpoints under the 'auth' tag in Swagger
 @Controller('auth')
