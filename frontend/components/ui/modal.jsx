@@ -38,7 +38,7 @@ export function Modal({ isOpen, onClose, title, children, className }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm overflow-y-auto"
       onClick={handleBackdropClick}
       aria-hidden="true"
     >
@@ -53,8 +53,8 @@ export function Modal({ isOpen, onClose, title, children, className }) {
           aria-modal="true"
           aria-labelledby="modal-title"
         >
-          <div className="flex items-center justify-between py-6 px-10 bg-[#F5F5F5] rounded-t-[13px] border-b-[2px]">
-            <h2 id="modal-title" className="text-2xl font-bold">
+          <div className="flex items-center justify-between py-5 px-10 bg-[#F5F5F5] text-[#090909] rounded-t-[13px] border-b-[2px] sticky top-0 z-10">
+            <h2 id="modal-title" className="text-xl font-bold">
               {title}
             </h2>
             <button
@@ -65,7 +65,9 @@ export function Modal({ isOpen, onClose, title, children, className }) {
               <X className="size-5" />
             </button>
           </div>
-          <div className="py-6 px-10">{children}</div>
+          <div className="py-6 px-10 max-h-[70vh] overflow-y-auto">
+            {children}
+          </div>
         </div>
       </div>
     </div>

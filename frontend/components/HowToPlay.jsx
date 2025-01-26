@@ -1,6 +1,8 @@
-"use Client";
+"use client";
 import { title } from "process";
-import React from "react";
+import { useState } from "react";
+import { Modal } from "./ui/modal";
+import { GameSetupForm } from "./modal/GameSetupForm";
 
 const steps = [
   {
@@ -18,6 +20,13 @@ const steps = [
 ];
 
 const HowItWorks = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleStartGame = () => {
+    console.log("Starting game...");
+    setIsModalOpen(false);
+  };
+
   return (
     <section
       id="howItWorks"
@@ -52,9 +61,19 @@ const HowItWorks = () => {
 
         {/* Buttons */}
         <div className=" flex flex-col items-center justify-center gap-4 md:flex-row ">
-          <button className="w-full rounded-full bg-[#70E3C7] px-[69px] py-6 font-semibold text-[#090909] transition md:w-auto">
+          <button
+            className="w-full rounded-full bg-[#70E3C7] px-[69px] py-6 font-semibold text-[#090909] transition md:w-auto"
+            onClick={() => setIsModalOpen(true)}
+          >
             Play Game
           </button>
+          <Modal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            title="Guess the song"
+          >
+            <GameSetupForm onStart={handleStartGame} />
+          </Modal>
           <button className="w-full rounded-full border-2 border-[#70E3C7] px-[51px] py-6  font-semibold text-[#70E3C7] md:w-auto">
             Connect Wallet
           </button>

@@ -13,97 +13,126 @@ import { Input } from "@/components/ui/input";
 export function GameSetupForm({ onStart }) {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2.5">
-        <p className="text-lg text-gray-900 font-medium">
+      <div className="flex flex-col gap-2.5 items-start">
+        <p className="text-base text-black font-medium -mb-1">
           Ready to show your lyrical prowess?🌚
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-[12px] text-[#666666]">
           Fill in the form below to continue
         </p>
       </div>
+
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor="username" className="text-sm font-medium">
+        <div className="space-y-2 flex flex-col items-start">
+          <label
+            htmlFor="username"
+            className="text-sm font-medium text-[#212121]"
+          >
             Username
           </label>
-          <Input id="username" placeholder="" />
+          <div className="h-10 w-full">
+            <Input id="username" placeholder="" className="h-full" />
+          </div>
         </div>
-        <div className="space-y-2">
-          <label htmlFor="genre" className="text-sm font-medium">
+
+        <div className="space-y-2 flex flex-col items-start">
+          <label htmlFor="genre" className="text-sm font-medium text-[#212121]">
             Genre
           </label>
-          <Select>
-            <SelectTrigger id="genre">
-              <SelectValue placeholder="" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pop">Pop</SelectItem>
-              <SelectItem value="rock">Rock</SelectItem>
-              <SelectItem value="hip-hop">Hip Hop</SelectItem>
-              <SelectItem value="jazz">Jazz</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger id="genre" className="h-full">
+                <SelectValue placeholder="" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pop">Pop</SelectItem>
+                <SelectItem value="rock">Rock</SelectItem>
+                <SelectItem value="hip-hop">Hip Hop</SelectItem>
+                <SelectItem value="jazz">Jazz</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-2">
-          <label htmlFor="difficulty" className="text-sm font-medium">
+
+        <div className="space-y-2 flex flex-col items-start">
+          <label
+            htmlFor="difficulty"
+            className="text-sm font-medium text-[#212121]"
+          >
             Difficulty Level
           </label>
-          <Select>
-            <SelectTrigger id="difficulty">
-              <SelectValue placeholder="" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="easy">Easy</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="hard">Hard</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger id="difficulty" className="h-full">
+                <SelectValue placeholder="" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="easy">Easy</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="hard">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-2">
-          <label htmlFor="duration" className="text-sm font-medium">
+
+        <div className="space-y-2 flex flex-col items-start">
+          <label
+            htmlFor="duration"
+            className="text-sm font-medium text-[#212121]"
+          >
             Duration
           </label>
-          <Select>
-            <SelectTrigger id="duration">
-              <SelectValue placeholder="" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5 minutes</SelectItem>
-              <SelectItem value="10">10 minutes</SelectItem>
-              <SelectItem value="15">15 minutes</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger id="duration" className="h-full">
+                <SelectValue placeholder="" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5 minutes</SelectItem>
+                <SelectItem value="10">10 minutes</SelectItem>
+                <SelectItem value="15">15 minutes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-2">
-          <label htmlFor="mode" className="text-sm font-medium">
+        <div className="space-y-2 flex flex-col items-start">
+          <label htmlFor="mode" className="text-sm font-medium text-[#212121]">
             Game Mode
           </label>
-          <Select>
-            <SelectTrigger id="mode">
-              <SelectValue placeholder="" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="single">Single Player</SelectItem>
-              <SelectItem value="multi">Multiplayer</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger id="mode" className="h-full">
+                <SelectValue placeholder="" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="single">Single Player</SelectItem>
+                <SelectItem value="multi">Multiplayer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="space-y-2">
-          <label htmlFor="players" className="text-sm font-medium">
+        <div className="space-y-2 flex flex-col items-start">
+          <label
+            htmlFor="players"
+            className="text-sm font-medium text-[#212121]"
+          >
             Players
           </label>
-          <Select>
-            <SelectTrigger id="players">
-              <SelectValue placeholder="" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="2">2 Players</SelectItem>
-              <SelectItem value="3">3 Players</SelectItem>
-              <SelectItem value="4">4 Players</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger id="players" className="h-full">
+                <SelectValue placeholder="" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2 Players</SelectItem>
+                <SelectItem value="3">3 Players</SelectItem>
+                <SelectItem value="4">4 Players</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
+
       <div className="max-w-[300px] mx-auto pt-4">
         <Button
           onClick={onStart}
