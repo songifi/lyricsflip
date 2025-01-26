@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.GenerateTokensProvider = void 0;
 const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
-const user_service_1 = require("../../user/providers/user.service");
+const user_service_1 = require("./../../user/providers/user.service");
 const jwt_config_1 = require("../authConfig/jwt.config");
 let GenerateTokensProvider = class GenerateTokensProvider {
     constructor(userService, jwtService, jwtConfiguration) {
