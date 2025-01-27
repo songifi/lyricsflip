@@ -236,6 +236,7 @@ pub mod LyricsFlip {
             self.year_cards.entry(card.year).append().write(card_id);
 
             self.cards.entry(card_id).write(card);
+            self.cards_count.write(card_id);
         }
 
         fn get_card(self: @ContractState, card_id: u64) -> Card {
@@ -261,10 +262,8 @@ pub mod LyricsFlip {
     impl InternalFunctions of InternalFunctionsTrait {
         //TODO
         fn get_random_cards(self: @ContractState, seed: u64) -> Span<u64> {
-            // let amount: u64 = self.cards_per_round.read().into();
-            // let limit = self.cards_count.read();
-            let amount: u64 = 8;
-            let limit: u64 = 16;
+            let amount: u64 = self.cards_per_round.read().into();
+            let limit = self.cards_count.read();
             self._get_random_numbers(seed, amount, limit, false)
         }
 

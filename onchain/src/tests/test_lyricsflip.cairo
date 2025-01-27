@@ -29,11 +29,20 @@ fn test_create_round() {
     let lyricsflip = deploy();
     let mut spy = spy_events();
 
+    for i in 0..10_u64 {
+        let card = Card {
+            card_id: i.into(), genre: Genre::HipHop, artist: 'Bob Marley', title: "", year: 2000, lyrics: "Lorem Ipsum"
+        };
+        lyricsflip.add_card(card);
+    };
+
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
 
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
-
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     let round = lyricsflip.get_round(round_id);
@@ -63,8 +72,11 @@ fn test_create_round() {
     assert(round.end_time == 0, 'wrong end_time');
 
     let round_cards = lyricsflip.get_round_cards(round_id);
+    assert(round_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
+
     for i in 0..round_cards.len() {
-        for j in i..round_cards.len() {
+        println!("card at index {} is {}", i, round_cards.at(i));
+        for j in (i+1)..round_cards.len() {
             assert(round_cards.at(i) != round_cards.at(j), 'cards not unique');
         }
     }
