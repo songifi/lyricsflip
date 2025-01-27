@@ -1,8 +1,8 @@
 "use client";
 import Image from "next/image";
-import rankOne from "../public/leaderboard-img/rankOne.svg";
-import rankTwo from "../public/leaderboard-img/rankTwo.svg";
-import rankThree from "../public/leaderboard-img/rankThree.svg";
+import rankOne from "../public/leaderboard-img/rankOne.svg"
+import rankTwo from "../public/leaderboard-img/rankTwo.svg"
+import rankThree from "../public/leaderboard-img/rankThree.svg"
 import avatar from "../public/leaderboard-img/avatar.svg";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { IoMdArrowDropdown } from "react-icons/io";
