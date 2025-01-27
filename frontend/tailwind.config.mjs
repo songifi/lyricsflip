@@ -1,5 +1,6 @@
 /* eslint-disable import/no-anonymous-default-export */
 import daisyui from "daisyui"
+import { Geist } from "next/font/google";
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -9,9 +10,18 @@ export default {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        InterV: ["Inter-V", "sans-serif"],
+        Geist: ["Geist", "sans-serif"],
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        primary: "var(--primary)",
+        secondary: "var(--secondary)",
+        error: "var(--error)",
+        accent: "var(--accent)",
+        inactive: "var(--inactive)",
       },
       boxShadow: {
         navbar: '0px 2px 4px rgba(74, 9, 120, 0.2)',
