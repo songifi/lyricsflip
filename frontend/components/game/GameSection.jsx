@@ -133,10 +133,10 @@ const Game = () => {
         </div>
       )}
 
-      {/* Game Overlay - Fixed CSS classes */}
+      {/* Game Overlay */}
       {gameStatus !== "idle" && (
-        <div className="fixed inset-0 z-50 h-[98%] my-auto rounded-[12px] flex flex-col">
-          {/* Game Header - Now shown for both playing and finished states */}
+        <div className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] flex flex-col">
+          {/* Game Header */}
           <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
             <div className="flex flex-col items-center justify-center">
               <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">

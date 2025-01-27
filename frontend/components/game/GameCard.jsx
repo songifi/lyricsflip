@@ -14,12 +14,12 @@ const GameCard = () => {
   const handleAnswer = (isCorrect) => {
     setShowFeedback(true);
 
-    // Add a delay before flipping the card
+    // delay before flipping the card to show feedback
     setTimeout(() => {
-      setIsFlipped(!isFlipped); // Toggle flip state instead of always resetting to false
+      setIsFlipped(!isFlipped);
       advanceQuestion();
       setShowFeedback(false);
-    }, 1000); // Delay before flip to show feedback
+    }, 1000);
   };
 
   if (!currentQuestion) return null;
