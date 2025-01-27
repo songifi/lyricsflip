@@ -196,22 +196,21 @@ pub mod LyricsFlip {
                     )
                 );
         }
-    }
+     
 
-    
-    fn add_card(ref self: ContractState, card: Card) {
-        let card_id = self.cards_count.read();
+        fn add_card(ref self: ContractState, card: Card) {
+            let card_id = self.cards_count.read() + 1;
 
-        self.artist_cards.entry(card.artist).append().write(card_id);
-        self.genre_cards.entry(card.genre.into()).append().write(card_id);
-        self.year_cards.entry(card.year).append().write(card_id);
+            self.artist_cards.entry(card.artist).append().write(card_id);
+            self.genre_cards.entry(card.genre.into()).append().write(card_id);
+            self.year_cards.entry(card.year).append().write(card_id);
 
-        self.cards.entry(card_id).write(card);
-    }
+            self.cards.entry(card_id).write(card);
+        } 
 
-    fn get_card(self: @ContractState, card_id: u64) -> Card {
-        self.cards.entry(card_id).read()
-    }
+        fn get_card(self: @ContractState, card_id: u64) -> Card {
+            self.cards.entry(card_id).read()
+        }
 
     // // TODO
     // fn set_cards_per_round(ref self: ContractState, value: u8) {}
@@ -232,6 +231,7 @@ pub mod LyricsFlip {
 
     // //TODO
     // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
+    }
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {

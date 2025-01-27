@@ -1,6 +1,6 @@
 use lyricsflip::contracts::lyricsflip::LyricsFlip;
 use lyricsflip::interfaces::lyricsflip::{ILyricsFlipDispatcher, ILyricsFlipDispatcherTrait};
-use lyricsflip::utils::types::{Genre};
+use lyricsflip::utils::types::{Genre, Card};
 use snforge_std::{
     declare, spy_events, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address,
     stop_cheat_caller_address, start_cheat_block_timestamp_global,
@@ -242,4 +242,27 @@ fn test_join_round_should_panic_with_non_existing_round() {
     lyricsflip.join_round(round_id);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+fn test_add_card() {
+    let lyricsflip = deploy();
+
+    let genre: Genre = Genre::Reggae;
+    
+    let card = Card{
+        card_id: 1,
+        genre: genre,
+        artist: 'Bob Marley',
+        title: "",
+        year: 2000,
+        lyrics: "Lorem Ipsum"
+    };
+
+    lyricsflip.add_card(card);
+
+    let card_stored = lyricsflip.get_card(1);
+    assert(card_stored.card_id == 1, 'Wrong card_id');
+    assert(card_stored.year == 2000, 'Wrong card_id');
+    assert(card_stored.artist == 'Bob Marley', 'Wrong card_id');
 }
