@@ -13,9 +13,12 @@ pub mod LyricsFlip {
     #[storage]
     struct Storage {
         round_count: u64,
-        card_count: u64,
+        cards_count: u64,
         cards_per_round: u8,
         cards: Map<u64, Card>,
+        genre_cards: Map<Genre, Vec<u64>>, // genre -> vec<card_ids>
+        artist_cards: Map<ByteArray, Vec<u64>>, // artist -> vec<card_ids>
+        year_cards: Map<u64, Vec<u64>>, // year -> vec<card_ids>
         rounds: Map<u64, Round>, // round_id -> Round
         round_players: Map<
             u64, Map<u256, ContractAddress>
@@ -31,6 +34,7 @@ pub mod LyricsFlip {
         RoundCreated: RoundCreated,
         RoundStarted: RoundStarted,
         RoundJoined: RoundJoined,
+        SetCardPerRound: SetCardPerRound,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -58,6 +62,13 @@ pub mod LyricsFlip {
         #[key]
         pub player: ContractAddress,
         pub joined_time: u64,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct SetCardPerRound {
+        #[key]
+        pub old_value: u8,
+        pub new_value: u8,
     }
 
     #[constructor]
@@ -124,7 +135,9 @@ pub mod LyricsFlip {
                 wager_amount: 0, // TODO
                 start_time: 0,
                 is_started: false,
+                is_completed: false,
                 end_time: 0, //TODO
+                next_card_index: 0,
             };
 
             let round_players_count = self.round_players_count.entry(round_id).read();
@@ -191,13 +204,63 @@ pub mod LyricsFlip {
                     )
                 );
         }
+
+
+        fn set_cards_per_round(ref self: ContractState, value: u8) {
+            assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
+
+            let old_value = self.cards_per_round.read();
+            self.cards_per_round.write(value);
+
+            self
+                .emit(
+                    Event::SetCardPerRound(
+                        SetCardPerRound { old_value: old_value, new_value: value, }
+                    )
+                );
+        }
+
+
+        fn get_cards_per_round(self: @ContractState) -> u8 {
+            self.cards_per_round.read()
+        }
     }
+
+    // // TODO
+    // fn add_card(ref self: ContractState, card: Card) {}
+
+    fn get_card(self: @ContractState, card_id: u64) -> Card {
+        self.cards.entry(card_id).read()
+    }
+
+    // // TODO
+    // fn next_card(ref self: ContractState, round_id: u64) -> Card {
+    //     self._next_round_card()
+    // }
+
+    // // TODO
+    // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
+
+    // // TODO
+    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) -> Span<Card> {}
+
+    // //TODO
+    // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         //TODO
         fn get_random_cards(ref self: ContractState) -> Span<u64> {
             array![1, 2].span()
+        }
+
+        // // TODO
+        // fn _next_round_card(ref self: ContractState, round_id: u64) -> Card {
+        //     // check round is started and is_completed is false
+        // }
+
+        fn _get_random_numbers(amount: u64, limit: u64, for_index: bool) -> Span<u64> {
+            array![].span()
         }
     }
 }

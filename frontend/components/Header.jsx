@@ -59,24 +59,24 @@ const Header = () => {
           </div>
           <div className="hidden lg:flex lg:gap-x-12">
             {navigation.map((item) => (
-              <a
+              <Link
                 key={item.name}
                 href={item.href}
                 onClick={(e) => handleScroll(e, item.isScroll, item.href)}
                 className="text-sm/6 font-semibold text-white"
               >
                 {item.name}
-              </a>
+              </Link>
             ))}
           </div>
-          <div className="hidden lg:flex lg:flex-1 lg:justify-end">
+          {/* <div className="hidden lg:flex lg:flex-1 lg:justify-end">
             <Link
               href="#"
               className="text-sm/6 font-semibold text-[#490878] px-3 py-1.5 text-center rounded-lg bg-[#70E3C7]"
             >
               Connect Wallet
             </Link>
-          </div>
+          </div> */}
         </nav>
         <Dialog
           open={mobileMenuOpen}
