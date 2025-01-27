@@ -14,16 +14,18 @@ import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
 
 const navigation = [
+  { name: "Play Now", href: "game", isScroll: true },
   { name: "Categories", href: "#", isScroll: false },
-  { name: "Leaderboard", href: "#", isScroll: false },
+  { name: "Leaderboard", href: "leaderBoard", isScroll: true },
   { name: "How to Play", href: "#", isScroll: false },
 ];
 
-const handleScroll = (e, isScroll) => {
+const handleScroll = (e, isScroll, targetID) => {
   if (!isScroll) return;
 
   e.preventDefault();
-  const element = document.getElementById("game");
+  const element = document.getElementById(targetID);
+  console.log(targetID)
   if (element) {
     element.scrollIntoView({ behavior: "smooth" });
     setMobileMenuOpen(false);
