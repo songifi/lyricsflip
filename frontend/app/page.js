@@ -1,5 +1,5 @@
 import Footer from "@/components/Footer";
-// import Game from "@/components/game/GameSection";
+import Game from "@/components/game/GameSection";
 import HeroSection from "@/components/HeroSection";
 import HowItWorks from "@/components/HowToPlay";
 import LeaderBoard from "@/components/LeaderBoard";
@@ -9,7 +9,7 @@ export default function Home() {
     <div className="bg-white">
       <HeroSection GameSection={Game} />
       <HowItWorks />
-      {/* <Game /> */}
+      <Game />
       <LeaderBoard />
       <Footer />
 
