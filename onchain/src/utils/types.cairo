@@ -27,6 +27,14 @@ pub enum Genre {
     Folk,
 }
 
+#[derive(Drop, Hash)]
+pub struct Entropy {
+    pub seed: u64,
+    pub block_number: u64,
+    pub timestamp: u64,
+    pub index: u64
+}
+
 // TODO
 // #[derive(Drop, Copy, Serde, starknet::Store)]
 // pub enum Mode {

@@ -11,7 +11,7 @@ pub trait ILyricsFlip<TContractState> {
         self: @TContractState, round_id: u64, player_address: ContractAddress
     ) -> bool;
 
-    fn create_round(ref self: TContractState, genre: Option<Genre>) -> u64;
+    fn create_round(ref self: TContractState, genre: Option<Genre>, seed: u64) -> u64;
     fn start_round(ref self: TContractState, round_id: u64);
     fn join_round(ref self: TContractState, round_id: u64);
     // // TODO

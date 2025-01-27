@@ -31,7 +31,8 @@ fn test_create_round() {
 
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
 
-    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop));
+    let seed = 1;
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
 
@@ -62,10 +63,11 @@ fn test_create_round() {
     assert(round.end_time == 0, 'wrong end_time');
 
     let round_cards = lyricsflip.get_round_cards(round_id);
-    // Atm following assertions are hardcoded
-    // Must be dynamic when the `get_random_cards()` function is coded
-    assert(*round_cards.at(0) == 1, 'wrong card 0');
-    assert(*round_cards.at(1) == 2, 'wrong card 1');
+    for i in 0..round_cards.len() {
+        for j in i..round_cards.len() {
+            assert(round_cards.at(i) != round_cards.at(j), 'cards not unique');
+        }
+    }
 }
 
 #[test]
@@ -76,7 +78,8 @@ fn test_start_round() {
     start_cheat_block_timestamp_global(1736593692);
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
 
-    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop));
+    let seed = 1;
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
     lyricsflip.start_round(round_id);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -119,7 +122,8 @@ fn test_join_round() {
     start_cheat_block_timestamp_global(1736593692);
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
 
-    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop));
+    let seed = 1;
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());
@@ -160,7 +164,8 @@ fn test_create_round_should_panic_with_unknown_genre() {
 
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
 
-    lyricsflip.create_round(Option::None);
+    let seed = 1;
+    lyricsflip.create_round(Option::None, seed);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
@@ -172,7 +177,8 @@ fn test_start_round_should_panic_with_only_admin() {
 
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
 
-    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop));
+    let seed = 1;
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());
@@ -202,7 +208,8 @@ fn test_join_round_should_panic_with_round_already_started() {
 
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
 
-    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop));
+    let seed = 1;
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
     lyricsflip.start_round(round_id);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -220,7 +227,8 @@ fn test_join_round_should_panic_with_already_joined() {
 
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
 
-    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop));
+    let seed = 1;
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());

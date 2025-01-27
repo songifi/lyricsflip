@@ -2,12 +2,14 @@
 pub mod LyricsFlip {
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Card, Genre, Round};
+    use lyricsflip::utils::types::{Card, Genre, Round, Entropy};
+    use core::poseidon::PoseidonTrait;
+    use core::hash::{HashStateTrait, HashStateExTrait};
     use starknet::storage::{
         StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry, Map, Vec,
         MutableVecTrait, VecTrait
     };
-    use starknet::{get_caller_address, get_block_timestamp, ContractAddress};
+    use starknet::{get_caller_address, get_block_timestamp, ContractAddress, get_block_number};
 
 
     #[storage]
@@ -113,11 +115,11 @@ pub mod LyricsFlip {
             is_player
         }
 
-        fn create_round(ref self: ContractState, genre: Option<Genre>) -> u64 {
+        fn create_round(ref self: ContractState, genre: Option<Genre>, seed: u64) -> u64 {
             assert(genre.is_some(), Errors::NON_EXISTING_GENRE);
 
             let caller_address = get_caller_address();
-            let cards = self.get_random_cards();
+            let cards = self.get_random_cards(seed);
 
             let round_id = self.round_count.read() + 1;
             let round = Round {
@@ -228,8 +230,12 @@ pub mod LyricsFlip {
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {
         //TODO
-        fn get_random_cards(ref self: ContractState) -> Span<u64> {
-            array![1, 2].span()
+        fn get_random_cards(self: @ContractState, seed: u64) -> Span<u64> {
+            // let amount: u64 = self.cards_per_round.read().into();
+            // let limit = self.cards_count.read();
+            let amount: u64 = 8;
+            let limit: u64 = 16;
+            self._get_random_numbers(seed, amount, limit, false)
         }
 
         // // TODO
@@ -237,8 +243,41 @@ pub mod LyricsFlip {
         //     // check round is started and is_completed is false
         // }
 
-        fn _get_random_numbers(amount: u64, limit: u64, for_index: bool) -> Span<u64> {
-            array![].span()
+        fn _get_random_numbers(
+            self: @ContractState,
+            seed: u64,
+            amount: u64,
+            limit: u64,
+            for_index: bool,
+        ) -> Span<u64> {
+            // Initialize a dictionary to ensure uniqueness of numbers
+            let mut numbers: Felt252Dict<bool> = Default::default();
+            let mut unique_numbers: Array<u64> = array![];
+        
+            let mut i = 0_u64;
+            while unique_numbers.len().into() < amount {
+                let entropy = Entropy {
+                    seed,
+                    block_number: get_block_number(),
+                    timestamp: get_block_timestamp(),
+                    index: i,
+                };
+                let rand_felt = PoseidonTrait::new().update_with(entropy).finalize();
+                let rand_u256: u256 = rand_felt.into();
+                let rand_u256_in_range: u256 = rand_u256 % limit.into();
+                let rand: u64 = rand_u256_in_range.try_into().unwrap();
+        
+                // Ensure uniqueness by checking the dictionary
+                if !numbers.get(rand.into()) {
+                    numbers.insert(rand.into(), true);
+                    unique_numbers.append(rand);
+                }
+        
+                i += 1; // Increment the index for the next iteration
+            };
+        
+            unique_numbers.span()
         }
+        
     }
 }
