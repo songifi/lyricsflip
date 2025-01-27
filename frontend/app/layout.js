@@ -3,6 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 import { StarknetProvider } from "@/components/starknet-provider";
 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -22,6 +23,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+
       <StarknetProvider>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}

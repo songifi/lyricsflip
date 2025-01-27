@@ -43,7 +43,7 @@ const Game = () => {
           onClick={() => setGameStatus("playing")} // Transition to "playing"
           className="px-6 py-3 text-[#490878] bg-[#92f2da] rounded-lg text-lg font-bold hover:shadow-2xl"
         >
-          Start Game
+           Play Now
         </button>
       </div>
     );

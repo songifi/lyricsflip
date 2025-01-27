@@ -43,6 +43,7 @@ const Header = () => {
   };
 
   return (
+
     <>
       <LockBodyScroll lock={connectModalIsOpen || mobileMenuOpen} />
 

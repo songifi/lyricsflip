@@ -7,11 +7,12 @@ import LeaderBoard from "@/components/LeaderBoard";
 export default function Home() {
   return (
     <div className="bg-white">
-      <HeroSection />
+      <HeroSection GameSection={Game} />
       <HowItWorks />
       {/* <Game /> */}
       <LeaderBoard />
       <Footer />
+
     </div>
   );
 }
