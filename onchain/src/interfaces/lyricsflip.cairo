@@ -17,7 +17,6 @@ pub trait ILyricsFlip<TContractState> {
     fn get_cards_per_round(self: @TContractState) -> u8;
     fn add_card(ref self: TContractState, card: Card);
     fn get_card(self: @TContractState, card_id: u64) -> Card;
-
     // // TODO
 // fn next_card(ref self: TContractState, round_id: u64) -> Card;
 

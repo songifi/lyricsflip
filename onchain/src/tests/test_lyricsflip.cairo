@@ -302,14 +302,9 @@ fn test_add_card() {
     let lyricsflip = deploy();
 
     let genre: Genre = Genre::Reggae;
-    
-    let card = Card{
-        card_id: 1,
-        genre: genre,
-        artist: 'Bob Marley',
-        title: "",
-        year: 2000,
-        lyrics: "Lorem Ipsum"
+
+    let card = Card {
+        card_id: 1, genre: genre, artist: 'Bob Marley', title: "", year: 2000, lyrics: "Lorem Ipsum"
     };
 
     lyricsflip.add_card(card);

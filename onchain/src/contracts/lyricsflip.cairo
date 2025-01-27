@@ -224,7 +224,7 @@ pub mod LyricsFlip {
         fn get_cards_per_round(self: @ContractState) -> u8 {
             self.cards_per_round.read()
         }
-     
+
 
         fn add_card(ref self: ContractState, card: Card) {
             let card_id = self.cards_count.read() + 1;
@@ -234,24 +234,24 @@ pub mod LyricsFlip {
             self.year_cards.entry(card.year).append().write(card_id);
 
             self.cards.entry(card_id).write(card);
-        } 
+        }
 
         fn get_card(self: @ContractState, card_id: u64) -> Card {
             self.cards.entry(card_id).read()
         }
-
-    // // TODO
+        // // TODO
     // fn next_card(ref self: ContractState, round_id: u64) -> Card {
     //     self._next_round_card()
     // }
 
-    // // TODO
+        // // TODO
     // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
 
-    // // TODO
-    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) -> Span<Card> {}
+        // // TODO
+    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) ->
+    // Span<Card> {}
 
-    // //TODO
+        // //TODO
     // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
     }
 

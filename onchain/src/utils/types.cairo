@@ -4,7 +4,7 @@ use starknet::ContractAddress;
 pub struct Card {
     pub card_id: u64,
     pub genre: Genre,
-    pub artist: felt252,// TODO: review datatype in order to use ByteArray as key in map
+    pub artist: felt252, // TODO: review datatype in order to use ByteArray as key in map
     pub title: ByteArray,
     pub year: u64,
     pub lyrics: ByteArray,
