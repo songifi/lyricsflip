@@ -6,16 +6,24 @@ import Link from "next/link";
 import Image from "next/image";
 import { MdOutlineMenu } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
+import { GameSetupForm } from "./modal/GameSetupForm";
+import { Modal } from "./ui/modal";
+import WalletBar from "./WalletBar";
 
 const navigation = [
-  { name: "Play Now", href: "#game", isScroll: true },
+  /*   { name: "Play Now", href: "#game", isScroll: true }, */
   { name: "Categories", href: "#", isScroll: false },
   { name: "Leaderboard", href: "#", isScroll: false },
   { name: "How to Play", href: "#how-to-play", isScroll: false },
 ];
 
-const Navbar = () => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const Navbar = ({ mobileMenuOpen, setMobileMenuOpen, connectModalIsOpen, setConnectModalIsOpen }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleStartGame = () => {
+    console.log("Starting game...");
+    setIsModalOpen(false);
+  };
 
   const handleScroll = (e, isScroll) => {
     if (!isScroll) return;
@@ -55,7 +63,15 @@ const Navbar = () => {
           <MdOutlineMenu aria-hidden="true" className="size-6 text-[#70E3C7]" />
         </button>
       </div>
-      <div className="hidden lg:flex lg:gap-x-12">
+      <div className="hidden justify-center items-center lg:flex lg:gap-x-12">
+
+        <button
+          className="text-sm/6 font-semibold text-white "
+          onClick={() => setIsModalOpen(true)}
+        >
+          Play Game
+        </button>
+
         {navigation.map((item) => (
           <Link
             key={item.name}
@@ -66,8 +82,12 @@ const Navbar = () => {
             {item.name}
           </Link>
         ))}
+
+        <WalletBar
+          toggleModal={() => setConnectModalIsOpen((prev) => !prev)}
+        />
       </div>
-      
+
       <Transition.Root show={mobileMenuOpen} as={Fragment}>
         <Dialog as="div" className="lg:hidden" onClose={setMobileMenuOpen}>
           <Transition.Child
@@ -113,7 +133,22 @@ const Navbar = () => {
               </div>
               <div className="mt-6 flow-root border-t-2 border-t-white">
                 <div className="-my-6 divide-y divide-gray-500/20">
-                  <div className="space-y-2 pt-8 pb-2 border-b-2 border-b-white">
+
+                  <div className="space-y-2 pt-10 pb-2 border-b-2 border-b-white">
+
+                    <button
+                      className="text-sm/6 font-semibold text-[#490878]"
+                      onClick={() => {
+                        setIsModalOpen(true)
+                        setMobileMenuOpen(false)
+                      }
+
+
+                      }
+                    >
+                      Play Game
+                    </button>
+
                     {navigation.map((item) => (
                       <Link
                         key={item.name}
@@ -124,12 +159,10 @@ const Navbar = () => {
                       </Link>
                     ))}
                   </div>
-                  <div className="py-6">
-                    <Link
-                      href="#"
-                      className="inline-block rounded-lg px-4 py-2 text-base/7 font-semibold text-[#490878] bg-[#70E3C7] hover:bg-[#5BC7AD] transition-colors">
-                      Log in
-                    </Link>
+                  <div className="flex py-6 justify-start items-center">
+                    <WalletBar
+                      toggleModal={() => setConnectModalIsOpen((prev) => !prev)}
+                    />
                   </div>
                 </div>
               </div>
@@ -137,6 +170,14 @@ const Navbar = () => {
           </Transition.Child>
         </Dialog>
       </Transition.Root>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Guess the song"
+      >
+        <GameSetupForm onStart={handleStartGame} />
+      </Modal>
     </nav>
   );
 };
