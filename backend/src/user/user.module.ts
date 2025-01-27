@@ -1,7 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UserService } from './providers/user.service';
-import { AuthModule } from 'src/auth/auth.module';
+import { AuthModule } from './../auth/auth.module';
 import { FindOneUserByEmailProvider } from './providers/find-one-user-by-email.provider';
 import { CreateUserProvider } from './providers/create-user.services';
 import { HashingProvider } from './providers/hashing.provider';
