@@ -48,3 +48,10 @@ body {
 .backface-hidden {
   backface-visibility: hidden;
 }
+.front-face {
+  transform: rotateY(0deg); /* Default orientation for the front face */
+}
+
+.back-face {
+  transform: rotateY(180deg); /* Correct the back face mirroring */
+}

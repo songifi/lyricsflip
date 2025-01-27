@@ -1,4 +1,3 @@
-"use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
@@ -8,21 +7,19 @@ import Image from "next/image";
 const GameCard = () => {
   const { getCurrentQuestion, gameStatus, advanceQuestion } = useGameStore();
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const currentQuestion = getCurrentQuestion();
 
-  useEffect(() => {
-    if (gameStatus === "success" || gameStatus === "failed") {
-      setIsFlipped(true);
-    }
-  }, [gameStatus]);
+  const handleAnswer = (isCorrect) => {
+    setShowFeedback(true);
 
-  const handleAnimationComplete = () => {
-    if (isFlipped) {
-      // Reset flip state and move to next question
-      setIsFlipped(false);
+    // Add a delay before flipping the card
+    setTimeout(() => {
+      setIsFlipped(!isFlipped); // Toggle flip state instead of always resetting to false
       advanceQuestion();
-    }
+      setShowFeedback(false);
+    }, 1000); // Delay before flip to show feedback
   };
 
   if (!currentQuestion) return null;
@@ -40,7 +37,10 @@ const GameCard = () => {
               transition={{
                 duration: 0.6,
               }}
-              onAnimationComplete={handleAnimationComplete}
+              style={{
+                transformStyle: "preserve-3d",
+                perspective: "1000px",
+              }}
             >
               {/* Front Face */}
               <div
@@ -60,13 +60,16 @@ const GameCard = () => {
                   <div className="lyrics-snippet text-[14px] font-[106] mt-[-60px] mx-auto text-center text-black sm:text-2xl/8">
                     <h2>"{currentQuestion.lyricsSnippet}"</h2>
                   </div>
+                  <div className="mt-12 text-black text-[14px]">
+                    LyricFlip...join the fun🎶🩵
+                  </div>
                 </div>
               </div>
 
               {/* Back Face */}
               <div
-                className="absolute inset-0 bg-[#70E3C7] p-4 rounded-[24px] backface-hidden rotate-y-180"
-                style={{ transformStyle: "preserve-3d", perspective: "1000px" }}
+                className="absolute inset-0 bg-[#70E3C7] p-4 rounded-[24px] backface-hidden"
+                style={{ transform: "rotateY(180deg)" }}
               >
                 <div className="flex flex-col justify-center items-center min-h-full p-4">
                   <div className="w-full flex justify-center">
@@ -85,16 +88,12 @@ const GameCard = () => {
                     LyricFlip...join the fun🎶🩵
                   </div>
                 </div>
-
-                {/* <div className="flex items-center justify-center min-h-full">
-                  <h2>"{currentQuestion.lyricsSnippet}"</h2>
-                </div> */}
               </div>
             </motion.div>
           </div>
         </div>
         <div className="w-full mx-auto p-8 h-[88px] mt-4 flex flex-col items-center">
-          <AnswerInput />
+          <AnswerInput onAnswer={handleAnswer} />
         </div>
       </div>
     </div>

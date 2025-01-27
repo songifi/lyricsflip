@@ -15,12 +15,12 @@ const MCQOption = ({
     className={`min-w-full p-3 lg:h-[70px] text-left text-[16px] text-[#090909] rounded-lg transition-colors border disabled:cursor-not-allowed
       ${
         isSelected && isCorrect
-          ? "bg-[#2EAE4E] border-green-400" // Correct answer and selected
+          ? "bg-[#2EAE4E] border-green-400"
           : isSelected && !isCorrect
-          ? "bg-[#CE0000] border-red-400" // Selected incorrect answer
+          ? "bg-[#CE0000] border-red-400"
           : !isSelected && isCorrect && isAnswerSubmitted
-          ? "bg-[#70E3C7CC] border-green-200" // Correct answer, not selected
-          : "bg-[#EEFCF8CC] border-[#CBF6EA]" // Default option
+          ? "bg-[#70E3C7CC] border-green-200"
+          : "bg-[#EEFCF8CC] border-[#CBF6EA]"
       }
     `}
   >
@@ -28,7 +28,7 @@ const MCQOption = ({
   </button>
 );
 
-const AnswerInput = () => {
+const AnswerInput = ({ onAnswer }) => {
   const { getCurrentQuestion, handleAnswer, selectedDifficulty } =
     useGameStore();
   const [userAnswer, setUserAnswer] = useState("");
@@ -46,15 +46,13 @@ const AnswerInput = () => {
     setIsAnswerCorrect(false);
   }, [currentQuestion]);
 
-  useEffect(() => {
-    // Check the answer when the selectedOption changes
-    if (selectedOption !== null) {
-      const isCorrect = selectedOption === currentQuestion.correctAnswer;
-      setIsAnswerSubmitted(true);
-      setIsAnswerCorrect(isCorrect);
-      handleAnswer(isCorrect);
-    }
-  }, [selectedOption, currentQuestion.correctAnswer, handleAnswer]);
+  const handleSubmitAnswer = (answer) => {
+    const isCorrect = answer === currentQuestion.correctAnswer;
+    setIsAnswerSubmitted(true);
+    setIsAnswerCorrect(isCorrect);
+    handleAnswer(isCorrect);
+    onAnswer(isCorrect);
+  };
 
   // Render MCQ for Beginner difficulty
   if (selectedDifficulty === "Beginner" && currentQuestion.options) {
@@ -67,10 +65,11 @@ const AnswerInput = () => {
             isCorrect={option === currentQuestion.correctAnswer}
             isSelected={selectedOption === option}
             isAnswerSubmitted={isAnswerSubmitted}
-            disabled={isAnswerSubmitted} // Disable all options after submission
+            disabled={isAnswerSubmitted}
             onSelect={() => {
               if (!isAnswerSubmitted) {
-                setSelectedOption(option); // Automatically triggers answer-checking logic
+                setSelectedOption(option);
+                handleSubmitAnswer(option);
               }
             }}
           />
@@ -81,14 +80,16 @@ const AnswerInput = () => {
 
   // Default text input for Intermediate and Advanced
   return (
-    <div className="w-full flex flex-col items-center justify-center space-y-4  mx-auto p-4">
+    <div className="w-full flex flex-col items-center justify-center space-y-4 mx-auto p-4">
       <input
         type="text"
         value={userAnswer}
         onChange={(e) => setUserAnswer(e.target.value)}
-        onKeyPress={(e) =>
-          e.key === "Enter" && !isAnswerSubmitted && setIsAnswerSubmitted(true)
-        }
+        onKeyPress={(e) => {
+          if (e.key === "Enter" && !isAnswerSubmitted) {
+            handleSubmitAnswer(userAnswer);
+          }
+        }}
         placeholder="Type your guess here"
         disabled={isAnswerSubmitted}
         className={`input input-bordered input-lg w-[70%] rounded-[8px] bg-white border-[#70E3C7] text-[#666666] text-[14px] ${
@@ -100,7 +101,7 @@ const AnswerInput = () => {
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       />
       <button
-        onClick={() => setIsAnswerSubmitted(true)}
+        onClick={() => handleSubmitAnswer(userAnswer)}
         disabled={isAnswerSubmitted}
         className={`w-[70%] text-sm/6 font-semibold px-[32px] py-[24px] text-center text-[16px] rounded-[1000px] transition-colors ${
           isAnswerSubmitted

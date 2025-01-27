@@ -102,11 +102,11 @@ export const useGameStore = create((set, get) => ({
     }));
 
     // Optional: Add a delay before moving to next question
-    if (isCorrect) {
-      setTimeout(() => {
-        get().advanceQuestion();
-      }, 1000); // 1 second delay
-    }
+    // if (isCorrect) {
+    //   setTimeout(() => {
+    //     get().advanceQuestion();
+    //   }, 1000); // 1 second delay
+    // }
   },
   // Timer Management
   timerId: null,
