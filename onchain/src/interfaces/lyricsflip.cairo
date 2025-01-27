@@ -13,14 +13,10 @@ pub trait ILyricsFlip<TContractState> {
     fn create_round(ref self: TContractState, genre: Option<Genre>) -> u64;
     fn start_round(ref self: TContractState, round_id: u64);
     fn join_round(ref self: TContractState, round_id: u64);
+    fn set_cards_per_round(ref self: TContractState, value: u8);
+    fn get_cards_per_round(self: @TContractState) -> u8;
     fn add_card(ref self: TContractState, card: Card);
     fn get_card(self: @TContractState, card_id: u64) -> Card;
-
-    // // TODO
-// fn set_cards_per_round(ref self: TContractState, value: u8);
-
-    // //TODO
-// fn get_cards_per_round(self: @TContractState) -> u8;
 
     // // TODO
 // fn next_card(ref self: TContractState, round_id: u64) -> Card;

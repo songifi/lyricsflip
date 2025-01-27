@@ -1,4 +1,4 @@
-import { AuthService } from 'src/auth/providers/auth.service';
+import { AuthService } from './../../auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
 import { User } from '../user.entity';
 import { Repository } from 'typeorm';
@@ -11,8 +11,8 @@ export declare class UserService {
     private readonly createUserProvider;
     constructor(authService: AuthService, findOneUserByEmailProvider: FindOneUserByEmailProvider, userRepository: Repository<User>, createUserProvider: CreateUserProvider);
     findUserByEmail(email: string): Promise<User>;
-    FindOneById(id: number): Promise<User | null>;
-    signUp(userDto: UserDTO): Promise<(User & User[])[]>;
+    FindOneById(id: string): Promise<User | null>;
+    signUp(userDto: UserDTO): Promise<User[]>;
     signIn(): string;
     refreshToken(): string;
     updateProfile(): string;

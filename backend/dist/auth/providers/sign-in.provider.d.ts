@@ -1,4 +1,4 @@
-import { UserService } from 'src/user/providers/user.service';
+import { UserService } from './../../user/providers/user.service';
 import { HashingProvider } from './hashing-provider';
 import { GenerateTokensProvider } from './generate-tokens-provider';
 import { SignInDto } from '../dtos/signIn.dto';
