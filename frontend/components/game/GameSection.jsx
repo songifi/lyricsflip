@@ -4,6 +4,7 @@ import { useGameStore } from "@/store/gameStore";
 import GameCard from "./GameCard";
 import DifficultySelect from "./DifficultySelect";
 import GeniusService from "@/services/geniusService";
+import GameCompletion from "./GameCompletion";
 
 const Game = () => {
   const {
@@ -111,7 +112,7 @@ const Game = () => {
       {gameStatus === "idle" && (
         <div className="h-full flex items-center justify-center bg-[#F5F5F5]">
           <div className="flex flex-col items-center space-y-6">
-            <h1 className="text-4xl font-bold text-[#490878]">Thetimleyin</h1>
+            <h1 className="text-[4xl] font-bold text-[#490878]">Thetimleyin</h1>
 
             {error && (
               <div className="text-red-600 bg-red-100 p-3 rounded-lg">
@@ -145,15 +146,17 @@ const Game = () => {
 
       {/* Game Overlay - Fixed CSS classes */}
       {gameStatus !== "idle" && (
-        <div className="fixed inset-0 h-[95%]  z-50 my-auto rounded-[12px] flex flex-col">
+        <div className="fixed inset-0 h-[95%]  z-50 my-auto rounded-[12px] flex flex-col p-3">
           {/* Game Header */}
           {gameStatus === "playing" && (
             <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-2 flex justify-between items-center rounded-t-[12px] shadow-md">
               <div className="flex flex-col items-center justify-center">
-                <h1 className="text-[16px] font-bold text-[#090909]">
-                  Thetimleyin
-                </h1>
-                <div className="flex items-center justify-center">
+                <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">
+                  <h1 className="text-[16px] font-bold text-[#090909]">
+                    Thetimleyin
+                  </h1>
+                </div>
+                <div className="flex items-center">
                   <div className="text-[16px] text-[#490878]">
                     Difficulty: {selectedDifficulty}
                   </div>
@@ -173,6 +176,10 @@ const Game = () => {
           {/* Game Content  */}
           <div className="flex-1 bg-white mx-auto w-full max-w-4xl p-4 overflow-auto rounded-b-[12px]">
             {(() => {
+              if (gameStatus === "finished") {
+                return <GameCompletion />;
+              }
+
               const currentQuestion = getCurrentQuestion();
               console.log(
                 "RENDER: Current Question in Game component:",
@@ -185,23 +192,6 @@ const Game = () => {
                 <div>No current question available</div>
               );
             })()}
-
-            {gameStatus === "finished" && (
-              <div className="h-full flex flex-col items-center justify-center">
-                <div className="text-center space-y-6">
-                  <h2 className="text-4xl font-bold text-[#490878]">
-                    Game Over!
-                  </h2>
-                  <button
-                    onClick={resetGame}
-                    className="px-8 py-4 bg-[#92f2da] text-[#490878] rounded-xl 
-                      text-xl font-bold hover:shadow-xl transition-all"
-                  >
-                    Play Again
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

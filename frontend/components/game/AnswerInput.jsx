@@ -12,7 +12,7 @@ const MCQOption = ({
   <button
     onClick={onSelect}
     disabled={disabled}
-    className={`min-w-full p-3 lg:h-[70px] text-left text-[16px] text-[#090909] rounded-lg transition-colors border disabled:cursor-not-allowed
+    className={`min-w-full p-3 lg:h-[70px] w-[343px] text-left text-[16px] text-[#090909] rounded-lg transition-colors border disabled:cursor-not-allowed
       ${
         isSelected && isCorrect
           ? "bg-[#2EAE4E] border-green-400"
