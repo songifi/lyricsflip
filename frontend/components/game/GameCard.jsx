@@ -92,7 +92,7 @@ const GameCard = () => {
             </motion.div>
           </div>
         </div>
-        <div className="w-full mx-auto p-8 h-[88px] mt-4 flex flex-col items-center">
+        <div className="w-full mx-auto p-8 h-[88px] flex flex-col items-center">
           <AnswerInput onAnswer={handleAnswer} />
         </div>
       </div>

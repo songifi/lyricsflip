@@ -146,10 +146,10 @@ const Game = () => {
 
       {/* Game Overlay - Fixed CSS classes */}
       {gameStatus !== "idle" && (
-        <div className="fixed inset-0 h-[95%]  z-50 my-auto rounded-[12px] flex flex-col p-3">
+        <div className="fixed inset-0 h-[95%]  z-50 my-auto rounded-[12px] flex flex-col">
           {/* Game Header */}
           {gameStatus === "playing" && (
-            <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-2 flex justify-between items-center rounded-t-[12px] shadow-md">
+            <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
               <div className="flex flex-col items-center justify-center">
                 <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">
                   <h1 className="text-[16px] font-bold text-[#090909]">
@@ -174,7 +174,7 @@ const Game = () => {
           )}
 
           {/* Game Content  */}
-          <div className="flex-1 bg-white mx-auto w-full max-w-4xl p-4 overflow-auto rounded-b-[12px]">
+          <div className="flex-1 bg-white mx-auto w-full max-w-4xl overflow-auto rounded-b-[12px] ">
             {(() => {
               if (gameStatus === "finished") {
                 return <GameCompletion />;

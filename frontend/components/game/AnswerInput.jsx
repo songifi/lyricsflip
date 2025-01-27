@@ -12,7 +12,7 @@ const MCQOption = ({
   <button
     onClick={onSelect}
     disabled={disabled}
-    className={`min-w-full p-3 lg:h-[70px] w-[343px] text-left text-[16px] text-[#090909] rounded-lg transition-colors border disabled:cursor-not-allowed
+    className={`min-w-full p-3 lg:h-[70px] text-left text-[16px] text-[#090909] rounded-lg transition-colors border disabled:cursor-not-allowed
       ${
         isSelected && isCorrect
           ? "bg-[#2EAE4E] border-green-400"
@@ -57,23 +57,25 @@ const AnswerInput = ({ onAnswer }) => {
   // Render MCQ for Beginner difficulty
   if (selectedDifficulty === "Beginner" && currentQuestion.options) {
     return (
-      <div className="grid grid-cols-2 gap-4">
-        {currentQuestion.options.map((option, index) => (
-          <MCQOption
-            key={index}
-            option={option}
-            isCorrect={option === currentQuestion.correctAnswer}
-            isSelected={selectedOption === option}
-            isAnswerSubmitted={isAnswerSubmitted}
-            disabled={isAnswerSubmitted}
-            onSelect={() => {
-              if (!isAnswerSubmitted) {
-                setSelectedOption(option);
-                handleSubmitAnswer(option);
-              }
-            }}
-          />
-        ))}
+      <div className="mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {currentQuestion.options.map((option, index) => (
+            <MCQOption
+              key={index}
+              option={option}
+              isCorrect={option === currentQuestion.correctAnswer}
+              isSelected={selectedOption === option}
+              isAnswerSubmitted={isAnswerSubmitted}
+              disabled={isAnswerSubmitted}
+              onSelect={() => {
+                if (!isAnswerSubmitted) {
+                  setSelectedOption(option);
+                  handleSubmitAnswer(option);
+                }
+              }}
+            />
+          ))}
+        </div>
       </div>
     );
   }
