@@ -12,7 +12,7 @@ const Game = () => {
     selectedDifficulty,
     timeLeft,
     points,
-    getCurrentQuestion, // Use the new method
+    getCurrentQuestion,
     initializeGame,
     setDifficulty,
     resetGame,
@@ -49,11 +49,7 @@ const Game = () => {
 
     try {
       const geniusService = GeniusService.getInstance();
-
-      // Fetch more snippets than needed to ensure variety
       const snippets = await geniusService.getRandomLyricSnippets("", 20);
-
-      // Filter by difficulty
       const filtered = snippets.filter(
         (s) => s.difficulty === selectedDifficulty
       );
@@ -63,15 +59,11 @@ const Game = () => {
       }
 
       const formatted = filtered.map((snippet) => {
-        // Create an option that combines song title and artist
         const correctOption = `${snippet.songTitle} - ${snippet.artist}`;
-
-        // For Beginner difficulty, prepare multiple-choice options
         const otherSongChoices = filtered
           .filter((s) => s.songTitle !== snippet.songTitle)
           .map((s) => `${s.songTitle} - ${s.artist}`);
 
-        // Randomly select up to 3 additional unique song choices
         const additionalOptions = [];
         while (additionalOptions.length < 3 && otherSongChoices.length > 0) {
           const randomIndex = Math.floor(
@@ -81,15 +73,12 @@ const Game = () => {
           additionalOptions.push(randomChoice);
         }
 
-        // Create options: correct answer + 3 random alternatives
         const options = [correctOption, ...additionalOptions];
-
-        // Shuffle the options
         const shuffledOptions = options.sort(() => 0.5 - Math.random());
 
         return {
           lyricsSnippet: snippet.lyricsSnippet,
-          correctAnswer: correctOption, // Now includes artist
+          correctAnswer: correctOption,
           difficulty: snippet.difficulty,
           options: selectedDifficulty === "Beginner" ? shuffledOptions : [],
         };
@@ -97,7 +86,6 @@ const Game = () => {
 
       console.log("Formatted Questions:", formatted);
       setQuestions(formatted);
-
       initializeGame();
     } catch (err) {
       console.error("Game initialization failed:", err);
@@ -106,12 +94,13 @@ const Game = () => {
       setIsLoading(false);
     }
   };
+
   return (
-    <div className="h-screen">
+    <div className="min-h-screen bg-[#F5F5F5]">
       {/* Start Screen */}
       {gameStatus === "idle" && (
-        <div className="h-full flex items-center justify-center bg-[#F5F5F5]">
-          <div className="flex flex-col items-center space-y-6">
+        <div className="h-full flex items-center justify-center ">
+          <div className="flex flex-col items-center space-y-6 mt-12">
             <h1 className="text-[4xl] font-bold text-[#490878]">Thetimleyin</h1>
 
             {error && (
@@ -146,35 +135,33 @@ const Game = () => {
 
       {/* Game Overlay - Fixed CSS classes */}
       {gameStatus !== "idle" && (
-        <div className="fixed inset-0 h-[95%]  z-50 my-auto rounded-[12px] flex flex-col">
-          {/* Game Header */}
-          {gameStatus === "playing" && (
-            <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
-              <div className="flex flex-col items-center justify-center">
-                <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">
-                  <h1 className="text-[16px] font-bold text-[#090909]">
-                    Thetimleyin
-                  </h1>
-                </div>
-                <div className="flex items-center">
-                  <div className="text-[16px] text-[#490878]">
-                    Difficulty: {selectedDifficulty}
-                  </div>
-                </div>
+        <div className="fixed inset-0 z-50 h-[98%] my-auto rounded-[12px] flex flex-col">
+          {/* Game Header - Now shown for both playing and finished states */}
+          <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
+            <div className="flex flex-col items-center justify-center">
+              <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">
+                <h1 className="text-[16px] font-bold text-[#090909]">
+                  Thetimleyin
+                </h1>
               </div>
-              <div className="p-3 flex items-center justify-center gap-2">
-                <div className="text-[16px] text-center text-[#666666]">
-                  Time Left :
-                </div>
-                <div className="text-[16px] font-bold text-[#2EAE4E]">
-                  {formatTime(timeLeft)}
+              <div className="flex items-center">
+                <div className="text-[16px] text-[#490878]">
+                  Difficulty: {selectedDifficulty}
                 </div>
               </div>
             </div>
-          )}
+            <div className="p-3 flex items-center justify-center gap-2">
+              <div className="text-[16px] text-center text-[#666666]">
+                Time Left:
+              </div>
+              <div className="text-[16px] font-bold text-[#2EAE4E]">
+                {formatTime(timeLeft)}
+              </div>
+            </div>
+          </div>
 
-          {/* Game Content  */}
-          <div className="flex-1 bg-white mx-auto w-full max-w-4xl overflow-auto rounded-b-[12px] ">
+          {/* Game Content */}
+          <div className="flex-1 bg-white mx-auto w-full max-w-4xl overflow-auto rounded-b-[12px]">
             {(() => {
               if (gameStatus === "finished") {
                 return <GameCompletion />;
