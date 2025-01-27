@@ -1,9 +1,17 @@
-import { Controller, Post, Get, Param, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import { Controller, Post, Get, Param, Body, UseGuards } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+} from '@nestjs/swagger';
 import { GameSessionService } from './providers/game-session.service';
+import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard';
 
 // Controller for managing game sessions.
 @ApiTags('game-session') // Groups endpoints under the 'game-session' tag in Swagger
+@UseGuards(AccessTokenGuard)
 @Controller('game-session')
 export class GameSessionController {
   constructor(private readonly gameSessionService: GameSessionService) {}
@@ -30,7 +38,8 @@ export class GameSessionController {
   @Post(':id/guess')
   @ApiOperation({
     summary: 'Submit a guess for a game session',
-    description: 'Allows a player to submit a guess for an ongoing game session.',
+    description:
+      'Allows a player to submit a guess for an ongoing game session.',
   })
   @ApiParam({
     name: 'id',

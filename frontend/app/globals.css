@@ -37,8 +37,6 @@
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
 
@@ -69,4 +67,10 @@ body {
 
 .backface-hidden {
   backface-visibility: hidden;
+}
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+  }
 }
