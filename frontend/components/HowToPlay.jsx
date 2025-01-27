@@ -37,7 +37,7 @@ const HowItWorks = () => {
         {/* Steps Grid */}
         <div className="grid gap-8 md:grid-cols-3 my-16">
           {steps.map((step, index) => (
-            <div className="space-y-4 my-10">
+            <div className="space-y-4 my-10" key={index}>
               <h3
                 key={index}
                 className="text-2xl font-bold text-[#FFFFFF] lg:text-3xl pb-3"
