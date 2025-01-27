@@ -126,7 +126,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
       )}
 
       <motion.div
-        className="relative mt-32 w-[560px] h-72 mx-auto"
+        className="relative mt-16 w-full max-w-xl h-72 mx-auto sm:mt-20 md:h-80 lg:mt-24"
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 1.5 }}
         style={{
@@ -136,7 +136,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
       >
         {/* Front of card */}
         <div className="absolute w-full h-full backface-hidden bg-gray-100 opacity-85 p-4 rounded-lg shadow-2xl">
-          <div className="lyrics-snippet mt-8 text-lg pt-8 font-medium text-black sm:text-2xl/8">
+          <div className="lyrics-snippet mt-4 text-sm pt-4 font-medium text-black sm:text-lg md:text-xl lg:text-2xl">
             <h2>{lyricsSnippet}</h2>
           </div>
           <div
@@ -169,7 +169,7 @@ const GameCard = ({ lyricsSnippet, correctAnswer }) => {
                   >
                     Next Question
                   </button>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 ">
                     Questions completed: {questionsCompleted}
                   </p>
                 </div>

@@ -14,7 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SignInProvider = void 0;
 const common_1 = require("@nestjs/common");
-const user_service_1 = require("../../user/providers/user.service");
+const user_service_1 = require("./../../user/providers/user.service");
 const hashing_provider_1 = require("./hashing-provider");
 const generate_tokens_provider_1 = require("./generate-tokens-provider");
 let SignInProvider = class SignInProvider {

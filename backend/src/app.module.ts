@@ -10,11 +10,13 @@ import { RewardModule } from './reward/reward.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
+import { PlayerModule } from './player/player.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
+import { GlobalInterceptor } from './interceptors/global.interceptor';
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { ConfigModule } from './config/config.module';
     LeaderboardModule,
     NotificationModule,
     AdminModule,
+    PlayerModule,
     ConfigModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -42,7 +45,10 @@ import { ConfigModule } from './config/config.module';
       provide: APP_GUARD,
       useClass: AccessTokenGuard,
     },
-    AccessTokenGuard,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: GlobalInterceptor,
+    },
   ],
 })
 export class AppModule {}

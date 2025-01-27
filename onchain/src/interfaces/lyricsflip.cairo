@@ -1,4 +1,4 @@
-use lyricsflip::utils::types::{Genre, Round};
+use lyricsflip::utils::types::{Genre, Round, Card};
 use starknet::ContractAddress;
 
 #[starknet::interface]
@@ -14,18 +14,10 @@ pub trait ILyricsFlip<TContractState> {
     fn create_round(ref self: TContractState, genre: Option<Genre>, seed: u64) -> u64;
     fn start_round(ref self: TContractState, round_id: u64);
     fn join_round(ref self: TContractState, round_id: u64);
-    // // TODO
-// fn add_card(ref self: TContractState, card: Card);
-
-    // // TODO
-// fn get_card(self: @TContractState, card_id: u64) -> Card;
-
-    // // TODO
-// fn set_cards_per_round(ref self: TContractState, value: u8);
-
-    // //TODO
-// fn get_cards_per_round(self: @TContractState) -> u8;
-
+    fn set_cards_per_round(ref self: TContractState, value: u8);
+    fn get_cards_per_round(self: @TContractState) -> u8;
+    fn add_card(ref self: TContractState, card: Card);
+    fn get_card(self: @TContractState, card_id: u64) -> Card;
     // // TODO
 // fn next_card(ref self: TContractState, round_id: u64) -> Card;
 
