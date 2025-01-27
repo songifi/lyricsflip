@@ -16,8 +16,8 @@ pub mod LyricsFlip {
         cards_count: u64,
         cards_per_round: u8,
         cards: Map<u64, Card>,
-        genre_cards: Map<Genre, Vec<u64>>, // genre -> vec<card_ids>
-        artist_cards: Map<ByteArray, Vec<u64>>, // artist -> vec<card_ids>
+        genre_cards: Map<felt252, Vec<u64>>, // genre -> vec<card_ids>
+        artist_cards: Map<felt252, Vec<u64>>, // artist -> vec<card_ids>
         year_cards: Map<u64, Vec<u64>>, // year -> vec<card_ids>
         rounds: Map<u64, Round>, // round_id -> Round
         round_players: Map<
@@ -203,11 +203,10 @@ pub mod LyricsFlip {
         let card_id = self.cards_count.read();
 
         self.artist_cards.entry(card.artist).append().write(card_id);
-        self.genre_cards.entry(card.genre).append().write(card_id);
+        self.genre_cards.entry(card.genre.into()).append().write(card_id);
         self.year_cards.entry(card.year).append().write(card_id);
 
         self.cards.entry(card_id).write(card);
-
     }
 
     fn get_card(self: @ContractState, card_id: u64) -> Card {
