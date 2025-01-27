@@ -10,9 +10,10 @@ import WalletBar from "./WalletBar";
 import LockBodyScroll from "./LockBodyScroll";
 import { createPortal } from "react-dom";
 import { WalletModal } from "./WalletModal";
+import { Modal } from "./ui/modal";
+import { GameSetupForm } from "./modal/GameSetupForm";
 
 const navigation = [
-  { name: "Play Now", href: "#game", isScroll: true },
   { name: "Categories", href: "#", isScroll: false },
   { name: "Leaderboard", href: "#", isScroll: false },
   { name: "How to Play", href: "#", isScroll: false },
@@ -32,6 +33,12 @@ const handleScroll = (e, isScroll) => {
 const Header = () => {
   const [connectModalIsOpen, setConnectModalIsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleStartGame = () => {
+    console.log("Starting game...");
+    setIsModalOpen(false);
+  };
 
   return (
     <>
@@ -71,6 +78,21 @@ const Header = () => {
               </button>
             </div>
             <div className="hidden lg:flex lg:gap-x-12">
+              <button
+                className="text-sm/6 font-semibold text-white"
+                onClick={() => setIsModalOpen(true)}
+              >
+                Play Game
+              </button>
+
+              <Modal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                title="Guess the song"
+              >
+                <GameSetupForm onStart={handleStartGame} />
+              </Modal>
+
               {navigation.map((item) => (
                 <Link
                   key={item.name}
@@ -114,6 +136,12 @@ const Header = () => {
               <div className="mt-6 flow-root">
                 <div className="-my-6 divide-y divide-gray-500/10">
                   <div className="space-y-2 py-6">
+                    <button
+                      className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-gray-900 hover:bg-gray-50"
+                      onClick={() => setIsModalOpen(true)}
+                    >
+                      Play Game
+                    </button>
                     {navigation.map((item) => (
                       <Link
                         key={item.name}
