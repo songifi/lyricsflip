@@ -1,11 +1,11 @@
 use LyricsFlip::{InternalFunctions, InternalFunctionsTrait};
 use lyricsflip::contracts::lyricsflip::LyricsFlip;
 use lyricsflip::interfaces::lyricsflip::{ILyricsFlipDispatcher, ILyricsFlipDispatcherTrait};
-use lyricsflip::utils::types::{Genre, Card};
+use lyricsflip::utils::types::{Card, Genre};
 use snforge_std::{
-    declare, spy_events, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address,
-    stop_cheat_caller_address, start_cheat_block_timestamp_global,
-    stop_cheat_block_timestamp_global, EventSpyAssertionsTrait
+    ContractClassTrait, DeclareResultTrait, EventSpyAssertionsTrait, declare, spy_events,
+    start_cheat_block_timestamp_global, start_cheat_caller_address,
+    stop_cheat_block_timestamp_global, stop_cheat_caller_address,
 };
 use starknet::{ContractAddress, get_block_timestamp};
 
@@ -38,7 +38,7 @@ fn test_create_round() {
                 artist: 'Bob Marley',
                 title: "",
                 year: 2000,
-                lyrics: "Lorem Ipsum"
+                lyrics: "Lorem Ipsum",
             };
             lyricsflip.add_card(card);
         };
@@ -64,10 +64,10 @@ fn test_create_round() {
                             round_id: round_id,
                             admin: PLAYER_1(),
                             created_time: get_block_timestamp(),
-                        }
-                    )
-                )
-            ]
+                        },
+                    ),
+                ),
+            ],
         );
 
     assert(round.round_id == round_id, 'wrong round id');
@@ -106,7 +106,7 @@ fn test_start_round() {
                 artist: 'Bob Marley',
                 title: "",
                 year: 2000,
-                lyrics: "Lorem Ipsum"
+                lyrics: "Lorem Ipsum",
             };
             lyricsflip.add_card(card);
         };
@@ -143,10 +143,10 @@ fn test_start_round() {
                             round_id: round_id,
                             admin: PLAYER_1(),
                             start_time: get_block_timestamp(),
-                        }
-                    )
-                )
-            ]
+                        },
+                    ),
+                ),
+            ],
         );
 
     stop_cheat_block_timestamp_global();
@@ -167,7 +167,7 @@ fn test_join_round() {
                 artist: 'Bob Marley',
                 title: "",
                 year: 2000,
-                lyrics: "Lorem Ipsum"
+                lyrics: "Lorem Ipsum",
             };
             lyricsflip.add_card(card);
         };
@@ -197,10 +197,10 @@ fn test_join_round() {
                             round_id: round_id,
                             player: PLAYER_2(),
                             joined_time: get_block_timestamp(),
-                        }
-                    )
-                )
-            ]
+                        },
+                    ),
+                ),
+            ],
         );
 
     stop_cheat_block_timestamp_global();
@@ -225,7 +225,7 @@ fn test_create_round_should_panic_with_unknown_genre() {
                 artist: 'Bob Marley',
                 title: "",
                 year: 2000,
-                lyrics: "Lorem Ipsum"
+                lyrics: "Lorem Ipsum",
             };
             lyricsflip.add_card(card);
         };
@@ -254,7 +254,7 @@ fn test_start_round_should_panic_with_only_admin() {
                 artist: 'Bob Marley',
                 title: "",
                 year: 2000,
-                lyrics: "Lorem Ipsum"
+                lyrics: "Lorem Ipsum",
             };
             lyricsflip.add_card(card);
         };
@@ -301,7 +301,7 @@ fn test_join_round_should_panic_with_round_already_started() {
                 artist: 'Bob Marley',
                 title: "",
                 year: 2000,
-                lyrics: "Lorem Ipsum"
+                lyrics: "Lorem Ipsum",
             };
             lyricsflip.add_card(card);
         };
@@ -336,7 +336,7 @@ fn test_join_round_should_panic_with_already_joined() {
                 artist: 'Bob Marley',
                 title: "",
                 year: 2000,
-                lyrics: "Lorem Ipsum"
+                lyrics: "Lorem Ipsum",
             };
             lyricsflip.add_card(card);
         };
@@ -397,10 +397,10 @@ fn test_set_cards_per_round() {
                     LyricsFlip::Event::SetCardPerRound(
                         LyricsFlip::SetCardPerRound {
                             old_value: old_value, new_value: valid_cards_per_round,
-                        }
-                    )
-                )
-            ]
+                        },
+                    ),
+                ),
+            ],
         );
 }
 
@@ -431,7 +431,12 @@ fn test_add_card() {
     let genre: Genre = Genre::Reggae;
 
     let card = Card {
-        card_id: 1, genre: genre, artist: 'Bob Marley', title: "", year: 2000, lyrics: "Lorem Ipsum"
+        card_id: 1,
+        genre: genre,
+        artist: 'Bob Marley',
+        title: "",
+        year: 2000,
+        lyrics: "Lorem Ipsum",
     };
 
     lyricsflip.add_card(card);
@@ -533,5 +538,57 @@ fn test_get_cards_of_genre_should_panic_with_not_enough_cards_of_this_genre() {
     for i in 0
         ..genre_cards.len() {
             assert(*genre_cards.at(i).genre == Genre::HipHop, 'wrong genre');
+        }
+}
+
+#[test]
+fn test_get_cards_of_artist() {
+    let lyricsflip = deploy();
+
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Tupac',
+                title: "",
+                year: 1990,
+                lyrics: "Lorem Ipsum",
+            };
+            lyricsflip.add_card(card);
+        };
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+
+    let seed = 1;
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    let artist_cards = lyricsflip.get_cards_of_artist('Tupac', seed);
+    assert(artist_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
+    for i in 0
+        ..artist_cards.len() {
+            assert(*artist_cards.at(i).artist == 'Tupac', 'wrong artist');
+        }
+}
+
+#[test]
+#[should_panic(expected: ('Artist cards is zero',))]
+fn test_get_cards_of_artist_should_panic_with_zero_cards() {
+    let lyricsflip = deploy();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+
+    let seed = 1;
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    let artist_cards = lyricsflip.get_cards_of_artist('Tupac', seed);
+    assert(artist_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
+    for i in 0
+        ..artist_cards.len() {
+            assert(*artist_cards.at(i).artist == 'Tupac', 'wrong artist');
         }
 }

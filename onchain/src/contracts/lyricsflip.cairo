@@ -1,15 +1,15 @@
 #[starknet::contract]
 pub mod LyricsFlip {
-    use core::hash::{HashStateTrait, HashStateExTrait};
+    use core::hash::{HashStateExTrait, HashStateTrait};
     use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Card, Genre, Round, Entropy};
+    use lyricsflip::utils::types::{Card, Entropy, Genre, Round};
     use starknet::storage::{
-        StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry, Map, Vec,
-        MutableVecTrait, VecTrait
+        Map, MutableVecTrait, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
+        Vec, VecTrait,
     };
-    use starknet::{get_caller_address, get_block_timestamp, ContractAddress, get_block_number};
+    use starknet::{ContractAddress, get_block_number, get_block_timestamp, get_caller_address};
 
 
     #[storage]
@@ -23,10 +23,10 @@ pub mod LyricsFlip {
         year_cards: Map<u64, Vec<u64>>, // year -> vec<card_ids>
         rounds: Map<u64, Round>, // round_id -> Round
         round_players: Map<
-            u64, Map<u256, ContractAddress>
+            u64, Map<u256, ContractAddress>,
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
-        round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
+        round_cards: Map<u64, Vec<u64>> // round_id -> vec<card_ids>
     }
 
 
@@ -108,7 +108,7 @@ pub mod LyricsFlip {
         }
 
         fn is_round_player(
-            self: @ContractState, round_id: u64, player_address: ContractAddress
+            self: @ContractState, round_id: u64, player_address: ContractAddress,
         ) -> bool {
             let round_players = self.get_round_players(round_id);
             let mut is_player = false;
@@ -156,9 +156,9 @@ pub mod LyricsFlip {
                 .emit(
                     Event::RoundCreated(
                         RoundCreated {
-                            round_id, admin: caller_address, created_time: get_block_timestamp()
-                        }
-                    )
+                            round_id, admin: caller_address, created_time: get_block_timestamp(),
+                        },
+                    ),
                 );
 
             round_id
@@ -179,8 +179,10 @@ pub mod LyricsFlip {
             self
                 .emit(
                     Event::RoundStarted(
-                        RoundStarted { round_id, admin: round.admin.read(), start_time: start_time }
-                    )
+                        RoundStarted {
+                            round_id, admin: round.admin.read(), start_time: start_time,
+                        },
+                    ),
                 );
         }
 
@@ -201,9 +203,9 @@ pub mod LyricsFlip {
                 .emit(
                     Event::RoundJoined(
                         RoundJoined {
-                            round_id, player: caller_address, joined_time: get_block_timestamp()
-                        }
-                    )
+                            round_id, player: caller_address, joined_time: get_block_timestamp(),
+                        },
+                    ),
                 );
         }
 
@@ -217,8 +219,8 @@ pub mod LyricsFlip {
             self
                 .emit(
                     Event::SetCardPerRound(
-                        SetCardPerRound { old_value: old_value, new_value: value, }
-                    )
+                        SetCardPerRound { old_value: old_value, new_value: value },
+                    ),
                 );
         }
 
@@ -261,14 +263,29 @@ pub mod LyricsFlip {
             genre_cards.span()
         }
         // // TODO
-    // fn next_card(ref self: ContractState, round_id: u64) -> Card {
-    //     self._next_round_card()
-    // }
+        // fn next_card(ref self: ContractState, round_id: u64) -> Card {
+        //     self._next_round_card()
+        // }
 
         // // TODO
-    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) ->
-    // Span<Card> {}
+        // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
 
+        //TODO
+        fn get_cards_of_artist(self: @ContractState, artist: felt252, seed: u64) -> Span<Card> {
+            assert(self.artist_cards.entry(artist.into()).len() > 0, Errors::ARTIST_CARDS_IS_ZERO);
+            let mut cards = array![];
+            let amount = self.cards_per_round.read();
+            let num_of_artists_cards = self.artist_cards.entry(artist).len();
+            let numbers = self._get_random_numbers(seed, amount.into(), num_of_artists_cards, true);
+            let mut i = 0_u32;
+            while (i < numbers.len()) {
+                let card_id = self.artist_cards.entry(artist).at(*numbers[i]).read();
+                let card = self.cards.read(card_id);
+                cards.append(card);
+                i += 1;
+            };
+            cards.span()
+        }
         // //TODO
     // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
     }
