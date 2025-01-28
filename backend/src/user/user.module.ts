@@ -7,6 +7,9 @@ import { CreateUserProvider } from './providers/create-user.services';
 import { HashingProvider } from './providers/hashing.provider';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './user.entity';
+import { ConfigModule } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
+import jwtConfig from 'src/auth/authConfig/jwt.config';
 
 @Module({
   controllers: [UserController],
@@ -16,7 +19,12 @@ import { User } from './user.entity';
     CreateUserProvider,
     HashingProvider,
   ],
-  imports: [TypeOrmModule.forFeature([User]), forwardRef(() => AuthModule)],
+  imports: [
+    TypeOrmModule.forFeature([User]),
+    forwardRef(() => AuthModule),
+    ConfigModule.forFeature(jwtConfig),
+    JwtModule.registerAsync(jwtConfig.asProvider()),
+  ],
   exports: [UserService, FindOneUserByEmailProvider],
 })
 export class UserModule {}

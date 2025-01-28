@@ -49,7 +49,6 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
       provide: APP_INTERCEPTOR,
       useClass: GlobalInterceptor,
     },
-    AccessTokenGuard,
   ],
 })
 export class AppModule {}
