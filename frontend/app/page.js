@@ -1,3 +1,4 @@
+
 import Footer from "@/components/Footer";
 import Game from "@/components/game/GameSection";
 import HeroSection from "@/components/HeroSection";
@@ -14,7 +15,6 @@ export default function Home() {
       <Game />
       <LeaderBoard />
       <Footer />
-
     </div>
   );
 }
