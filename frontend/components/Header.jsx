@@ -11,7 +11,6 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-
     <>
       <LockBodyScroll lock={connectModalIsOpen || mobileMenuOpen} />
 
@@ -22,7 +21,12 @@ const Header = () => {
         )}
       <div className="fixed w-full bg-custom-gradient z-10">
         <header>
-          <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} connectModalIsOpen={connectModalIsOpen} setConnectModalIsOpen={setConnectModalIsOpen} />
+          <Navbar
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+            connectModalIsOpen={connectModalIsOpen}
+            setConnectModalIsOpen={setConnectModalIsOpen}
+          />
         </header>
       </div>
     </>
