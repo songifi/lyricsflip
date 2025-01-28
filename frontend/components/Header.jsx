@@ -39,7 +39,6 @@ const Header = () => {
   const [connectModalIsOpen, setConnectModalIsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   const handleStartGame = () => {
     console.log("Starting game...");
     setIsModalOpen(false);
@@ -171,7 +170,12 @@ const Header = () => {
           </Dialog>
 
         <header>
-          <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} connectModalIsOpen={connectModalIsOpen} setConnectModalIsOpen={setConnectModalIsOpen} />
+          <Navbar
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+            connectModalIsOpen={connectModalIsOpen}
+            setConnectModalIsOpen={setConnectModalIsOpen}
+          />
 
         </header>
       </div>

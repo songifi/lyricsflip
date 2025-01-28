@@ -9,6 +9,8 @@ import { IoMdClose } from "react-icons/io";
 import { GameSetupForm } from "./modal/GameSetupForm";
 import { Modal } from "./ui/modal";
 import WalletBar from "./WalletBar";
+import GeniusService from "@/services/geniusService";
+import { useGameStore } from "@/store/gameStore";
 
 const navigation = [
   /*   { name: "Play Now", href: "#game", isScroll: true }, */
@@ -17,12 +19,71 @@ const navigation = [
   { name: "How to Play", href: "#how-to-play", isScroll: false },
 ];
 
-const Navbar = ({ mobileMenuOpen, setMobileMenuOpen, connectModalIsOpen, setConnectModalIsOpen }) => {
+const Navbar = ({
+  mobileMenuOpen,
+  setMobileMenuOpen,
+  connectModalIsOpen,
+  setConnectModalIsOpen,
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { initializeGame, selectedDifficulty, username, setQuestions } =
+    useGameStore();
 
-  const handleStartGame = () => {
-    console.log("Starting game...");
-    setIsModalOpen(false);
+  const handleStartGame = async () => {
+    if (!selectedDifficulty || !username) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const geniusService = GeniusService.getInstance();
+      const snippets = await geniusService.getRandomLyricSnippets("", 20);
+      const filtered = snippets.filter(
+        (s) => s.difficulty === selectedDifficulty
+      );
+
+      if (filtered.length === 0) {
+        throw new Error("No questions available for selected difficulty");
+      }
+
+      const formatted = filtered.map((snippet) => {
+        const correctOption = `${snippet.songTitle} - ${snippet.artist}`;
+        const otherSongChoices = filtered
+          .filter((s) => s.songTitle !== snippet.songTitle)
+          .map((s) => `${s.songTitle} - ${s.artist}`);
+
+        const additionalOptions = [];
+        while (additionalOptions.length < 3 && otherSongChoices.length > 0) {
+          const randomIndex = Math.floor(
+            Math.random() * otherSongChoices.length
+          );
+          const randomChoice = otherSongChoices.splice(randomIndex, 1)[0];
+          additionalOptions.push(randomChoice);
+        }
+
+        const options = [correctOption, ...additionalOptions];
+        const shuffledOptions = options.sort(() => 0.5 - Math.random());
+
+        return {
+          lyricsSnippet: snippet.lyricsSnippet,
+          correctAnswer: correctOption,
+          difficulty: snippet.difficulty,
+          options: selectedDifficulty === "Beginner" ? shuffledOptions : [],
+        };
+      });
+
+      console.log("Formatted Questions:", formatted);
+      setQuestions(formatted);
+      initializeGame();
+    } catch (err) {
+      console.error("Game initialization failed:", err);
+      setError(err.message || "Failed to start game. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setIsModalOpen(false);
+    }
   };
 
   const handleScroll = (e, isScroll) => {
@@ -64,7 +125,6 @@ const Navbar = ({ mobileMenuOpen, setMobileMenuOpen, connectModalIsOpen, setConn
         </button>
       </div>
       <div className="hidden justify-center items-center lg:flex lg:gap-x-12">
-
         <button
           className="text-sm/6 font-semibold text-white "
           onClick={() => setIsModalOpen(true)}
@@ -83,9 +143,7 @@ const Navbar = ({ mobileMenuOpen, setMobileMenuOpen, connectModalIsOpen, setConn
           </Link>
         ))}
 
-        <WalletBar
-          toggleModal={() => setConnectModalIsOpen((prev) => !prev)}
-        />
+        <WalletBar toggleModal={() => setConnectModalIsOpen((prev) => !prev)} />
       </div>
 
       <Transition.Root show={mobileMenuOpen} as={Fragment}>
@@ -126,25 +184,21 @@ const Navbar = ({ mobileMenuOpen, setMobileMenuOpen, connectModalIsOpen, setConn
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="-m-2.5 rounded-md p-2.5 text-[#70E3C7] hover:text-[#70E3C7] transition-colors">
+                  className="-m-2.5 rounded-md p-2.5 text-[#70E3C7] hover:text-[#70E3C7] transition-colors"
+                >
                   <span className="sr-only">Close menu</span>
                   <IoMdClose aria-hidden="true" className="size-6" />
                 </button>
               </div>
               <div className="mt-6 flow-root border-t-2 border-t-white">
                 <div className="-my-6 divide-y divide-gray-500/20">
-
                   <div className="space-y-2 pt-10 pb-2 border-b-2 border-b-white">
-
                     <button
                       className="text-sm/6 font-semibold text-[#490878]"
                       onClick={() => {
-                        setIsModalOpen(true)
-                        setMobileMenuOpen(false)
-                      }
-
-
-                      }
+                        setIsModalOpen(true);
+                        setMobileMenuOpen(false);
+                      }}
                     >
                       Play Game
                     </button>
@@ -154,7 +208,8 @@ const Navbar = ({ mobileMenuOpen, setMobileMenuOpen, connectModalIsOpen, setConn
                         key={item.name}
                         href={item.href}
                         onClick={(e) => handleScroll(e, item.isScroll)}
-                        className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-[#490878] hover:bg-white/10 hover:text-[#70E3C7] transition-colors">
+                        className="-mx-3 block rounded-lg px-3 py-2 text-base/7 font-semibold text-[#490878] hover:bg-white/10 hover:text-[#70E3C7] transition-colors"
+                      >
                         {item.name}
                       </Link>
                     ))}
@@ -182,4 +237,4 @@ const Navbar = ({ mobileMenuOpen, setMobileMenuOpen, connectModalIsOpen, setConn
   );
 };
 
-export default Navbar; 
+export default Navbar;
