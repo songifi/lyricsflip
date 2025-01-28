@@ -6,6 +6,7 @@ import { StarknetProvider } from "@/components/starknet-provider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  
 });
 
 const geistMono = Geist_Mono({
