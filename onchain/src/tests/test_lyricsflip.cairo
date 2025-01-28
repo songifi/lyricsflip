@@ -503,3 +503,22 @@ fn test_get_cards_of_artist() {
         assert(*artist_cards.at(i).artist == 'Tupac', 'wrong artist');
     }
 }
+
+#[test]
+#[should_panic(expected: ('Artist cards is zero',))]
+fn test_get_cards_of_artist_should_panic_with_zero_cards() {
+    let lyricsflip = deploy();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+
+    let seed = 1;
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    let artist_cards = lyricsflip.get_cards_of_artist('Tupac', seed);
+    assert(artist_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
+    for i in 0..artist_cards.len() {
+        assert(*artist_cards.at(i).artist == 'Tupac', 'wrong artist');
+    }
+}
