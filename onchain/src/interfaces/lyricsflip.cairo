@@ -10,7 +10,8 @@ pub trait ILyricsFlip<TContractState> {
     fn is_round_player(
         self: @TContractState, round_id: u64, player_address: ContractAddress
     ) -> bool;
-    fn create_round(ref self: TContractState, genre: Option<Genre>) -> u64;
+
+    fn create_round(ref self: TContractState, genre: Option<Genre>, seed: u64) -> u64;
     fn start_round(ref self: TContractState, round_id: u64);
     fn join_round(ref self: TContractState, round_id: u64);
     fn set_cards_per_round(ref self: TContractState, value: u8);
