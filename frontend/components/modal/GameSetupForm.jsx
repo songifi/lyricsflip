@@ -9,8 +9,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { useGameStore } from "@/store/gameStore";
+import { useState } from "react";
+import DifficultySelect from "../game/DifficultySelect";
 
 export function GameSetupForm({ onStart }) {
+  const { setDifficulty, setUsername, selectedDifficulty, username } =
+    useGameStore();
+  // const [username, setLocalUsername] = useState("");
+
+  const handleSubmit = () => {
+    if (!username || !selectedDifficulty) return;
+
+    setUsername(username);
+    onStart();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2.5 items-start">
@@ -30,9 +44,12 @@ export function GameSetupForm({ onStart }) {
           >
             Username
           </label>
-          <div className="h-10 w-full">
-            <Input id="username" placeholder="" className="h-full" />
-          </div>
+          <Input
+            id="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="h-10 w-full"
+          />
         </div>
 
         <div className="space-y-2 flex flex-col items-start">
@@ -61,20 +78,8 @@ export function GameSetupForm({ onStart }) {
           >
             Difficulty Level
           </label>
-          <div className="h-10 w-full">
-            <Select>
-              <SelectTrigger id="difficulty" className="h-full">
-                <SelectValue placeholder="" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="easy">Easy</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="hard">Hard</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <DifficultySelect />
         </div>
-
         <div className="space-y-2 flex flex-col items-start">
           <label
             htmlFor="duration"
@@ -136,7 +141,8 @@ export function GameSetupForm({ onStart }) {
       <div className="max-w-[300px] mx-auto pt-4">
         <Button
           onClick={onStart}
-          className="w-full bg-[#70E3C7] py-7 text-md font-bold text-black hover:bg-[#70E3C7]/90 rounded-full"
+          disabled={!username || !selectedDifficulty}
+          className="w-full bg-[#70E3C7] py-7 text-md font-bold text-black hover:bg-[#70E3C7]/90 rounded-full disabled:opacity-50"
         >
           Start Game
         </Button>

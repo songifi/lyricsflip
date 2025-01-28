@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -8,17 +8,15 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  --primary: #70E3C7;
- 
-  --secondary: #EEFCF8;  ;
+  --primary: #70e3c7;
 
-  --error: #CE0000;
+  --secondary: #eefcf8;
+
+  --error: #ce0000;
 
   --accent: #490878;
 
-  --inactive: #CBF6EA;
-  
-
+  --inactive: #cbf6ea;
 }
 
 @layer base {
@@ -26,7 +24,7 @@
     font-family: "Inter-V";
     font-style: normal;
     src: url(/Inter-V.ttf) format("truetype");
-}
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -43,9 +41,9 @@ body {
 .game-card {
   @apply bg-gray-800 text-white p-6 rounded-lg shadow-lg;
 }
-.lyrics-snippet {
+/* .lyrics-snippet {
   @apply text-lg font-semibold mb-4;
-}
+} */
 .timer {
   @apply text-red-500 font-bold text-xl mb-4;
 }
@@ -67,6 +65,13 @@ body {
 
 .backface-hidden {
   backface-visibility: hidden;
+}
+.front-face {
+  transform: rotateY(0deg); /* Default orientation for the front face */
+}
+
+.back-face {
+  transform: rotateY(180deg); /* Correct the back face mirroring */
 }
 
 @layer base {
