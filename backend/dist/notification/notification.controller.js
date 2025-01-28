@@ -27,18 +27,36 @@ let NotificationController = class NotificationController {
 exports.NotificationController = NotificationController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Get notifications' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Notifications retrieved' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Get notifications',
+        description: 'Retrieve all user notifications'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Notifications successfully retrieved'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error occurred'
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], NotificationController.prototype, "getNotifications", null);
 __decorate([
     (0, common_1.Post)('mark-read'),
-    (0, swagger_1.ApiOperation)({ summary: 'Mark notifications as read' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Notifications marked as read' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Mark notifications as read',
+        description: 'Mark all user notifications as read'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Notifications successfully marked as read'
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: 500,
+        description: 'Internal server error occurred'
+    }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)

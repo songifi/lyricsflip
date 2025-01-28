@@ -1,6 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  --primary: #70E3C7;
+ 
+  --secondary: #EEFCF8;  ;
+
+  --error: #CE0000;
+
+  --accent: #490878;
+
+  --inactive: #CBF6EA;
+  
+
+}
+
+@layer base {
+  @font-face {
+    font-family: "Inter-V";
+    font-style: normal;
+    src: url(/Inter-V.ttf) format("truetype");
+}
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
 
 body {
   font-family: Arial, Helvetica, sans-serif;

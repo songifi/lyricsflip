@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Injectable, forwardRef, Inject } from '@nestjs/common';
-import { UserService } from 'src/user/providers/user.service';
+import { UserService } from './../../user/providers/user.service';
 import { SignInDto } from '../dtos/signIn.dto';
-import { UserDTO } from 'src/user/dtos/create-user.dto';
+import { UserDTO } from './../../user/dtos/create-user.dto';
 
 @Injectable()
 export class AuthService {

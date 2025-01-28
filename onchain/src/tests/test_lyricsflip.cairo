@@ -1,6 +1,6 @@
 use lyricsflip::contracts::lyricsflip::LyricsFlip;
 use lyricsflip::interfaces::lyricsflip::{ILyricsFlipDispatcher, ILyricsFlipDispatcherTrait};
-use lyricsflip::utils::types::{Genre};
+use lyricsflip::utils::types::{Genre, Card};
 use snforge_std::{
     declare, spy_events, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address,
     stop_cheat_caller_address, start_cheat_block_timestamp_global,
@@ -242,4 +242,75 @@ fn test_join_round_should_panic_with_non_existing_round() {
     lyricsflip.join_round(round_id);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+
+#[test]
+fn test_set_cards_per_round() {
+    let lyricsflip = deploy();
+    let mut spy = spy_events();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 3;
+    let old_value = lyricsflip.get_cards_per_round();
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let cards_per_round = lyricsflip.get_cards_per_round();
+
+    assert(cards_per_round == valid_cards_per_round, 'wrong cards_per_round');
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    lyricsflip.contract_address,
+                    LyricsFlip::Event::SetCardPerRound(
+                        LyricsFlip::SetCardPerRound {
+                            old_value: old_value, new_value: valid_cards_per_round,
+                        }
+                    )
+                )
+            ]
+        );
+}
+
+#[test]
+fn test_get_cards_per_round() {
+    let lyricsflip = deploy();
+
+    let initial_cards_per_round = 3;
+    lyricsflip.set_cards_per_round(initial_cards_per_round);
+
+    let retrieved_cards_per_round = lyricsflip.get_cards_per_round();
+    assert(retrieved_cards_per_round == initial_cards_per_round, 'wrong cards_per_round value');
+}
+
+#[test]
+#[should_panic(expected: ('Invalid cards per round',))]
+fn test_set_cards_per_round_should_panic_with_invalid_value() {
+    let lyricsflip = deploy();
+
+    let invalid_cards_per_round = 0;
+    lyricsflip.set_cards_per_round(invalid_cards_per_round);
+}
+
+#[test]
+fn test_add_card() {
+    let lyricsflip = deploy();
+
+    let genre: Genre = Genre::Reggae;
+
+    let card = Card {
+        card_id: 1, genre: genre, artist: 'Bob Marley', title: "", year: 2000, lyrics: "Lorem Ipsum"
+    };
+
+    lyricsflip.add_card(card);
+
+    let card_stored = lyricsflip.get_card(1);
+    assert(card_stored.card_id == 1, 'Wrong card_id');
+    assert(card_stored.year == 2000, 'Wrong card_id');
+    assert(card_stored.artist == 'Bob Marley', 'Wrong card_id');
 }

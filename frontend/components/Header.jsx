@@ -29,6 +29,11 @@ const handleScroll = (e, isScroll) => {
     setMobileMenuOpen(false);
   }
 };
+import LockBodyScroll from "./LockBodyScroll";
+import { createPortal } from "react-dom";
+import { WalletModal } from "./WalletModal";
+import Navbar from "./Navbar";
+
 
 const Header = () => {
   const [connectModalIsOpen, setConnectModalIsOpen] = useState(false);
@@ -164,6 +169,10 @@ const Header = () => {
               </div>
             </DialogPanel>
           </Dialog>
+
+        <header>
+          <Navbar mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} connectModalIsOpen={connectModalIsOpen} setConnectModalIsOpen={setConnectModalIsOpen} />
+
         </header>
       </div>
     </>

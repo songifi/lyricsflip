@@ -16,8 +16,8 @@ pub mod LyricsFlip {
         cards_count: u64,
         cards_per_round: u8,
         cards: Map<u64, Card>,
-        genre_cards: Map<Genre, Vec<u64>>, // genre -> vec<card_ids>
-        artist_cards: Map<ByteArray, Vec<u64>>, // artist -> vec<card_ids>
+        genre_cards: Map<felt252, Vec<u64>>, // genre -> vec<card_ids>
+        artist_cards: Map<felt252, Vec<u64>>, // artist -> vec<card_ids>
         year_cards: Map<u64, Vec<u64>>, // year -> vec<card_ids>
         rounds: Map<u64, Round>, // round_id -> Round
         round_players: Map<
@@ -34,6 +34,7 @@ pub mod LyricsFlip {
         RoundCreated: RoundCreated,
         RoundStarted: RoundStarted,
         RoundJoined: RoundJoined,
+        SetCardPerRound: SetCardPerRound,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -61,6 +62,13 @@ pub mod LyricsFlip {
         #[key]
         pub player: ContractAddress,
         pub joined_time: u64,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct SetCardPerRound {
+        #[key]
+        pub old_value: u8,
+        pub new_value: u8,
     }
 
     #[constructor]
@@ -196,33 +204,56 @@ pub mod LyricsFlip {
                     )
                 );
         }
-    }
 
-    // // TODO
-    // fn add_card(ref self: ContractState, card: Card) {}
 
-    // // TODO
-    // fn get_card(self: @ContractState, card_id: u64) -> Card {}
+        fn set_cards_per_round(ref self: ContractState, value: u8) {
+            assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
 
-    // // TODO
-    // fn set_cards_per_round(ref self: ContractState, value: u8) {}
+            let old_value = self.cards_per_round.read();
+            self.cards_per_round.write(value);
 
-    // // TODO
-    // fn get_cards_per_round(self: @ContractState) -> u8 {}
+            self
+                .emit(
+                    Event::SetCardPerRound(
+                        SetCardPerRound { old_value: old_value, new_value: value, }
+                    )
+                );
+        }
 
-    // // TODO
+
+        fn get_cards_per_round(self: @ContractState) -> u8 {
+            self.cards_per_round.read()
+        }
+
+
+        fn add_card(ref self: ContractState, card: Card) {
+            let card_id = self.cards_count.read() + 1;
+
+            self.artist_cards.entry(card.artist).append().write(card_id);
+            self.genre_cards.entry(card.genre.into()).append().write(card_id);
+            self.year_cards.entry(card.year).append().write(card_id);
+
+            self.cards.entry(card_id).write(card);
+        }
+
+        fn get_card(self: @ContractState, card_id: u64) -> Card {
+            self.cards.entry(card_id).read()
+        }
+        // // TODO
     // fn next_card(ref self: ContractState, round_id: u64) -> Card {
     //     self._next_round_card()
     // }
 
-    // // TODO
+        // // TODO
     // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
 
-    // // TODO
-    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) -> Span<Card> {}
+        // // TODO
+    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) ->
+    // Span<Card> {}
 
-    // //TODO
+        // //TODO
     // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
+    }
 
     #[generate_trait]
     impl InternalFunctions of InternalFunctionsTrait {

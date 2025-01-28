@@ -1,5 +1,6 @@
 /* eslint-disable import/no-anonymous-default-export */
 import daisyui from "daisyui"
+import { Geist } from "next/font/google";
 /** @type {import('tailwindcss').Config} */
 export default {
     darkMode: ["class"],
@@ -51,12 +52,14 @@ export default {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			}
+
   		},
   		boxShadow: {
   			navbar: '0px 2px 4px rgba(74, 9, 120, 0.2)'
   		},
   		backgroundImage: {
-  			'custom-gradient': 'linear-gradient(90.14deg, #6CCBBE 0.12%, #4A0978 77.9%)'
+  			'custom-gradient': 'linear-gradient(90.14deg, #6CCBBE 0.12%, #4A0978 77.9%)',
+        'custom-gradient-invert' : 'linear-gradient(90.14deg, #4A0978 77.9%, #6CCBBE 0.12%)'
   		},
   		animation: {
   			customBounce: 'bounce 4s infinite',
