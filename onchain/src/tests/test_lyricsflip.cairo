@@ -490,6 +490,58 @@ fn test_generate_random_numbers_should_panic_with_invalid_amount() {
 }
 
 #[test]
+fn test_get_cards_of_genre() {
+    let lyricsflip = deploy();
+
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum"
+            };
+            lyricsflip.add_card(card);
+        };
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+
+    let seed = 1;
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    let genre_cards = lyricsflip.get_cards_of_genre(Genre::HipHop, seed);
+    assert(genre_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
+    for i in 0
+        ..genre_cards.len() {
+            assert(*genre_cards.at(i).genre == Genre::HipHop, 'wrong genre');
+        }
+}
+
+#[test]
+#[should_panic(expected: ('Not enough cards of this genre',))]
+fn test_get_cards_of_genre_should_panic_with_not_enough_cards_of_this_genre() {
+    let lyricsflip = deploy();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+
+    let seed = 1;
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    let genre_cards = lyricsflip.get_cards_of_genre(Genre::HipHop, seed);
+    assert(genre_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
+    for i in 0
+        ..genre_cards.len() {
+            assert(*genre_cards.at(i).genre == Genre::HipHop, 'wrong genre');
+        }
+}
+
+#[test]
 fn test_get_cards_of_artist() {
     let lyricsflip = deploy();
 
