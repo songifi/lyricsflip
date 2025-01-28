@@ -1,10 +1,10 @@
 #[starknet::contract]
 pub mod LyricsFlip {
+    use core::hash::{HashStateTrait, HashStateExTrait};
+    use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
     use lyricsflip::utils::types::{Card, Genre, Round, Entropy};
-    use core::poseidon::PoseidonTrait;
-    use core::hash::{HashStateTrait, HashStateExTrait};
     use starknet::storage::{
         StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry, Map, Vec,
         MutableVecTrait, VecTrait
@@ -272,17 +272,25 @@ pub mod LyricsFlip {
         //     // check round is started and is_completed is false
         // }
 
+        /// Generates unique random numbers within a specified range.
+        /// Uses a seed and entropy (block data, timestamp, index) to create randomness,
+        /// ensuring uniqueness via a dictionary. Numbers can be offset by 1 if `for_index` is true.
+        ///
+        /// # Args:
+        /// * `seed` (u64): Seed for randomness.
+        /// * `amount` (u64): Number of unique numbers to generate.
+        /// * `limit` (u64): Upper limit for the range (exclusive).
+        /// * `for_index` (bool): Whether to offset numbers by 1.
+        ///
+        /// # Returns:
+        /// * `Span<u64>`: Span of unique random numbers.
         fn _get_random_numbers(
-            self: @ContractState,
-            seed: u64,
-            amount: u64,
-            limit: u64,
-            for_index: bool,
+            self: @ContractState, seed: u64, amount: u64, limit: u64, for_index: bool,
         ) -> Span<u64> {
             // Initialize a dictionary to ensure uniqueness of numbers
             let mut numbers: Felt252Dict<bool> = Default::default();
             let mut unique_numbers: Array<u64> = array![];
-        
+
             let mut i = 0_u64;
             while unique_numbers.len().into() < amount {
                 let entropy = Entropy {
@@ -295,18 +303,20 @@ pub mod LyricsFlip {
                 let rand_u256: u256 = rand_felt.into();
                 let rand_u256_in_range: u256 = rand_u256 % limit.into();
                 let rand: u64 = rand_u256_in_range.try_into().unwrap();
-        
+
                 // Ensure uniqueness by checking the dictionary
                 if !numbers.get(rand.into()) {
                     numbers.insert(rand.into(), true);
-                    unique_numbers.append(rand);
+                    if for_index {
+                        unique_numbers.append(rand);
+                    } else {
+                        unique_numbers.append(rand + 1);
+                    }
                 }
-        
+
                 i += 1; // Increment the index for the next iteration
             };
-        
             unique_numbers.span()
         }
-        
     }
 }
