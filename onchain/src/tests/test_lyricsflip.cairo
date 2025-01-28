@@ -515,3 +515,23 @@ fn test_get_cards_of_genre() {
             assert(*genre_cards.at(i).genre == Genre::HipHop, 'wrong genre');
         }
 }
+
+#[test]
+#[should_panic(expected: ('Not enough cards of this genre',))]
+fn test_get_cards_of_genre_should_panic_with_not_enough_cards_of_this_genre() {
+    let lyricsflip = deploy();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+
+    let seed = 1;
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    let genre_cards = lyricsflip.get_cards_of_genre(Genre::HipHop, seed);
+    assert(genre_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
+    for i in 0
+        ..genre_cards.len() {
+            assert(*genre_cards.at(i).genre == Genre::HipHop, 'wrong genre');
+        }
+}
