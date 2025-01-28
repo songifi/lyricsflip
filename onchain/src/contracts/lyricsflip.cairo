@@ -246,6 +246,10 @@ pub mod LyricsFlip {
         fn get_cards_of_genre(self: @ContractState, genre: Genre, seed: u64) -> Span<Card> {
             let limit = self.genre_cards.entry(genre.into()).len();
             let amount = self.cards_per_round.read();
+
+            //TODO: check limit >= amount
+            assert(limit > 0, 'Not enough cards of this genre');
+
             let random_numbers: Span<u64> = self
                 ._get_random_numbers(seed, amount.into(), limit, true);
             let mut genre_cards: Array<Card> = array![];
