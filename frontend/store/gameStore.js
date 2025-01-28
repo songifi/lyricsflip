@@ -13,11 +13,13 @@ export const useGameStore = create((set, get) => ({
   gameStatus: "idle",
   selectedDifficulty: "",
   currentQuestionIndex: -1, // Start at -1 to clearly show it's not set
+  username: "",
   points: 0,
   timeLeft: 0,
   questions: [],
   // Derived State
 
+  setUsername: (username) => set({ username }),
   setDifficulty: (difficulty) => {
     console.log("STORE: Setting difficulty to", difficulty);
     set({ selectedDifficulty: difficulty });
@@ -153,6 +155,7 @@ export const useGameStore = create((set, get) => ({
     set({
       gameStatus: "idle",
       selectedDifficulty: "",
+      username: "",
       currentQuestionIndex: -1,
       points: 0,
       questions: [],

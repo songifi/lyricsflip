@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useGameStore } from "@/store/gameStore";
 import GameCard from "./GameCard";
 import DifficultySelect from "./DifficultySelect";
+import DifficultyLevel from "./DifficultyLevel";
 import GeniusService from "@/services/geniusService";
 import GameCompletion from "./GameCompletion";
 
@@ -11,14 +12,11 @@ const Game = () => {
     gameStatus,
     selectedDifficulty,
     timeLeft,
-    points,
     getCurrentQuestion,
     initializeGame,
-    setDifficulty,
-    resetGame,
-    questions,
     setQuestions,
     stopTimer,
+    username,
   } = useGameStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -95,10 +93,12 @@ const Game = () => {
     }
   };
 
+  if (gameStatus === "idle") return null;
+
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
       {/* Start Screen */}
-      {gameStatus === "idle" && (
+      {/* {gameStatus === "idle" && (
         <div className="h-full flex items-center justify-center ">
           <div className="flex flex-col items-center space-y-6 mt-12">
             <h1 className="text-[4xl] font-bold text-[#490878]">Thetimleyin</h1>
@@ -131,7 +131,7 @@ const Game = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Game Overlay */}
       {gameStatus !== "idle" && (
@@ -141,12 +141,12 @@ const Game = () => {
             <div className="flex flex-col items-center justify-center">
               <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">
                 <h1 className="text-[16px] font-bold text-[#090909]">
-                  Thetimleyin
+                  {username || "Player"}
                 </h1>
               </div>
               <div className="flex items-center">
                 <div className="text-[16px] text-[#490878]">
-                  Difficulty: {selectedDifficulty}
+                  <DifficultyLevel difficulty={selectedDifficulty} />
                 </div>
               </div>
             </div>
