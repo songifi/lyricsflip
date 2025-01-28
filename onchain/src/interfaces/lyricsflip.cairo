@@ -18,11 +18,9 @@ pub trait ILyricsFlip<TContractState> {
     fn get_cards_per_round(self: @TContractState) -> u8;
     fn add_card(ref self: TContractState, card: Card);
     fn get_card(self: @TContractState, card_id: u64) -> Card;
+    fn get_cards_of_genre(self: @TContractState, genre: Genre, seed: u64) -> Span<Card>;
     // // TODO
 // fn next_card(ref self: TContractState, round_id: u64) -> Card;
-
-    // // TODO
-// fn get_cards_of_genre(self: @TContractState, genre: Genre) -> Span<Card>;
 
     // // TODO
 // fn get_cards_of_artist(self: @TContractState, artist: ByteArray) -> Span<Card>;

@@ -242,13 +242,25 @@ pub mod LyricsFlip {
         fn get_card(self: @ContractState, card_id: u64) -> Card {
             self.cards.entry(card_id).read()
         }
+
+        fn get_cards_of_genre(self: @ContractState, genre: Genre, seed: u64) -> Span<Card> {
+            let limit = self.genre_cards.entry(genre.into()).len();
+            let amount = self.cards_per_round.read();
+            let random_numbers: Span<u64> = self
+                ._get_random_numbers(seed, amount.into(), limit, true);
+            let mut genre_cards: Array<Card> = array![];
+            for number in random_numbers {
+                let card_id = self.genre_cards.entry(genre.into()).at(*number).read();
+                let card = self.cards.entry(card_id).read();
+                genre_cards.append(card);
+            };
+            genre_cards.span()
+        }
+
         // // TODO
     // fn next_card(ref self: ContractState, round_id: u64) -> Card {
     //     self._next_round_card()
     // }
-
-        // // TODO
-    // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
 
         // // TODO
     // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) ->

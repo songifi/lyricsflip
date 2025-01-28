@@ -10,7 +10,7 @@ pub struct Card {
     pub lyrics: ByteArray,
 }
 
-#[derive(Drop, Copy, Serde, PartialEq, starknet::Store)]
+#[derive(Drop, Hash, Copy, Serde, PartialEq, starknet::Store)]
 pub enum Genre {
     HipHop,
     Pop,
