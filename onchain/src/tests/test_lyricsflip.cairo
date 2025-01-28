@@ -1,3 +1,4 @@
+use LyricsFlip::{InternalFunctions, InternalFunctionsTrait};
 use lyricsflip::contracts::lyricsflip::LyricsFlip;
 use lyricsflip::interfaces::lyricsflip::{ILyricsFlipDispatcher, ILyricsFlipDispatcherTrait};
 use lyricsflip::utils::types::{Genre, Card};
@@ -341,4 +342,30 @@ fn test_add_card() {
     assert(card_stored.card_id == 1, 'Wrong card_id');
     assert(card_stored.year == 2000, 'Wrong card_id');
     assert(card_stored.artist == 'Bob Marley', 'Wrong card_id');
+}
+
+#[test]
+fn test_generate_random_numbers() {
+    let mut state = LyricsFlip::contract_state_for_testing();
+    let for_index_random_numbers = state._get_random_numbers(1, 5, 5, true);
+    let mut numbers: Felt252Dict<bool> = Default::default();
+    for i in 0
+        ..for_index_random_numbers
+            .len() {
+                let number = *for_index_random_numbers.at(i);
+                assert(!numbers.get(number.into()), 'duplicate number');
+                assert(number >= 0 && number < 5, 'number out of range');
+                numbers.insert(number.into(), true);
+            };
+
+    let not_for_index_random_numbers = state._get_random_numbers(1, 5, 5, false);
+    let mut numbers: Felt252Dict<bool> = Default::default();
+    for i in 0
+        ..not_for_index_random_numbers
+            .len() {
+                let number = *not_for_index_random_numbers.at(i);
+                assert(!numbers.get(number.into()), 'duplicate number');
+                assert(number > 0 && number <= 5, 'number out of range');
+                numbers.insert(number.into(), true);
+            }
 }

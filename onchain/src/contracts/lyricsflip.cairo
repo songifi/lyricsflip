@@ -259,7 +259,7 @@ pub mod LyricsFlip {
     }
 
     #[generate_trait]
-    impl InternalFunctions of InternalFunctionsTrait {
+    pub impl InternalFunctions of InternalFunctionsTrait {
         //TODO
         fn get_random_cards(self: @ContractState, seed: u64) -> Span<u64> {
             let amount: u64 = self.cards_per_round.read().into();
@@ -274,7 +274,8 @@ pub mod LyricsFlip {
 
         /// Generates unique random numbers within a specified range.
         /// Uses a seed and entropy (block data, timestamp, index) to create randomness,
-        /// ensuring uniqueness via a dictionary. Numbers can be offset by 1 if `for_index` is true.
+        /// ensuring uniqueness via a dictionary. Numbers can be offset by 1 if `for_index` is
+        /// false.
         ///
         /// # Args:
         /// * `seed` (u64): Seed for randomness.
@@ -302,16 +303,16 @@ pub mod LyricsFlip {
                 let rand_felt = PoseidonTrait::new().update_with(entropy).finalize();
                 let rand_u256: u256 = rand_felt.into();
                 let rand_u256_in_range: u256 = rand_u256 % limit.into();
-                let rand: u64 = rand_u256_in_range.try_into().unwrap();
+                let mut rand: u64 = rand_u256_in_range.try_into().unwrap();
 
                 // Ensure uniqueness by checking the dictionary
+                if !for_index {
+                    rand += 1;
+                }
+
                 if !numbers.get(rand.into()) {
+                    unique_numbers.append(rand);
                     numbers.insert(rand.into(), true);
-                    if for_index {
-                        unique_numbers.append(rand);
-                    } else {
-                        unique_numbers.append(rand + 1);
-                    }
                 }
 
                 i += 1; // Increment the index for the next iteration
