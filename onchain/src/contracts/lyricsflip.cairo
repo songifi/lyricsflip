@@ -147,9 +147,10 @@ pub mod LyricsFlip {
             self.round_players_count.entry(round_id).write(round_players_count + 1);
             self.rounds.entry(round_id).write(round);
 
-            for i in 0..cards.len() {
-                self.round_cards.entry(round_id).append().write(*cards.at(i))
-            };
+            for i in 0
+                ..cards.len() {
+                    self.round_cards.entry(round_id).append().write(*cards.at(i))
+                };
 
             self
                 .emit(
