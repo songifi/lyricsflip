@@ -291,6 +291,7 @@ pub mod LyricsFlip {
             // Initialize a dictionary to ensure uniqueness of numbers
             let mut numbers: Felt252Dict<bool> = Default::default();
             let mut unique_numbers: Array<u64> = array![];
+            assert(amount <= limit, 'Amount exceeds limit');
 
             let mut i = 0_u64;
             while unique_numbers.len().into() < amount {

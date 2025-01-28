@@ -369,3 +369,19 @@ fn test_generate_random_numbers() {
                 numbers.insert(number.into(), true);
             }
 }
+
+#[test]
+#[should_panic(expected: ('Amount exceeds limit', ))]
+fn test_generate_random_numbers_should_panic_with_invalid_amount() {
+    let mut state = LyricsFlip::contract_state_for_testing();
+    let for_index_random_numbers = state._get_random_numbers(1, 6, 5, true);
+    let mut numbers: Felt252Dict<bool> = Default::default();
+    for i in 0
+        ..for_index_random_numbers
+            .len() {
+                let number = *for_index_random_numbers.at(i);
+                assert(!numbers.get(number.into()), 'duplicate number');
+                assert(number >= 0 && number < 5, 'number out of range');
+                numbers.insert(number.into(), true);
+            };    
+}
