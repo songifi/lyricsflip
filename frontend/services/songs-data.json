@@ -5,112 +5,128 @@
         "title": "Despacito",
         "artist": "Luis Fonsi & Daddy Yankee",
         "genre": "Latin Pop",
-        "lyrics": "Sí, sabes que ya llevo un rato mirándote\nTengo que bailar contigo hoy"
+        "lyrics": "Sí, sabes que ya llevo un rato mirándote\nTengo que bailar contigo hoy",
+        "difficulty": "Beginner"
       },
       {
         "id": 2,
         "title": "Bohemian Rhapsody",
         "artist": "Queen",
         "genre": "Rock",
-        "lyrics": "Is this the real life? Is this just fantasy?"
+        "lyrics": "Is this the real life? Is this just fantasy?",
+        "difficulty": "Advanced"
       },
       {
         "id": 3,
         "title": "Blinding Lights",
         "artist": "The Weeknd",
         "genre": "Synth-Pop",
-        "lyrics": "I said, ooh, I'm blinded by the lights\nNo, I can't sleep until I feel your touch"
+        "lyrics": "I said, ooh, I'm blinded by the lights\nNo, I can't sleep until I feel your touch",
+        "difficulty": "Advanced"
       },
       {
         "id": 4,
         "title": "Essence",
         "artist": "Wizkid ft. Tems",
         "genre": "Afrobeats",
-        "lyrics": "You don't need no other body Only you fi hold my body"
+        "lyrics": "You don't need no other body Only you fi hold my body",
+        "difficulty": "Beginner"
       },
       {
         "id": 5,
         "title": "Love Nwantiti",
         "artist": "CKay",
         "genre": "Afrobeats",
-        "lyrics": "Ahh ahh ahh ahh ahhh My baby, my valentine"
+        "lyrics": "Ahh ahh ahh ahh ahhh My baby, my valentine",
+        "difficulty": "Beginner"
       },
       {
         "id": 6,
         "title": "Last Last",
         "artist": "Burna Boy",
         "genre": "Afrobeats",
-        "lyrics": "I need igbo and shayo (shayo)"
+        "lyrics": "I need igbo and shayo (shayo)",
+        "difficulty": "Beginner"
       },
       {
         "id": 7,
         "title": "God Did",
         "artist": "DJ Khaled ft. Rick Ross, Lil Wayne, Jay-Z, John Legend",
         "genre": "Hip-Hop",
-        "lyrics": "These streets ain't safe But I stay dangerous"
+        "lyrics": "These streets ain't safe But I stay dangerous",
+        "difficulty": "Beginner"
       },
       {
         "id": 8,
         "title": "Life Goes On",
         "artist": "BTS",
         "genre": "K-Pop",
-        "lyrics": "Like an echo in the forest The day will come back around"
+        "lyrics": "Like an echo in the forest The day will come back around",
+        "difficulty": "Beginner"
       },
       {
         "id": 9,
         "title": "The Box",
         "artist": "Roddy Ricch",
         "genre": "Hip-Hop",
-        "lyrics": "Pullin' out the coupe at the lot Told 'em, 'f**k 12, f**k SWAT'"
+        "lyrics": "Pullin' out the coupe at the lot Told 'em, 'f**k 12, f**k SWAT'",
+        "difficulty": "Beginner"
       },
       {
         "id": 10,
         "title": "Sicko Mode",
         "artist": "Travis Scott",
         "genre": "Hip-Hop",
-        "lyrics": "She's in love with who I am\nBack in high school, I used to bus it to the dance"
+        "lyrics": "She's in love with who I am\nBack in high school, I used to bus it to the dance",
+        "difficulty": "Intermediate"
       },
       {
         "id": 11,
         "title": "Way 2 Sexy",
         "artist": "Drake ft. Future, Young Thug",
         "genre": "Hip-Hop",
-        "lyrics": "I'm too sexy for this syrup Too sexy for your girl"
+        "lyrics": "I'm too sexy for this syrup Too sexy for your girl",
+        "difficulty": "Beginner"
       },
       {
         "id": 12,
         "title": "Mood",
         "artist": "24kGoldn ft. iann dior",
         "genre": "Hip-Hop",
-        "lyrics": "Why you always in a mood? Messin' 'round, actin' brand new"
+        "lyrics": "Why you always in a mood? Messin' 'round, actin' brand new",
+        "difficulty": "Beginner"
       },
       {
         "id": 13,
         "title": "Finesse",
         "artist": "Pheelz ft. BNXN",
         "genre": "Afrobeats",
-        "lyrics": "Folake for the night, o Shey you dey for me?"
+        "lyrics": "Folake for the night, o Shey you dey for me?",
+        "difficulty": "Beginner"
       },
       {
         "id": 14,
         "title": "Montero (Call Me By Your Name)",
         "artist": "Lil Nas X",
         "genre": "Hip-Hop",
-        "lyrics": "Call me when you want, call me when you need\nCall me in the morning, I'll be on the way"
+        "lyrics": "Call me when you want, call me when you need\nCall me in the morning, I'll be on the way",
+        "difficulty": "Intermediate"
       },
       {
         "id": 15,
         "title": "Jerusalema",
         "artist": "Master KG ft. Nomcebo Zikode",
         "genre": "Afro-House",
-        "lyrics": "Jerusalema ikhaya lami Ngilondoloze, uhambe nami"
+        "lyrics": "Jerusalema ikhaya lami Ngilondoloze, uhambe nami",
+        "difficulty": "Beginner"
       },
       {
         "id": 16,
         "title": "I Need You (Remix)",
         "artist": "Eclipse Nkasi ft. Linoblaze & Angelo",
         "genre": "Afrobeats",
-        "lyrics": "Came into the season with hope in the air, say omo we go break ground say this year na the year"
+        "lyrics": "Came into the season with hope in the air, say omo we go break ground say this year na the year",
+        "difficulty": "Advanced"
       }
     ]
   }

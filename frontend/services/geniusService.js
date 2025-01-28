@@ -41,6 +41,7 @@ class GeniusService {
           songTitle: song.title,
           artist: song.artist,
           genre: song.genre,
+          difficulty: song.difficulty,
         };
 
         this.cache.set(song.id, snippet);
