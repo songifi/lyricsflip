@@ -292,6 +292,7 @@ pub mod LyricsFlip {
             let mut numbers: Felt252Dict<bool> = Default::default();
             let mut unique_numbers: Array<u64> = array![];
             assert(amount <= limit, 'Amount exceeds limit');
+            assert(limit > 0, 'Limit must be greater than 0');
 
             let mut i = 0_u64;
             while unique_numbers.len().into() < amount {

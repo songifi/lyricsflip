@@ -97,7 +97,24 @@ fn test_start_round() {
     let mut spy = spy_events();
 
     start_cheat_block_timestamp_global(1736593692);
+
+    for i in 0
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum"
+            };
+            lyricsflip.add_card(card);
+        };
+
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
 
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
@@ -141,7 +158,24 @@ fn test_join_round() {
     let mut spy = spy_events();
 
     start_cheat_block_timestamp_global(1736593692);
+
+    for i in 0
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum"
+            };
+            lyricsflip.add_card(card);
+        };
+
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
 
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
@@ -183,7 +217,23 @@ fn test_join_round() {
 fn test_create_round_should_panic_with_unknown_genre() {
     let lyricsflip = deploy();
 
+    for i in 0
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum"
+            };
+            lyricsflip.add_card(card);
+        };
+
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
 
     let seed = 1;
     lyricsflip.create_round(Option::None, seed);
@@ -196,7 +246,23 @@ fn test_create_round_should_panic_with_unknown_genre() {
 fn test_start_round_should_panic_with_only_admin() {
     let lyricsflip = deploy();
 
+    for i in 0
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum"
+            };
+            lyricsflip.add_card(card);
+        };
+
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
 
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
@@ -227,7 +293,23 @@ fn test_start_round_should_panic_with_non_existing_round() {
 fn test_join_round_should_panic_with_round_already_started() {
     let lyricsflip = deploy();
 
+    for i in 0
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum"
+            };
+            lyricsflip.add_card(card);
+        };
+
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
 
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
@@ -246,7 +328,23 @@ fn test_join_round_should_panic_with_round_already_started() {
 fn test_join_round_should_panic_with_already_joined() {
     let lyricsflip = deploy();
 
+    for i in 0
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum"
+            };
+            lyricsflip.add_card(card);
+        };
+
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
 
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
