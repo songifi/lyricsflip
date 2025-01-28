@@ -15,7 +15,7 @@ import { useGameStore } from "@/store/gameStore";
 const navigation = [
   /*   { name: "Play Now", href: "#game", isScroll: true }, */
   { name: "Categories", href: "#", isScroll: false },
-  { name: "Leaderboard", href: "#", isScroll: false },
+  { name: "Leaderboard", href: "leader-board", isScroll: false },
   { name: "How to Play", href: "#how-to-play", isScroll: false },
 ];
 
