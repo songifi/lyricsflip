@@ -248,7 +248,7 @@ const GameCompletion = () => {
       <div className="p-8 rounded-[24px] w-full text-center">
         {getIcon()}
 
-        <div className="flex items-center justify-center gap-4 mb-2">
+        <div className="flex-col md:flex items-center justify-center gap-4 mb-2">
           <div className="text-[#70E3C7] text-[24px] font-bold">
             {points} Points
           </div>
