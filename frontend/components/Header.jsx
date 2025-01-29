@@ -12,6 +12,8 @@ import { createPortal } from "react-dom";
 import { WalletModal } from "./WalletModal";
 import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
+import Navbar from "./Navbar";
+
 
 const navigation = [
   { name: "Categories", href: "#", isScroll: false },
@@ -29,10 +31,7 @@ const handleScroll = (e, isScroll) => {
     setMobileMenuOpen(false);
   }
 };
-import LockBodyScroll from "./LockBodyScroll";
-import { createPortal } from "react-dom";
-import { WalletModal } from "./WalletModal";
-import Navbar from "./Navbar";
+
 
 
 const Header = () => {
@@ -54,7 +53,7 @@ const Header = () => {
           document.body
         )}
       <div className="fixed w-full bg-custom-gradient z-10">
-        <header className="">
+       
           <nav
             aria-label="Global"
             className="flex items-center justify-between p-3 lg:px-8"
@@ -168,7 +167,7 @@ const Header = () => {
               </div>
             </DialogPanel>
           </Dialog>
-
+       
         <header>
           <Navbar
             mobileMenuOpen={mobileMenuOpen}
