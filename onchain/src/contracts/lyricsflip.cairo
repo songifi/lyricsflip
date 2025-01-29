@@ -1,13 +1,15 @@
 #[starknet::contract]
 pub mod LyricsFlip {
+    use core::hash::{HashStateExTrait, HashStateTrait};
+    use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Card, Genre, Round};
+    use lyricsflip::utils::types::{Card, Entropy, Genre, Round};
     use starknet::storage::{
-        StoragePointerReadAccess, StoragePointerWriteAccess, StoragePathEntry, Map, Vec,
-        MutableVecTrait, VecTrait
+        Map, MutableVecTrait, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
+        Vec, VecTrait,
     };
-    use starknet::{get_caller_address, get_block_timestamp, ContractAddress};
+    use starknet::{ContractAddress, get_block_number, get_block_timestamp, get_caller_address};
 
 
     #[storage]
@@ -16,15 +18,15 @@ pub mod LyricsFlip {
         cards_count: u64,
         cards_per_round: u8,
         cards: Map<u64, Card>,
-        genre_cards: Map<Genre, Vec<u64>>, // genre -> vec<card_ids>
-        artist_cards: Map<ByteArray, Vec<u64>>, // artist -> vec<card_ids>
+        genre_cards: Map<felt252, Vec<u64>>, // genre -> vec<card_ids>
+        artist_cards: Map<felt252, Vec<u64>>, // artist -> vec<card_ids>
         year_cards: Map<u64, Vec<u64>>, // year -> vec<card_ids>
         rounds: Map<u64, Round>, // round_id -> Round
         round_players: Map<
-            u64, Map<u256, ContractAddress>
+            u64, Map<u256, ContractAddress>,
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
-        round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
+        round_cards: Map<u64, Vec<u64>> // round_id -> vec<card_ids>
     }
 
 
@@ -106,7 +108,7 @@ pub mod LyricsFlip {
         }
 
         fn is_round_player(
-            self: @ContractState, round_id: u64, player_address: ContractAddress
+            self: @ContractState, round_id: u64, player_address: ContractAddress,
         ) -> bool {
             let round_players = self.get_round_players(round_id);
             let mut is_player = false;
@@ -121,11 +123,11 @@ pub mod LyricsFlip {
             is_player
         }
 
-        fn create_round(ref self: ContractState, genre: Option<Genre>) -> u64 {
+        fn create_round(ref self: ContractState, genre: Option<Genre>, seed: u64) -> u64 {
             assert(genre.is_some(), Errors::NON_EXISTING_GENRE);
 
             let caller_address = get_caller_address();
-            let cards = self.get_random_cards();
+            let cards = self.get_random_cards(seed);
 
             let round_id = self.round_count.read() + 1;
             let round = Round {
@@ -154,9 +156,9 @@ pub mod LyricsFlip {
                 .emit(
                     Event::RoundCreated(
                         RoundCreated {
-                            round_id, admin: caller_address, created_time: get_block_timestamp()
-                        }
-                    )
+                            round_id, admin: caller_address, created_time: get_block_timestamp(),
+                        },
+                    ),
                 );
 
             round_id
@@ -177,8 +179,10 @@ pub mod LyricsFlip {
             self
                 .emit(
                     Event::RoundStarted(
-                        RoundStarted { round_id, admin: round.admin.read(), start_time: start_time }
-                    )
+                        RoundStarted {
+                            round_id, admin: round.admin.read(), start_time: start_time,
+                        },
+                    ),
                 );
         }
 
@@ -199,9 +203,9 @@ pub mod LyricsFlip {
                 .emit(
                     Event::RoundJoined(
                         RoundJoined {
-                            round_id, player: caller_address, joined_time: get_block_timestamp()
-                        }
-                    )
+                            round_id, player: caller_address, joined_time: get_block_timestamp(),
+                        },
+                    ),
                 );
         }
 
@@ -215,8 +219,8 @@ pub mod LyricsFlip {
             self
                 .emit(
                     Event::SetCardPerRound(
-                        SetCardPerRound { old_value: old_value, new_value: value, }
-                    )
+                        SetCardPerRound { old_value: old_value, new_value: value },
+                    ),
                 );
         }
 
@@ -224,34 +228,75 @@ pub mod LyricsFlip {
         fn get_cards_per_round(self: @ContractState) -> u8 {
             self.cards_per_round.read()
         }
-    }
 
-    // // TODO
-    // fn add_card(ref self: ContractState, card: Card) {}
 
-    fn get_card(self: @ContractState, card_id: u64) -> Card {
-        self.cards.entry(card_id).read()
-    }
+        fn add_card(ref self: ContractState, card: Card) {
+            let card_id = self.cards_count.read() + 1;
 
-    // // TODO
-    // fn next_card(ref self: ContractState, round_id: u64) -> Card {
-    //     self._next_round_card()
-    // }
+            self.artist_cards.entry(card.artist).append().write(card_id);
+            self.genre_cards.entry(card.genre.into()).append().write(card_id);
+            self.year_cards.entry(card.year).append().write(card_id);
 
-    // // TODO
-    // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
+            self.cards.entry(card_id).write(card);
+            self.cards_count.write(card_id);
+        }
 
-    // // TODO
-    // fn get_cards_of_artist(self: @ContractState, artist: ByteArray, amount: u64) -> Span<Card> {}
+        fn get_card(self: @ContractState, card_id: u64) -> Card {
+            self.cards.entry(card_id).read()
+        }
 
-    // //TODO
+        fn get_cards_of_genre(self: @ContractState, genre: Genre, seed: u64) -> Span<Card> {
+            let limit = self.genre_cards.entry(genre.into()).len();
+            let amount = self.cards_per_round.read();
+
+            //TODO: check limit >= amount
+            assert(limit > 0, 'Not enough cards of this genre');
+
+            let random_numbers: Span<u64> = self
+                ._get_random_numbers(seed, amount.into(), limit, true);
+            let mut genre_cards: Array<Card> = array![];
+            for number in random_numbers {
+                let card_id = self.genre_cards.entry(genre.into()).at(*number).read();
+                let card = self.cards.entry(card_id).read();
+                genre_cards.append(card);
+            };
+            genre_cards.span()
+        }
+        // // TODO
+        // fn next_card(ref self: ContractState, round_id: u64) -> Card {
+        //     self._next_round_card()
+        // }
+
+        // // TODO
+        // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
+
+        //TODO
+        fn get_cards_of_artist(self: @ContractState, artist: felt252, seed: u64) -> Span<Card> {
+            assert(self.artist_cards.entry(artist.into()).len() > 0, Errors::ARTIST_CARDS_IS_ZERO);
+            let mut cards = array![];
+            let amount = self.cards_per_round.read();
+            let num_of_artists_cards = self.artist_cards.entry(artist).len();
+            let numbers = self._get_random_numbers(seed, amount.into(), num_of_artists_cards, true);
+            let mut i = 0_u32;
+            while (i < numbers.len()) {
+                let card_id = self.artist_cards.entry(artist).at(*numbers[i]).read();
+                let card = self.cards.read(card_id);
+                cards.append(card);
+                i += 1;
+            };
+            cards.span()
+        }
+        // //TODO
     // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
+    }
 
     #[generate_trait]
-    impl InternalFunctions of InternalFunctionsTrait {
+    pub impl InternalFunctions of InternalFunctionsTrait {
         //TODO
-        fn get_random_cards(ref self: ContractState) -> Span<u64> {
-            array![1, 2].span()
+        fn get_random_cards(self: @ContractState, seed: u64) -> Span<u64> {
+            let amount: u64 = self.cards_per_round.read().into();
+            let limit = self.cards_count.read();
+            self._get_random_numbers(seed, amount, limit, false)
         }
 
         // // TODO
@@ -259,8 +304,54 @@ pub mod LyricsFlip {
         //     // check round is started and is_completed is false
         // }
 
-        fn _get_random_numbers(amount: u64, limit: u64, for_index: bool) -> Span<u64> {
-            array![].span()
+        /// Generates unique random numbers within a specified range.
+        /// Uses a seed and entropy (block data, timestamp, index) to create randomness,
+        /// ensuring uniqueness via a dictionary. Numbers can be offset by 1 if `for_index` is
+        /// false.
+        ///
+        /// # Args:
+        /// * `seed` (u64): Seed for randomness.
+        /// * `amount` (u64): Number of unique numbers to generate.
+        /// * `limit` (u64): Upper limit for the range (exclusive).
+        /// * `for_index` (bool): Whether to offset numbers by 1.
+        ///
+        /// # Returns:
+        /// * `Span<u64>`: Span of unique random numbers.
+        fn _get_random_numbers(
+            self: @ContractState, seed: u64, amount: u64, limit: u64, for_index: bool,
+        ) -> Span<u64> {
+            // Initialize a dictionary to ensure uniqueness of numbers
+            let mut numbers: Felt252Dict<bool> = Default::default();
+            let mut unique_numbers: Array<u64> = array![];
+            assert(amount <= limit, 'Amount exceeds limit');
+            assert(limit > 0, 'Limit must be greater than 0');
+
+            let mut i = 0_u64;
+            while unique_numbers.len().into() < amount {
+                let entropy = Entropy {
+                    seed,
+                    block_number: get_block_number(),
+                    timestamp: get_block_timestamp(),
+                    index: i,
+                };
+                let rand_felt = PoseidonTrait::new().update_with(entropy).finalize();
+                let rand_u256: u256 = rand_felt.into();
+                let rand_u256_in_range: u256 = rand_u256 % limit.into();
+                let mut rand: u64 = rand_u256_in_range.try_into().unwrap();
+
+                // Ensure uniqueness by checking the dictionary
+                if !for_index {
+                    rand += 1;
+                }
+
+                if !numbers.get(rand.into()) {
+                    unique_numbers.append(rand);
+                    numbers.insert(rand.into(), true);
+                }
+
+                i += 1; // Increment the index for the next iteration
+            };
+            unique_numbers.span()
         }
     }
 }

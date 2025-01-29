@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
-import { UserService } from "src/user/providers/user.service"
+import { UserService } from "./../../user/providers/user.service"
 import jwtConfig from "../authConfig/jwt.config"
 import { ConfigType } from "@nestjs/config"
 import { GenerateTokensProvider } from "./generate-tokens-provider"

@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react";
+// useGameLogic.js
+import { useEffect, useCallback } from "react";
 import { useGameStore } from "../store/gameStore";
 import GeniusService from "../services/geniusService";
 
 export function useGameLogic(questionCount = 10) {
-  const { setQuestions, setLoading, setError, questions, loading, error } =
+  const { setQuestions, selectedDifficulty, gameStatus, initializeGame } =
     useGameStore();
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = useCallback(async () => {
     try {
-      setLoading(true);
-      setError(null);
+      if (!selectedDifficulty) return;
 
       const geniusService = GeniusService.getInstance();
       const snippets = await geniusService.getRandomLyricSnippets(
@@ -17,27 +17,48 @@ export function useGameLogic(questionCount = 10) {
         questionCount
       );
 
-      setQuestions(
-        snippets.map((snippet) => ({
-          lyricsSnippet: snippet.lyricsSnippet,
-          correctAnswer: snippet.songTitle,
-        }))
+      const filtered = snippets.filter(
+        (s) => s.difficulty === selectedDifficulty
       );
-    } catch (err) {
-      setError(err.message || "An error occurred while fetching questions");
-    } finally {
-      setLoading(false);
+
+      if (filtered.length === 0) {
+        throw new Error("No questions for selected difficulty");
+      }
+
+      const formatted = filtered.map((snippet) => ({
+        lyricsSnippet: snippet.lyricsSnippet,
+        correctAnswer: snippet.songTitle,
+        difficulty: snippet.difficulty,
+        options:
+          snippet.difficulty === "Beginner"
+            ? shuffle([...snippet.options, snippet.songTitle])
+            : [],
+      }));
+
+      setQuestions(formatted);
+    } catch (error) {
+      console.error("Question fetch failed:", error);
     }
-  };
+  }, [selectedDifficulty, questionCount, setQuestions]);
 
+  // Initial question fetch
   useEffect(() => {
-    fetchQuestions();
-  }, [questionCount]);
+    if (selectedDifficulty) {
+      fetchQuestions();
+    }
+  }, [selectedDifficulty, fetchQuestions]);
 
-  return {
-    questions,
-    loading,
-    error,
-    refreshQuestions: fetchQuestions,
-  };
+  // Auto-start game when questions are loaded
+  useEffect(() => {
+    if (gameStatus === "idle" && selectedDifficulty) {
+      initializeGame();
+    }
+  }, [gameStatus, selectedDifficulty, initializeGame]);
+
+  return { refreshQuestions: fetchQuestions };
+}
+
+// Utility function
+function shuffle(array) {
+  return array.sort(() => Math.random() - 0.5);
 }
