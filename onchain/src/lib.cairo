@@ -4,6 +4,7 @@ pub mod interfaces {
 
 pub mod contracts {
     pub mod lyricsflip;
+    pub mod lyricsflipNFT;
 }
 
 pub mod utils {
