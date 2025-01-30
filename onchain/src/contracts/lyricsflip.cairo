@@ -10,6 +10,15 @@ pub mod LyricsFlip {
         Vec, VecTrait,
     };
     use starknet::{ContractAddress, get_block_number, get_block_timestamp, get_caller_address};
+    use openzeppelin_access::ownable::OwnableComponent;
+
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+
+
+    #[abi(embed_v0)]
+    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
+
+    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
 
     #[storage]
@@ -26,7 +35,9 @@ pub mod LyricsFlip {
             u64, Map<u256, ContractAddress>,
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
-        round_cards: Map<u64, Vec<u64>> // round_id -> vec<card_ids>
+        round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
+        #[substorage(v0)]
+        ownable: OwnableComponent::Storage,
     }
 
 
@@ -37,6 +48,8 @@ pub mod LyricsFlip {
         RoundStarted: RoundStarted,
         RoundJoined: RoundJoined,
         SetCardPerRound: SetCardPerRound,
+        #[flat]
+        OwnableEvent: OwnableComponent::Event,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -74,7 +87,9 @@ pub mod LyricsFlip {
     }
 
     #[constructor]
-    fn constructor(ref self: ContractState) {}
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
+        self.ownable.initializer(owner);
+    }
 
     #[abi(embed_v0)]
     pub impl LyricsFlipImpl of ILyricsFlip<ContractState> {
@@ -211,6 +226,7 @@ pub mod LyricsFlip {
 
 
         fn set_cards_per_round(ref self: ContractState, value: u8) {
+            self.ownable.assert_only_owner();
             assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
 
             let old_value = self.cards_per_round.read();
@@ -231,6 +247,7 @@ pub mod LyricsFlip {
 
 
         fn add_card(ref self: ContractState, card: Card) {
+            self.ownable.assert_only_owner();
             let card_id = self.cards_count.read() + 1;
 
             self.artist_cards.entry(card.artist).append().write(card_id);
@@ -286,6 +303,7 @@ pub mod LyricsFlip {
             };
             cards.span()
         }
+
         // //TODO
     // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
     }
