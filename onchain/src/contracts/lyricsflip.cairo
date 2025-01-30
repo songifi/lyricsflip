@@ -147,10 +147,9 @@ pub mod LyricsFlip {
             self.round_players_count.entry(round_id).write(round_players_count + 1);
             self.rounds.entry(round_id).write(round);
 
-            for i in 0
-                ..cards.len() {
-                    self.round_cards.entry(round_id).append().write(*cards.at(i))
-                };
+            for i in 0..cards.len() {
+                self.round_cards.entry(round_id).append().write(*cards.at(i))
+            };
 
             self
                 .emit(
@@ -286,8 +285,20 @@ pub mod LyricsFlip {
             };
             cards.span()
         }
-        // //TODO
-    // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
+
+        fn get_cards_of_a_year(self: @ContractState, year: u64) -> Span<Card> {
+            let year_cards = self.year_cards.entry(year).len();
+            assert(year_cards > 0, Errors::EMPTY_YEAR_CARDS);
+            let mut cards = ArrayTrait::new();
+            let random_indices = self
+                ._get_random_numbers(get_block_timestamp(), year_cards, year_cards, true);
+            for i in random_indices {
+                let card_id = self.year_cards.entry(year).at(*i).read();
+                let card = self.cards.entry(card_id).read();
+                cards.append(card);
+            };
+            cards.span()
+        }
     }
 
     #[generate_trait]
