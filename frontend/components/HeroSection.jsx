@@ -5,11 +5,19 @@ import Link from "next/link"
 import { FaMusic } from "react-icons/fa6"
 import { useGameStore } from "../store/gameStore"
 import GameSection from "../components/game/GameSection"
+import { Modal } from "./ui/modal";
+import { GameSetupForm } from "./modal/GameSetupForm";
+
 
 
 export default function HeroSection({ GameSection }) {
   const { setGameStatus } = useGameStore()
   const [showGame, setShowGame] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleStartGame = () => {
+    console.log("Starting game...");
+    setIsModalOpen(false);
+  };
 
   const handlePlayNow = () => {
     setGameStatus("playing")
@@ -38,17 +46,32 @@ export default function HeroSection({ GameSection }) {
             </p>
             <div className="mt-6 sm:mt-8 flex gap-4">
             <button
-                onClick={handlePlayNow}
+                 onClick={() => setIsModalOpen(true)}
                 className="w-full sm:w-auto text-sm sm:text-base font-semibold text-[#490878] px-6 py-3 text-center rounded-lg bg-[#70E3C7] hover:bg-[#5fcfb5] transition-colors duration-300"
               >
                 Play Now
               </button>
-              <Link
-                href="#"
+              
+                <Modal
+                  isOpen={isModalOpen}
+                  onClose={() => setIsModalOpen(false)}
+                  title="Guess the song"
+                >
+                  <GameSetupForm onStart={handleStartGame} />
+                </Modal>
+                <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  const section = document.getElementById("howItWorks");
+                  if (section) {
+                    section.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
                 className="w-full sm:w-auto text-sm sm:text-base font-semibold text-[#70E3C7] px-6 py-3 text-center rounded-lg border-2 border-[#70E3C7] hover:bg-[#70E3C7] hover:text-[#490878] transition-colors duration-300"
               >
                 How to Play
-              </Link>
+              </button>
+
             </div>
           </div>
           <div className="mt-24 lg:mt-0 flex justify-center lg:justify-end">

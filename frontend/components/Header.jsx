@@ -16,12 +16,12 @@ import { GameSetupForm } from "./modal/GameSetupForm";
 const navigation = [
   { name: "Categories", href: "#", isScroll: false },
   { name: "Leaderboard", href: "#", isScroll: false },
-  { name: "How to Play", href: "#", isScroll: false },
+  { name: "How to Play", href: "#howItWorks", isScroll: false },
 ];
 
 const handleScroll = (e, isScroll) => {
   if (!isScroll) return;
-
+  
   e.preventDefault();
   const element = document.getElementById("game");
   if (element) {
@@ -29,9 +29,7 @@ const handleScroll = (e, isScroll) => {
     setMobileMenuOpen(false);
   }
 };
-import LockBodyScroll from "./LockBodyScroll";
-import { createPortal } from "react-dom";
-import { WalletModal } from "./WalletModal";
+
 import Navbar from "./Navbar";
 
 
@@ -98,14 +96,14 @@ const Header = () => {
               </Modal>
 
               {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={(e) => handleScroll(e, item.isScroll)}
-                  className="text-sm/6 font-semibold text-white"
-                >
-                  {item.name}
-                </Link>
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={(e) => handleScroll(e, item.isScroll, item.href)}
+                className="text-sm/6 font-semibold text-white"
+              >
+                {item.name}
+              </Link>
               ))}
             </div>
             <WalletBar
@@ -168,15 +166,6 @@ const Header = () => {
               </div>
             </DialogPanel>
           </Dialog>
-
-        <header>
-          <Navbar
-            mobileMenuOpen={mobileMenuOpen}
-            setMobileMenuOpen={setMobileMenuOpen}
-            connectModalIsOpen={connectModalIsOpen}
-            setConnectModalIsOpen={setConnectModalIsOpen}
-          />
-
         </header>
       </div>
     </>
