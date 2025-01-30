@@ -9,6 +9,11 @@ use snforge_std::{
 };
 use starknet::{ContractAddress, get_block_timestamp};
 
+fn OWNER() -> ContractAddress {
+    'OWNER'.try_into().unwrap()
+}
+
+
 fn PLAYER_1() -> ContractAddress {
     'PLAYER_1'.try_into().unwrap()
 }
@@ -20,7 +25,10 @@ fn PLAYER_2() -> ContractAddress {
 
 fn deploy() -> ILyricsFlipDispatcher {
     let contract = declare("LyricsFlip").unwrap().contract_class();
-    let (contract_address, _) = contract.deploy(@array![]).unwrap();
+    let mut constructor_calldata = array![];
+    let owner: ContractAddress = OWNER().try_into().unwrap();
+    owner.serialize(ref constructor_calldata);
+    let (contract_address, _) = contract.deploy(@constructor_calldata).unwrap();
 
     ILyricsFlipDispatcher { contract_address }
 }
@@ -30,6 +38,7 @@ fn test_create_round() {
     let lyricsflip = deploy();
     let mut spy = spy_events();
 
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -43,11 +52,11 @@ fn test_create_round() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
+    stop_cheat_caller_address(lyricsflip.contract_address);
 
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -98,6 +107,7 @@ fn test_start_round() {
 
     start_cheat_block_timestamp_global(1736593692);
 
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -111,11 +121,11 @@ fn test_start_round() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
+    stop_cheat_caller_address(lyricsflip.contract_address);
 
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
     lyricsflip.start_round(round_id);
@@ -159,6 +169,7 @@ fn test_join_round() {
 
     start_cheat_block_timestamp_global(1736593692);
 
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -172,11 +183,11 @@ fn test_join_round() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
+    stop_cheat_caller_address(lyricsflip.contract_address);
 
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
 
@@ -216,7 +227,7 @@ fn test_join_round() {
 #[should_panic(expected: ('Genre does not exists',))]
 fn test_create_round_should_panic_with_unknown_genre() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -230,12 +241,11 @@ fn test_create_round_should_panic_with_unknown_genre() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
-
+    stop_cheat_caller_address(lyricsflip.contract_address);
     let seed = 1;
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     lyricsflip.create_round(Option::None, seed);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -245,7 +255,7 @@ fn test_create_round_should_panic_with_unknown_genre() {
 #[should_panic(expected: ('Only round admin can start',))]
 fn test_start_round_should_panic_with_only_admin() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -259,11 +269,10 @@ fn test_start_round_should_panic_with_only_admin() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
-
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
 
@@ -292,7 +301,7 @@ fn test_start_round_should_panic_with_non_existing_round() {
 #[should_panic(expected: ('Round already started',))]
 fn test_join_round_should_panic_with_round_already_started() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -306,11 +315,11 @@ fn test_join_round_should_panic_with_round_already_started() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
+    stop_cheat_caller_address(lyricsflip.contract_address);
 
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
     lyricsflip.start_round(round_id);
@@ -327,7 +336,7 @@ fn test_join_round_should_panic_with_round_already_started() {
 #[should_panic(expected: ('You are already a player',))]
 fn test_join_round_should_panic_with_already_joined() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -341,11 +350,10 @@ fn test_join_round_should_panic_with_already_joined() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
-
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
 
@@ -371,18 +379,15 @@ fn test_join_round_should_panic_with_non_existing_round() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
 
-
 #[test]
 fn test_set_cards_per_round() {
     let lyricsflip = deploy();
     let mut spy = spy_events();
-
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
 
     let valid_cards_per_round = 3;
     let old_value = lyricsflip.get_cards_per_round();
     lyricsflip.set_cards_per_round(valid_cards_per_round);
-
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     let cards_per_round = lyricsflip.get_cards_per_round();
@@ -407,10 +412,10 @@ fn test_set_cards_per_round() {
 #[test]
 fn test_get_cards_per_round() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     let initial_cards_per_round = 3;
     lyricsflip.set_cards_per_round(initial_cards_per_round);
-
+    stop_cheat_caller_address(lyricsflip.contract_address);
     let retrieved_cards_per_round = lyricsflip.get_cards_per_round();
     assert(retrieved_cards_per_round == initial_cards_per_round, 'wrong cards_per_round value');
 }
@@ -419,15 +424,16 @@ fn test_get_cards_per_round() {
 #[should_panic(expected: ('Invalid cards per round',))]
 fn test_set_cards_per_round_should_panic_with_invalid_value() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     let invalid_cards_per_round = 0;
     lyricsflip.set_cards_per_round(invalid_cards_per_round);
+    stop_cheat_caller_address(lyricsflip.contract_address);
 }
 
 #[test]
 fn test_add_card() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     let genre: Genre = Genre::Reggae;
 
     let card = Card {
@@ -440,7 +446,7 @@ fn test_add_card() {
     };
 
     lyricsflip.add_card(card);
-
+    stop_cheat_caller_address(lyricsflip.contract_address);
     let card_stored = lyricsflip.get_card(1);
     assert(card_stored.card_id == 1, 'Wrong card_id');
     assert(card_stored.year == 2000, 'Wrong card_id');
@@ -492,7 +498,7 @@ fn test_generate_random_numbers_should_panic_with_invalid_amount() {
 #[test]
 fn test_get_cards_of_genre() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..5_u64 {
             let card = Card {
@@ -506,11 +512,10 @@ fn test_get_cards_of_genre() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
-
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     stop_cheat_caller_address(lyricsflip.contract_address);
     let genre_cards = lyricsflip.get_cards_of_genre(Genre::HipHop, seed);
@@ -526,11 +531,11 @@ fn test_get_cards_of_genre() {
 fn test_get_cards_of_genre_should_panic_with_not_enough_cards_of_this_genre() {
     let lyricsflip = deploy();
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
-
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     stop_cheat_caller_address(lyricsflip.contract_address);
     let genre_cards = lyricsflip.get_cards_of_genre(Genre::HipHop, seed);
@@ -544,7 +549,7 @@ fn test_get_cards_of_genre_should_panic_with_not_enough_cards_of_this_genre() {
 #[test]
 fn test_get_cards_of_artist() {
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     for i in 0
         ..5_u64 {
             let card = Card {
@@ -558,11 +563,10 @@ fn test_get_cards_of_artist() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
-
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
     stop_cheat_caller_address(lyricsflip.contract_address);
     let artist_cards = lyricsflip.get_cards_of_artist('Tupac', seed);
@@ -578,13 +582,13 @@ fn test_get_cards_of_artist() {
 fn test_get_cards_of_artist_should_panic_with_zero_cards() {
     let lyricsflip = deploy();
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
-
-    let seed = 1;
     stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let seed = 1;
     let artist_cards = lyricsflip.get_cards_of_artist('Tupac', seed);
     assert(artist_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
     for i in 0
@@ -592,3 +596,4 @@ fn test_get_cards_of_artist_should_panic_with_zero_cards() {
             assert(*artist_cards.at(i).artist == 'Tupac', 'wrong artist');
         }
 }
+

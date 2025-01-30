@@ -5,12 +5,12 @@ pub mod LyricsFlip {
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
     use lyricsflip::utils::types::{Card, Entropy, Genre, Round};
+    use openzeppelin_access::ownable::OwnableComponent;
     use starknet::storage::{
         Map, MutableVecTrait, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
         Vec, VecTrait,
     };
     use starknet::{ContractAddress, get_block_number, get_block_timestamp, get_caller_address};
-    use openzeppelin_access::ownable::OwnableComponent;
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
 
@@ -303,7 +303,6 @@ pub mod LyricsFlip {
             };
             cards.span()
         }
-
         // //TODO
     // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
     }
