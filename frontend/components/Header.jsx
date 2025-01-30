@@ -29,11 +29,6 @@ const handleScroll = (e, isScroll) => {
     setMobileMenuOpen(false);
   }
 };
-import LockBodyScroll from "./LockBodyScroll";
-import { createPortal } from "react-dom";
-import { WalletModal } from "./WalletModal";
-import Navbar from "./Navbar";
-
 
 const Header = () => {
   const [connectModalIsOpen, setConnectModalIsOpen] = useState(false);
@@ -45,7 +40,7 @@ const Header = () => {
   };
 
   return (
-    <>
+    <div> {/* Removed unnecessary fragment <> and used a wrapping div */}
       <LockBodyScroll lock={connectModalIsOpen || mobileMenuOpen} />
 
       {connectModalIsOpen &&
@@ -53,8 +48,9 @@ const Header = () => {
           <WalletModal setIsOpen={setConnectModalIsOpen} />,
           document.body
         )}
+
       <div className="fixed w-full bg-custom-gradient z-10">
-        <header className="">
+        <header>
           <nav
             aria-label="Global"
             className="flex items-center justify-between p-3 lg:px-8"
@@ -112,6 +108,8 @@ const Header = () => {
               toggleModal={() => setConnectModalIsOpen((prev) => !prev)}
             />
           </nav>
+
+          {/* Mobile Menu */}
           <Dialog
             open={mobileMenuOpen}
             onClose={setMobileMenuOpen}
@@ -168,18 +166,9 @@ const Header = () => {
               </div>
             </DialogPanel>
           </Dialog>
-
-        <header>
-          <Navbar
-            mobileMenuOpen={mobileMenuOpen}
-            setMobileMenuOpen={setMobileMenuOpen}
-            connectModalIsOpen={connectModalIsOpen}
-            setConnectModalIsOpen={setConnectModalIsOpen}
-          />
-
         </header>
       </div>
-    </>
+    </div>  
   );
 };
 
