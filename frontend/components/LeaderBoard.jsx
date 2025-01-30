@@ -45,9 +45,6 @@ export default function Leaderboard() {
             <IoMdArrowDropdown className="inline-block w-4 h-4 ml-2" />
           </button>
         </div>
-
-        <HomeButton/>
-        <PlayAgainButton/>
       </div>
         
 
@@ -170,7 +167,7 @@ export default function Leaderboard() {
             <button
               className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
               disabled
-            >
+              >
               <FaChevronLeft className="w-5 h-5" />
             </button>
             <button className="px-2 py-1 rounded bg-gray-100">1</button>
@@ -185,6 +182,12 @@ export default function Leaderboard() {
           </div>
         </div>
       </div>
+
+      <div className="flex justify-center items-center gap-7 mt-5">
+      <HomeButton />
+         <PlayAgainButton />
+    </div>
+
     </div>
   );
 }
