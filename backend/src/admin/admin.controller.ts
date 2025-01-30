@@ -1,6 +1,7 @@
-import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AdminService } from './providers/admin.service';
+import { AdminDTO } from './dtos/create-admin.dto';
 import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard';
 
 // Controller for managing administrative operations.
@@ -9,6 +10,25 @@ import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard
 @Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
+
+  // Sign up a new admin
+    @Post('signup')
+    @ApiOperation({
+      summary: 'Sign up a new admin',
+      description: 'Create a new admin account',
+    })
+    @ApiBody({ type: AdminDTO })
+    @ApiResponse({
+      status: 201,
+      description: 'User successfully created',
+    })
+    @ApiResponse({
+      status: 400,
+      description: 'Invalid input',
+    })
+    signUp(@Body() adminDto: AdminDTO) {
+      return this.adminService.signUp(adminDto);
+    }
 
   // Retrieve platform statistics.
   @Get('stats')
