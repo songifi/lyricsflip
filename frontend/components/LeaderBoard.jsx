@@ -6,9 +6,11 @@ import rankThree from "../public/leaderboard-img/rankThree.svg"
 import avatar from "../public/leaderboard-img/avatar.svg";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { IoMdArrowDropdown } from "react-icons/io";
-import HomeButton from "./ui/HomeButton";
+import HomeButton from "./ui/HomeButton"; 
 import PlayAgainButton from "./ui/PlayAgainButton"
-
+import { Modal } from "./ui/modal";
+import { GameSetupForm } from "./modal/GameSetupForm";
+import { useState } from "react"
 
 const leaderboardData = [
   { rank: 1, username: "theJohnKennedy", points: 1200, challenges: 120 },
@@ -22,6 +24,12 @@ const leaderboardData = [
 ];
 
 export default function Leaderboard() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showGame, setShowGame] = useState(false)
+  const handleStartGame = () => {
+    console.log("Starting game...");
+    setIsModalOpen(false);
+  };
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8">
       {/*LeaderBoard header  */}
@@ -184,8 +192,16 @@ export default function Leaderboard() {
       </div>
 
       <div className="flex justify-center items-center gap-7 mt-5">
-      <HomeButton />
-         <PlayAgainButton />
+        <HomeButton />
+         <PlayAgainButton onClick={() => setIsModalOpen(true)} />
+         <Modal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title="Guess the song"
+        >
+          <GameSetupForm onStart={handleStartGame} />
+        </Modal>
+
     </div>
 
     </div>
