@@ -27,6 +27,9 @@ pub trait ILyricsFlip<TContractState> {
 
     // TODO
     fn get_cards_of_artist(self: @TContractState, artist: felt252, seed: u64) -> Span<Card>;
+    fn set_role(
+        ref self: TContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+    ) ;
     // //TODO
 // fn get_cards_of_a_year(self: @TContractState, year: u64) -> Span<Card>;
 }
