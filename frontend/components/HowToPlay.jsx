@@ -30,7 +30,7 @@ const HowItWorks = () => {
   return (
     <section
       id="howItWorks"
-      className="bg-[#490878] px-4 md:py- py-12 md:h-screen"
+      className="bg-[#490878] px-4 py-12"
     >
       <div className="mx-auto max-w-7xl text-center border-red-500 py-[100px]">
         {/* Header Section */}

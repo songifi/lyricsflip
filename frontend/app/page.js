@@ -14,7 +14,7 @@ export default function Home() {
       <HeroSection />
       <HowItWorks />
       <Game />
-      <LeaderBoard />
+      <LeaderBoard />   {/* todo - removeNew component */}
       <Footer />
     </div>
   );
