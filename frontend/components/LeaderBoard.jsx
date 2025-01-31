@@ -6,6 +6,9 @@ import rankThree from "../public/leaderboard-img/rankThree.svg"
 import avatar from "../public/leaderboard-img/avatar.svg";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { IoMdArrowDropdown } from "react-icons/io";
+import HomeButton from "./ui/HomeButton";
+import PlayAgainButton from "./ui/PlayAgainButton"
+
 
 const leaderboardData = [
   { rank: 1, username: "theJohnKennedy", points: 1200, challenges: 120 },
@@ -43,6 +46,7 @@ export default function Leaderboard() {
           </button>
         </div>
       </div>
+        
 
       {/* Leader board table */}
       <div className="max-w-5xl mx-auto p-4 md:p-8 bg-white rounded-2xl shadow-sm border overflow-auto">
@@ -163,7 +167,7 @@ export default function Leaderboard() {
             <button
               className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
               disabled
-            >
+              >
               <FaChevronLeft className="w-5 h-5" />
             </button>
             <button className="px-2 py-1 rounded bg-gray-100">1</button>
@@ -178,6 +182,12 @@ export default function Leaderboard() {
           </div>
         </div>
       </div>
+
+      <div className="flex justify-center items-center gap-7 mt-5">
+      <HomeButton />
+         <PlayAgainButton />
+    </div>
+
     </div>
   );
 }
