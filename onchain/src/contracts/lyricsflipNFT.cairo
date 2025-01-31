@@ -65,11 +65,11 @@ mod LyricsFlipNFT {
     #[abi(embed_v0)]
     impl ILyricsFlipNFTImpl of super::ILyricsFlipNFT<ContractState> {
         fn mint(ref self: ContractState, recipient: ContractAddress) {
-            let mut token_count = self.token_count.read() + 1;
+            let mut token_id = self.token_count.read() + 1;
             self.ownable.assert_only_owner();
-            assert(!self.erc721.exists(token_count), 'NFT with id already exists');
-            self.erc721.mint(recipient, token_count);
-            self.token_count.write(token_count);
+            assert(!self.erc721.exists(token_id), 'NFT with id already exists');
+            self.erc721.mint(recipient, token_id);
+            self.token_count.write(token_id);
         }
     }
 }
