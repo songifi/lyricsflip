@@ -5,9 +5,9 @@ pub mod LyricsFlip {
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
     use lyricsflip::utils::types::{Card, Entropy, Genre, Round};
-    use openzeppelin_access::ownable::OwnableComponent;
-    use openzeppelin_access::accesscontrol::{AccessControlComponent};
     use openzeppelin::introspection::src5::SRC5Component;
+    use openzeppelin_access::accesscontrol::{AccessControlComponent};
+    use openzeppelin_access::ownable::OwnableComponent;
     use starknet::storage::{
         Map, MutableVecTrait, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
         Vec, VecTrait,
@@ -27,7 +27,8 @@ pub mod LyricsFlip {
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
 
     #[abi(embed_v0)]
-    impl AccessControlImpl = AccessControlComponent::AccessControlImpl<ContractState>;
+    impl AccessControlImpl =
+        AccessControlComponent::AccessControlImpl<ContractState>;
 
     impl AccessControlInternalImpl = AccessControlComponent::InternalImpl<ContractState>;
 
