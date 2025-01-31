@@ -1,12 +1,12 @@
 use starknet::ContractAddress;
 
 #[starknet::interface]
-pub trait IERC721<TContractState> {
+pub trait ILyricsFlipNFT<TContractState> {
     fn mint(ref self: TContractState, recipient: ContractAddress);
 }
 
 #[starknet::contract]
-mod lyricsflipNFT {
+mod LyricsFlipNFT {
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
@@ -36,7 +36,7 @@ mod lyricsflipNFT {
         src5: SRC5Component::Storage,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
-        token_id: u256,
+        token_count: u256,
     }
 
     #[event]
@@ -63,13 +63,13 @@ mod lyricsflipNFT {
     }
 
     #[abi(embed_v0)]
-    impl IERC721Impl of super::IERC721<ContractState> {
+    impl ILyricsFlipNFTImpl of super::ILyricsFlipNFT<ContractState> {
         fn mint(ref self: ContractState, recipient: ContractAddress) {
-            let mut token_id = self.token_id.read() + 1;
+            let mut token_count = self.token_count.read() + 1;
             self.ownable.assert_only_owner();
-            assert(!self.erc721.exists(token_id), 'NFT with id already exists');
-            self.erc721.mint(recipient, token_id);
-            self.token_id.write(token_id);
+            assert(!self.erc721.exists(token_count), 'NFT with id already exists');
+            self.erc721.mint(recipient, token_count);
+            self.token_count.write(token_count);
         }
     }
 }

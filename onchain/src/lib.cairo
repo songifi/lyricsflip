@@ -15,4 +15,5 @@ pub mod utils {
 #[cfg(test)]
 mod tests {
     mod test_lyricsflip;
+    mod test_lyricsflipNFT;
 }
