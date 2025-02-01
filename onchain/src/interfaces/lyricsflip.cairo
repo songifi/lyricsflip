@@ -30,6 +30,7 @@ pub trait ILyricsFlip<TContractState> {
     fn set_role(
         ref self: TContractState, recipient: ContractAddress, role: felt252, is_enable: bool
     );
+    fn is_admin(self: @TContractState, role: felt252, address: ContractAddress) -> bool;
     // //TODO
 // fn get_cards_of_a_year(self: @TContractState, year: u64) -> Span<Card>;
 }

@@ -106,7 +106,6 @@ pub mod LyricsFlip {
     }
 
     const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
-    const AUTHORIZED_ROLE: felt252 = selector!("AUTHORIZED_ROLE");
 
     #[constructor]
     fn constructor(ref self: ContractState, owner: ContractAddress) {
@@ -250,7 +249,7 @@ pub mod LyricsFlip {
 
 
         fn set_cards_per_round(ref self: ContractState, value: u8) {
-            self.accesscontrol.assert_only_role(AUTHORIZED_ROLE);
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
             assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
 
             let old_value = self.cards_per_round.read();
@@ -271,7 +270,7 @@ pub mod LyricsFlip {
 
 
         fn add_card(ref self: ContractState, card: Card) {
-            self.accesscontrol.assert_only_role(AUTHORIZED_ROLE);
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
             let card_id = self.cards_count.read() + 1;
 
             self.artist_cards.entry(card.artist).append().write(card_id);
@@ -333,6 +332,9 @@ pub mod LyricsFlip {
             ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
         ) {
             self._set_role(recipient, role, is_enable);
+        }
+        fn is_admin(self: @ContractState, role: felt252, address: ContractAddress) -> bool {
+            self.accesscontrol.has_role(role, address)
         }
         // //TODO
     // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
@@ -406,7 +408,8 @@ pub mod LyricsFlip {
             ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
         ) {
             self.accesscontrol.assert_only_role(ADMIN_ROLE);
-            assert!(role == ADMIN_ROLE || role == AUTHORIZED_ROLE, "role not enable");
+            self.ownable.assert_only_owner();
+            assert!(role == ADMIN_ROLE, "role not enable");
             if is_enable {
                 self.accesscontrol._grant_role(role, recipient);
             } else {

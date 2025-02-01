@@ -13,8 +13,8 @@ fn OWNER() -> ContractAddress {
     'OWNER'.try_into().unwrap()
 }
 
-fn AUTHORIZED_ADDRESS() -> ContractAddress {
-    'AUTHORIZED_ADDRESS'.try_into().unwrap()
+fn ADMIN_ADDRESS() -> ContractAddress {
+    'ADMIN_ADDRESS'.try_into().unwrap()
 }
 
 fn PLAYER_1() -> ContractAddress {
@@ -25,7 +25,7 @@ fn PLAYER_2() -> ContractAddress {
     'PLAYER_2'.try_into().unwrap()
 }
 
-const AUTHORIZED_ROLE: felt252 = selector!("AUTHORIZED_ROLE");
+const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
 
 fn deploy() -> ILyricsFlipDispatcher {
     let contract = declare("LyricsFlip").unwrap().contract_class();
@@ -42,10 +42,10 @@ fn test_create_round() {
     let lyricsflip = deploy();
     let mut spy = spy_events();
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -108,6 +108,19 @@ fn test_create_round() {
 }
 
 #[test]
+fn test_set_role() {
+    let lyricsflip = deploy();
+    let mut spy = spy_events();
+
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let is_admin = lyricsflip.is_admin(ADMIN_ROLE, ADMIN_ADDRESS());
+    assert(is_admin == true, 'wrong is_admin value');
+}
+
+#[test]
 fn test_start_round() {
     let lyricsflip = deploy();
     let mut spy = spy_events();
@@ -115,10 +128,10 @@ fn test_start_round() {
     start_cheat_block_timestamp_global(1736593692);
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -181,10 +194,10 @@ fn test_join_round() {
     start_cheat_block_timestamp_global(1736593692);
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -244,10 +257,10 @@ fn test_create_round_should_panic_with_unknown_genre() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -277,10 +290,10 @@ fn test_start_round_should_panic_with_only_admin() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -328,10 +341,10 @@ fn test_join_round_should_panic_with_round_already_started() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -368,10 +381,10 @@ fn test_join_round_should_panic_with_already_joined() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..10_u64 {
             let card = Card {
@@ -420,10 +433,10 @@ fn test_set_cards_per_round() {
     let mut spy = spy_events();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let valid_cards_per_round = 3;
     let old_value = lyricsflip.get_cards_per_round();
     lyricsflip.set_cards_per_round(valid_cards_per_round);
@@ -453,10 +466,10 @@ fn test_get_cards_per_round() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let initial_cards_per_round = 3;
     lyricsflip.set_cards_per_round(initial_cards_per_round);
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -470,10 +483,10 @@ fn test_set_cards_per_round_should_panic_with_invalid_value() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let invalid_cards_per_round = 0;
     lyricsflip.set_cards_per_round(invalid_cards_per_round);
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -484,10 +497,10 @@ fn test_add_card() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let genre: Genre = Genre::Reggae;
 
     let card = Card {
@@ -554,10 +567,10 @@ fn test_get_cards_of_genre() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..5_u64 {
             let card = Card {
@@ -591,10 +604,10 @@ fn test_get_cards_of_genre_should_panic_with_not_enough_cards_of_this_genre() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -614,10 +627,10 @@ fn test_get_cards_of_artist() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     for i in 0
         ..5_u64 {
             let card = Card {
@@ -651,10 +664,10 @@ fn test_get_cards_of_artist_should_panic_with_zero_cards() {
     let lyricsflip = deploy();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(AUTHORIZED_ADDRESS(), AUTHORIZED_ROLE, true);
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, AUTHORIZED_ADDRESS());
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
     stop_cheat_caller_address(lyricsflip.contract_address);
