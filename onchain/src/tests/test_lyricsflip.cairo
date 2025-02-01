@@ -579,7 +579,7 @@ fn test_get_cards_of_genre() {
                 artist: 'Bob Marley',
                 title: "",
                 year: 2000,
-                lyrics: "Lorem Ipsum"
+                lyrics: "Lorem Ipsum",
             };
             lyricsflip.add_card(card);
         };
@@ -682,3 +682,91 @@ fn test_get_cards_of_artist_should_panic_with_zero_cards() {
         }
 }
 
+
+#[test]
+fn test_get_cards_of_a_year() {
+    // Deploy contract
+    let lyricsflip = deploy();
+
+    let target_year = 2000;
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Paris Paloma',
+                title: "Labour",
+                year: target_year,
+                lyrics: "For somebody",
+            };
+            lyricsflip.add_card(card);
+        };
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+    let seed = 1;
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let year_cards = lyricsflip.get_cards_of_a_year(target_year, seed);
+
+    assert(year_cards.len() == valid_cards_per_round.into(), 'wrong cards count');
+
+    for i in 0..year_cards.len() {
+        assert(*year_cards.at(i).year == target_year, 'wrong year');
+    }
+}
+
+#[test]
+#[should_panic(expected: 'Year cards is zero')]
+fn test_get_cards_of_a_year_should_panic_with_empty_year() {
+    let lyricsflip = deploy();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+    let seed = 1;
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let non_existent_year = 1999;
+    let _year_cards = lyricsflip.get_cards_of_a_year(non_existent_year, seed);
+}
+
+#[test]
+fn test_get_cards_of_a_year_random_distribution() {
+    let lyricsflip = deploy();
+
+    let target_year = 2000;
+    let total_cards = 10_u64;
+    for i in 0
+        ..total_cards {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Paris Paloma',
+                title: "Labour",
+                year: target_year,
+                lyrics: "For somebody",
+            };
+            lyricsflip.add_card(card);
+        };
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let cards_per_round = 5;
+    lyricsflip.set_cards_per_round(cards_per_round);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let cards_set1 = lyricsflip.get_cards_of_a_year(target_year, 1);
+    let cards_set2 = lyricsflip.get_cards_of_a_year(target_year, 2);
+
+    let mut all_same = true;
+    for i in 0
+        ..cards_set1
+            .len() {
+                if *cards_set1.at(i).card_id != *cards_set2.at(i).card_id {
+                    all_same = false;
+                    break;
+                }
+            };
+    assert(!all_same, 'Different seeds give same cards');
+}

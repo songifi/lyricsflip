@@ -336,8 +336,20 @@ pub mod LyricsFlip {
         fn is_admin(self: @ContractState, role: felt252, address: ContractAddress) -> bool {
             self.accesscontrol.has_role(role, address)
         }
-        // //TODO
-    // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
+
+        fn get_cards_of_a_year(self: @ContractState, year: u64, seed: u64) -> Span<Card> {
+            let year_cards = self.year_cards.entry(year).len();
+            assert(year_cards > 0, Errors::EMPTY_YEAR_CARDS);
+            let amount = self.cards_per_round.read();
+            let mut cards = ArrayTrait::new();
+            let random_indices = self._get_random_numbers(seed, amount.into(), year_cards, true);
+            for i in random_indices {
+                let card_id = self.year_cards.entry(year).at(*i).read();
+                let card = self.cards.entry(card_id).read();
+                cards.append(card);
+            };
+            cards.span()
+        }
     }
 
     #[generate_trait]

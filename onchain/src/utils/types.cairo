@@ -32,7 +32,7 @@ pub struct Entropy {
     pub seed: u64,
     pub block_number: u64,
     pub timestamp: u64,
-    pub index: u64
+    pub index: u64,
 }
 
 impl GenreIntoFelt252 of Into<Genre, felt252> {

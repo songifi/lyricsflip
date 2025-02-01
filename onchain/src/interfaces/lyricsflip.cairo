@@ -32,5 +32,5 @@ pub trait ILyricsFlip<TContractState> {
     );
     fn is_admin(self: @TContractState, role: felt252, address: ContractAddress) -> bool;
     // //TODO
-// fn get_cards_of_a_year(self: @TContractState, year: u64) -> Span<Card>;
+    fn get_cards_of_a_year(self: @TContractState, year: u64, seed: u64) -> Span<Card>;
 }
