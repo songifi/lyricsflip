@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactConfetti from 'react-confetti';
 import { useGameStore } from '@/store/gameStore';
-// import  TrophySVG, ExclamationSVG  from '@/public/svgs';
+import { ExclamationSVG, TrophySVG } from '@/public/svgs';
 
 const GameCompletion = () => {
   const { points, questions, resetGame } = useGameStore();
