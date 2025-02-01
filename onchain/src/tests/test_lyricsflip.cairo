@@ -687,7 +687,9 @@ fn test_get_cards_of_artist_should_panic_with_zero_cards() {
 fn test_get_cards_of_a_year() {
     // Deploy contract
     let lyricsflip = deploy();
-
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
     let target_year = 2000;
     for i in 0
         ..5_u64 {
@@ -702,7 +704,6 @@ fn test_get_cards_of_a_year() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
     let seed = 1;
@@ -722,7 +723,11 @@ fn test_get_cards_of_a_year() {
 fn test_get_cards_of_a_year_should_panic_with_empty_year() {
     let lyricsflip = deploy();
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let valid_cards_per_round = 5;
     lyricsflip.set_cards_per_round(valid_cards_per_round);
     let seed = 1;
@@ -735,7 +740,11 @@ fn test_get_cards_of_a_year_should_panic_with_empty_year() {
 #[test]
 fn test_get_cards_of_a_year_random_distribution() {
     let lyricsflip = deploy();
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
 
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let target_year = 2000;
     let total_cards = 10_u64;
     for i in 0
@@ -751,7 +760,6 @@ fn test_get_cards_of_a_year_random_distribution() {
             lyricsflip.add_card(card);
         };
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let cards_per_round = 5;
     lyricsflip.set_cards_per_round(cards_per_round);
     stop_cheat_caller_address(lyricsflip.contract_address);
