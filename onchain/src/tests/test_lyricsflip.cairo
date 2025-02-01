@@ -26,6 +26,7 @@ fn PLAYER_2() -> ContractAddress {
 }
 
 const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
+const INVALID_ROLE: felt252 = selector!("INVALID_ROLE");
 
 fn deploy() -> ILyricsFlipDispatcher {
     let contract = declare("LyricsFlip").unwrap().contract_class();
@@ -119,6 +120,32 @@ fn test_set_role() {
     let is_admin = lyricsflip.is_admin(ADMIN_ROLE, ADMIN_ADDRESS());
     assert(is_admin == true, 'wrong is_admin value');
 }
+
+#[test]
+#[should_panic]
+fn test_set_role_should_panic_when_invalid_role_is_passed() {
+    let lyricsflip = deploy();
+    let mut spy = spy_events();
+
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), INVALID_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+#[should_panic(expected: ('Caller is not the owner',))]
+fn test_set_role_should_panic_when_called_by_non_owner() {
+    let lyricsflip = deploy();
+
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
 
 #[test]
 fn test_start_round() {
@@ -687,9 +714,12 @@ fn test_get_cards_of_artist_should_panic_with_zero_cards() {
 fn test_get_cards_of_a_year() {
     // Deploy contract
     let lyricsflip = deploy();
+
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
+    
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
     let target_year = 2000;
     for i in 0
         ..5_u64 {
