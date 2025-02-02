@@ -5,12 +5,32 @@ pub mod LyricsFlip {
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
     use lyricsflip::utils::types::{Card, Entropy, Genre, Round};
+    use openzeppelin::introspection::src5::SRC5Component;
+    use openzeppelin_access::accesscontrol::{AccessControlComponent};
+    use openzeppelin_access::ownable::OwnableComponent;
     use starknet::storage::{
         Map, MutableVecTrait, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
         Vec, VecTrait,
     };
     use starknet::{ContractAddress, get_block_number, get_block_timestamp, get_caller_address};
 
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    component!(path: AccessControlComponent, storage: accesscontrol, event: AccessControlEvent);
+    component!(path: SRC5Component, storage: src5, event: SRC5Event);
+
+    #[abi(embed_v0)]
+    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
+
+    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
+
+    #[abi(embed_v0)]
+    impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
+
+    #[abi(embed_v0)]
+    impl AccessControlImpl =
+        AccessControlComponent::AccessControlImpl<ContractState>;
+
+    impl AccessControlInternalImpl = AccessControlComponent::InternalImpl<ContractState>;
 
     #[storage]
     struct Storage {
@@ -26,7 +46,13 @@ pub mod LyricsFlip {
             u64, Map<u256, ContractAddress>,
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
-        round_cards: Map<u64, Vec<u64>> // round_id -> vec<card_ids>
+        round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
+        #[substorage(v0)]
+        ownable: OwnableComponent::Storage,
+        #[substorage(v0)]
+        accesscontrol: AccessControlComponent::Storage,
+        #[substorage(v0)]
+        src5: SRC5Component::Storage,
     }
 
 
@@ -37,6 +63,12 @@ pub mod LyricsFlip {
         RoundStarted: RoundStarted,
         RoundJoined: RoundJoined,
         SetCardPerRound: SetCardPerRound,
+        #[flat]
+        OwnableEvent: OwnableComponent::Event,
+        #[flat]
+        AccessControlEvent: AccessControlComponent::Event,
+        #[flat]
+        SRC5Event: SRC5Component::Event,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -73,8 +105,14 @@ pub mod LyricsFlip {
         pub new_value: u8,
     }
 
+    const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
+
     #[constructor]
-    fn constructor(ref self: ContractState) {}
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
+        self.ownable.initializer(owner);
+        self.accesscontrol.initializer();
+        self.accesscontrol._grant_role(ADMIN_ROLE, owner);
+    }
 
     #[abi(embed_v0)]
     pub impl LyricsFlipImpl of ILyricsFlip<ContractState> {
@@ -211,6 +249,7 @@ pub mod LyricsFlip {
 
 
         fn set_cards_per_round(ref self: ContractState, value: u8) {
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
             assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
 
             let old_value = self.cards_per_round.read();
@@ -231,6 +270,7 @@ pub mod LyricsFlip {
 
 
         fn add_card(ref self: ContractState, card: Card) {
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
             let card_id = self.cards_count.read() + 1;
 
             self.artist_cards.entry(card.artist).append().write(card_id);
@@ -285,6 +325,16 @@ pub mod LyricsFlip {
                 i += 1;
             };
             cards.span()
+        }
+
+
+        fn set_role(
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+        ) {
+            self._set_role(recipient, role, is_enable);
+        }
+        fn is_admin(self: @ContractState, role: felt252, address: ContractAddress) -> bool {
+            self.accesscontrol.has_role(role, address)
         }
 
         fn get_cards_of_a_year(self: @ContractState, year: u64, seed: u64) -> Span<Card> {
@@ -364,6 +414,19 @@ pub mod LyricsFlip {
                 i += 1; // Increment the index for the next iteration
             };
             unique_numbers.span()
+        }
+
+        fn _set_role(
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+        ) {
+            self.ownable.assert_only_owner();
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
+            assert!(role == ADMIN_ROLE, "role not enable");
+            if is_enable {
+                self.accesscontrol._grant_role(role, recipient);
+            } else {
+                self.accesscontrol._revoke_role(role, recipient);
+            }
         }
     }
 }
