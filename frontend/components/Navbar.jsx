@@ -12,12 +12,23 @@ import WalletBar from "./WalletBar";
 import GeniusService from "@/services/geniusService";
 import { useGameStore } from "@/store/gameStore";
 
+
 const navigation = [
   /*   { name: "Play Now", href: "#game", isScroll: true }, */
   { name: "Categories", href: "#", isScroll: false },
   { name: "Leaderboard", href: "leaderboard", isScroll: false },
   { name: "How to Play", href: "#how-to-play", isScroll: false },
 ];
+
+const handleScroll = (e, howItWorks) => {
+  e.preventDefault();
+  const element = document.getElementById("howItWorks");
+  if (element) {
+    element.scrollIntoView({ behavior: "smooth" });
+    setMobileMenuOpen(false); 
+  }
+};
+
 
 const Navbar = ({
   mobileMenuOpen,
