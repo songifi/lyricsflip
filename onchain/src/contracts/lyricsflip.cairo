@@ -419,8 +419,8 @@ pub mod LyricsFlip {
         fn _set_role(
             ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
         ) {
-            self.accesscontrol.assert_only_role(ADMIN_ROLE);
             self.ownable.assert_only_owner();
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
             assert!(role == ADMIN_ROLE, "role not enable");
             if is_enable {
                 self.accesscontrol._grant_role(role, recipient);
