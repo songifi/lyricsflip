@@ -19,18 +19,16 @@ pub trait ILyricsFlip<TContractState> {
     fn add_card(ref self: TContractState, card: Card);
     fn get_card(self: @TContractState, card_id: u64) -> Card;
     fn get_cards_of_genre(self: @TContractState, genre: Genre, seed: u64) -> Span<Card>;
-    // // TODO
-    // fn next_card(ref self: TContractState, round_id: u64) -> Card;
+    
+    
+    fn next_card(ref self: TContractState, round_id: u64) -> Card;
 
     // // TODO
     // fn get_cards_of_genre(self: @TContractState, genre: Genre) -> Span<Card>;
 
     // TODO
     fn get_cards_of_artist(self: @TContractState, artist: felt252, seed: u64) -> Span<Card>;
-    fn set_role(
-        ref self: TContractState, recipient: ContractAddress, role: felt252, is_enable: bool
-    );
-    fn is_admin(self: @TContractState, role: felt252, address: ContractAddress) -> bool;
+
     // //TODO
-    fn get_cards_of_a_year(self: @TContractState, year: u64, seed: u64) -> Span<Card>;
+// fn get_cards_of_a_year(self: @TContractState, year: u64) -> Span<Card>;
 }
