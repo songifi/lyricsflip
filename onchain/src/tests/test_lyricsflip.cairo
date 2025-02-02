@@ -146,20 +146,6 @@ fn test_set_role_should_panic_when_called_by_non_owner() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
 
-#[test]
-#[should_panic(expected: ('Caller is not the owner',))]
-fn test_set_role_should_panic_when_called_by_non_owner() {
-    let lyricsflip = deploy();
-
-    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
-    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
-    stop_cheat_caller_address(lyricsflip.contract_address);
-
-    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
-    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
-    stop_cheat_caller_address(lyricsflip.contract_address);
-}
-
 
 #[test]
 fn test_start_round() {
