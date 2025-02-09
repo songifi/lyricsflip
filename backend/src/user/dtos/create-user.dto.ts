@@ -2,13 +2,15 @@ import {
   IsEmail,
   IsNotEmpty,
   IsOptional,
+  IsEnum,
   IsString,
   IsNumber,
   IsUUID,
   Min,
-  MinLength,
+  MinLength,   
 } from 'class-validator';
 import { Exclude, Expose } from 'class-transformer';
+import { UserRole } from '../enums/user-role.enum';
 
 export class UserDTO {
   @IsUUID()
@@ -63,4 +65,8 @@ export class UserDTO {
 
   @Expose()
   updatedAt?: Date; // Optional: Automatically set on updates
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
 }
