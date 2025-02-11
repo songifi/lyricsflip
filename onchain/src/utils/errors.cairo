@@ -7,4 +7,6 @@ pub mod Errors {
     pub const INVALID_CARDS_PER_ROUND: felt252 = 'Invalid cards per round';
     pub const ARTIST_CARDS_IS_ZERO: felt252 = 'Artist cards is zero';
     pub const EMPTY_YEAR_CARDS: felt252 = 'Year cards is zero';
+    pub const ROUND_NOT_STARTED: felt252 = 'Round not started';
+    pub const ROUND_COMPLETED: felt252 = 'Round already completed';
 }

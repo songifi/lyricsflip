@@ -161,6 +161,10 @@ pub mod LyricsFlip {
             is_player
         }
 
+        fn next_card(ref self: ContractState, round_id: u64) -> Card {
+            self._next_round_card(round_id)
+        }
+
         fn create_round(ref self: ContractState, genre: Option<Genre>, seed: u64) -> u64 {
             assert(genre.is_some(), Errors::NON_EXISTING_GENRE);
 
@@ -302,13 +306,6 @@ pub mod LyricsFlip {
             };
             genre_cards.span()
         }
-        // // TODO
-        // fn next_card(ref self: ContractState, round_id: u64) -> Card {
-        //     self._next_round_card()
-        // }
-
-        // // TODO
-        // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
 
         //TODO
         fn get_cards_of_artist(self: @ContractState, artist: felt252, seed: u64) -> Span<Card> {
@@ -361,10 +358,34 @@ pub mod LyricsFlip {
             self._get_random_numbers(seed, amount, limit, false)
         }
 
-        // // TODO
-        // fn _next_round_card(ref self: ContractState, round_id: u64) -> Card {
-        //     // check round is started and is_completed is false
-        // }
+        fn _next_round_card(ref self: ContractState, round_id: u64) -> Card {
+            // Verify round exists
+            assert(self.rounds.entry(round_id).round_id.read() != 0, Errors::NON_EXISTING_ROUND);
+
+            let round = self.rounds.entry(round_id);
+            // Check round has started and not completed
+            assert(round.is_started.read(), Errors::ROUND_NOT_STARTED);
+            assert(!round.is_completed.read(), Errors::ROUND_COMPLETED);
+
+            let next_index = round.next_card_index.read();
+            let round_cards = self.round_cards.entry(round_id);
+
+            // Get the card ID at current index
+            let card_id = round_cards.at(next_index.into()).read();
+            // Get the actual card
+            let card = self.cards.entry(card_id).read();
+
+            // Update next_card_index
+            let new_index = next_index + 1;
+            round.next_card_index.write(new_index);
+
+            // Check if this was the last card
+            if new_index >= round_cards.len().try_into().unwrap() {
+                round.is_completed.write(true);
+            }
+
+            card
+        }
 
         /// Generates unique random numbers within a specified range.
         /// Uses a seed and entropy (block data, timestamp, index) to create randomness,
