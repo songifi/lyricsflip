@@ -10,6 +10,7 @@ import { User } from './user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import jwtConfig from 'src/auth/authConfig/jwt.config';
+import { RolesGuard } from 'src/auth/guard/roles.guard';
 
 @Module({
   controllers: [UserController],
@@ -18,6 +19,7 @@ import jwtConfig from 'src/auth/authConfig/jwt.config';
     FindOneUserByEmailProvider,
     CreateUserProvider,
     HashingProvider,
+    RolesGuard,
   ],
   imports: [
     TypeOrmModule.forFeature([User]),

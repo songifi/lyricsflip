@@ -6,9 +6,18 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { UserRole } from './enums/user-role.enum';
 
 @Entity('users')
 export class User {
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.PLAYER
+  })
+  role: UserRole;
+
   @PrimaryGeneratedColumn('uuid')
   id: string; // Unique identifier for the user
 
@@ -42,4 +51,10 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date; // Timestamp for the last account update
+
+  @Column({ nullable: true })
+  moderationActions?: number; // For moderators
+
+  @Column({ nullable: true })
+  adminLevel?: number; // For admins
 }

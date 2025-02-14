@@ -1,4 +1,4 @@
-import { Controller, Post, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Put, Body, Get, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { UserService } from './providers/user.service';
 import { UserDTO } from './dtos/create-user.dto';
@@ -7,9 +7,14 @@ import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard
 //import { UpdateProfileDTO } from './dtos/update-profile.dto';
 //import { RefreshTokenDTO } from './dtos/refresh-token.dto';
 
+import { Roles } from '../auth/decorators/roles.decorator';
+import { RolesGuard } from '../auth/guard/roles.guard';
+import { UserRole } from './enums/user-role.enum';
+
 // Controller for managing user operations.
 @ApiTags('user')
 @Controller('user')
+@UseGuards(AccessTokenGuard, RolesGuard)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
@@ -30,6 +35,22 @@ export class UserController {
   })
   signUp(@Body() userDto: UserDTO) {
     return this.userService.signUp(userDto);
+  }
+
+
+  // Admin-only endpoint example
+  @Get('all')
+  @Roles(UserRole.ADMIN)
+  getAllUsers() {
+    return this.userService.findAllUsers();
+  }
+
+
+  // Moderator and Admin endpoint example
+  @Put('moderate/:id')
+  @Roles(UserRole.MODERATOR, UserRole.ADMIN)
+  moderateUser(@Param('id') id: string) {
+    return this.userService.moderateUser(id);
   }
 
   // Sign In a user

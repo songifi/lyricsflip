@@ -6,6 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm'
 import { CreateUserProvider } from './create-user.services';
 import { UserDTO } from '../dtos/create-user.dto';
+import { UserRole } from '../enums/user-role.enum';
 
 // Service responsible for handling user operations.
 @Injectable()
@@ -32,12 +33,32 @@ export class UserService {
 
   public FindOneById(id: string): Promise<User | null> {
     return this.userRepository.findOneBy({id});
-}
+  }
 
   // Placeholder for user-related business logic
   // Sign up a user.
   public async signUp(userDto: UserDTO) {
     // Implement sign up logic
+    return await this.createUserProvider.createUsers(userDto);
+  }
+
+  public async findAllUsers() {
+    return await this.userRepository.find();
+  }
+
+  public async moderateUser(id: string) {
+    const user = await this.FindOneById(id);
+    // Implement moderation logic
+    return user;
+  }
+
+  public async createAdminUser(userDto: UserDTO) {
+    userDto.role = UserRole.ADMIN;
+    return await this.createUserProvider.createUsers(userDto);
+  }
+
+  public async createModeratorUser(userDto: UserDTO) {
+    userDto.role = UserRole.MODERATOR;
     return await this.createUserProvider.createUsers(userDto);
   }
 
