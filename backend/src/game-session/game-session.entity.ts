@@ -1,22 +1,27 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
+import { Room } from "../room/room.entity";
+import { Player } from "../player/player.entity";
 
-@Entity('games')
+@Entity('game_sessions')
 export class GameSession {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column()
-    player1: string;
+  @Column({ type: "timestamp", default: () => "CURRENT_TIMESTAMP" })
+  startTime: Date;
 
-    @Column()
-    player2: string;
+  @Column({ type: "timestamp", nullable: true })
+  endTime: Date;
 
-    @Column({ default: false })
-    isFinished: boolean;
+  @CreateDateColumn()
+  createdAt: Date;
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @UpdateDateColumn()
+  updatedAt: Date;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @ManyToOne(() => Room, room => room.gameSessions)
+  room: Room;
+
+  @ManyToMany(() => Player, player => player.gameSessions)
+  players: Player[];
 }

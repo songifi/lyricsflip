@@ -5,7 +5,12 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  ManyToMany,
+  JoinTable
 } from 'typeorm';
+import { Room } from '../room/room.entity';
+import { GameSession } from '../game-session/game-session.entity';
 
 @Entity('players')
 export class Player {
@@ -26,4 +31,11 @@ export class Player {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @ManyToOne(() => Room, room => room.players)
+  room: Room;
+
+  @ManyToMany(() => GameSession, gameSession => gameSession.players)
+  @JoinTable()
+  gameSessions: GameSession[];
 }
