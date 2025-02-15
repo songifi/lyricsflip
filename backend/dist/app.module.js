@@ -24,6 +24,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const access_token_guard_1 = require("./auth/guard/access-token/access-token.guard");
 const core_1 = require("@nestjs/core");
 const config_module_1 = require("./config/config.module");
+const global_interceptor_1 = require("./interceptors/global.interceptor");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -55,7 +56,10 @@ exports.AppModule = AppModule = __decorate([
                 provide: core_1.APP_GUARD,
                 useClass: access_token_guard_1.AccessTokenGuard,
             },
-            access_token_guard_1.AccessTokenGuard,
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: global_interceptor_1.GlobalInterceptor,
+            },
         ],
     })
 ], AppModule);

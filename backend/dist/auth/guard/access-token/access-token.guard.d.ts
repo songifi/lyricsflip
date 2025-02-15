@@ -1,5 +1,11 @@
 import { CanActivate, ExecutionContext } from '@nestjs/common';
-import { Observable } from 'rxjs';
+import { ConfigType } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
+import jwtConfig from 'src/auth/authConfig/jwt.config';
 export declare class AccessTokenGuard implements CanActivate {
-    canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean>;
+    private readonly jwtService;
+    private readonly jwtConfiguration;
+    constructor(jwtService: JwtService, jwtConfiguration: ConfigType<typeof jwtConfig>);
+    canActivate(context: ExecutionContext): Promise<boolean>;
+    private extractRequestFromHeader;
 }
