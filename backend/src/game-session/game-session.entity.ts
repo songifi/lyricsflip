@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
-import { Room } from "../room/room.entity";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { Player } from "../player/player.entity";
 
 @Entity('game_sessions')
@@ -18,9 +17,6 @@ export class GameSession {
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @ManyToOne(() => Room, room => room.gameSessions)
-  room: Room;
 
   @ManyToMany(() => Player, player => player.gameSessions)
   players: Player[];

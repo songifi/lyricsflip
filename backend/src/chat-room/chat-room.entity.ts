@@ -1,9 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { Player } from "../player/player.entity";
-import { GameSession } from "../game-session/game-session.entity";
 
-@Entity('rooms')
-export class Room {
+@Entity('chat_rooms')
+export class ChatRoom {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -16,9 +15,7 @@ export class Room {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => Player, player => player.room)
+  @OneToMany(() => Player, player => player.chatRoom)
   players: Player[];
 
-  @OneToMany(() => GameSession, gameSession => gameSession.room)
-  gameSessions: GameSession[];
 }
