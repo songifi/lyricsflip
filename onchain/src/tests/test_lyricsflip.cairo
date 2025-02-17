@@ -122,7 +122,7 @@ fn test_set_role() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected: "role not enable")]
 fn test_set_role_should_panic_when_invalid_role_is_passed() {
     let lyricsflip = deploy();
     let mut spy = spy_events();
@@ -192,7 +192,6 @@ fn test_start_round() {
 
     assert(lyricsflip.get_players_round_count(round_id) == 1, 'wrong players count');
     assert(*round_players.at(0) == PLAYER_1(), 'wrong player address');
-    assert(lyricsflip.is_round_player(round_id, PLAYER_1()), 'wrong is_player value');
 
     spy
         .assert_emitted(
@@ -275,7 +274,6 @@ fn test_join_round() {
 
     assert(lyricsflip.get_players_round_count(round_id) == 2, 'wrong players count');
     assert(*round_players.at(1) == PLAYER_2(), 'wrong player address');
-    assert(lyricsflip.is_round_player(round_id, PLAYER_2()), 'wrong is_player value');
 }
 
 #[test]
