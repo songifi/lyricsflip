@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@nestjs/swagger": "^11.0.2",
+    "@react-navigation/drawer": "^7.1.1",
     "swagger-ui-express": "^5.0.1"
   }
 }
