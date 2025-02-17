@@ -14,7 +14,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserService = void 0;
 const common_1 = require("@nestjs/common");
-const auth_service_1 = require("../../auth/providers/auth.service");
+const auth_service_1 = require("./../../auth/providers/auth.service");
 const find_one_user_by_email_provider_1 = require("./find-one-user-by-email.provider");
 const user_entity_1 = require("../user.entity");
 const typeorm_1 = require("@nestjs/typeorm");
@@ -28,7 +28,7 @@ let UserService = class UserService {
         this.createUserProvider = createUserProvider;
     }
     async findUserByEmail(email) {
-        return await this.findOneUserByEmailProvider.FindOneByEmail(email);
+        return await this.findOneUserByEmailProvider.findOneUserByEmail(email);
     }
     FindOneById(id) {
         return this.userRepository.findOneBy({ id });

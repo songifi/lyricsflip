@@ -27,17 +27,23 @@ let LeaderboardController = class LeaderboardController {
 exports.LeaderboardController = LeaderboardController;
 __decorate([
     (0, common_1.Get)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Get leaderboard' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Leaderboard retrieved' }),
-    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get leaderboard', description: 'Retrieves the global leaderboard ranking' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Leaderboard successfully retrieved' }),
+    (0, swagger_1.ApiResponse)({ status: 500, description: 'Internal server error occurred' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], LeaderboardController.prototype, "getLeaderboard", null);
 __decorate([
     (0, common_1.Get)('rank/:playerId'),
-    (0, swagger_1.ApiOperation)({ summary: 'Get player rank' }),
-    (0, swagger_1.ApiResponse)({ status: 200, description: 'Player rank retrieved' }),
+    (0, swagger_1.ApiOperation)({ summary: 'Get player rank', description: 'Retrieves the rank of a specific player' }),
+    (0, swagger_1.ApiParam)({
+        name: 'playerId',
+        type: 'string',
+        description: 'Unique identifier of the player',
+        example: 'player123'
+    }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Player rank successfully retrieved' }),
     (0, swagger_1.ApiResponse)({ status: 404, description: 'Player not found' }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),

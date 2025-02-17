@@ -4,6 +4,7 @@ pub mod interfaces {
 
 pub mod contracts {
     pub mod lyricsflip;
+    pub mod lyricsflipNFT;
 }
 
 pub mod utils {
@@ -14,4 +15,5 @@ pub mod utils {
 #[cfg(test)]
 mod tests {
     mod test_lyricsflip;
+    mod test_lyricsflipNFT;
 }

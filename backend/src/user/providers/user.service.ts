@@ -1,5 +1,5 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { AuthService } from 'src/auth/providers/auth.service';
+import { AuthService } from './../../auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
 import { User } from '../user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,10 +27,10 @@ export class UserService {
   ) {}
 
   public async findUserByEmail(email: string) {
-    return await this.findOneUserByEmailProvider.FindOneByEmail(email);
+    return await this.findOneUserByEmailProvider.findOneUserByEmail(email);
   }
 
-  public FindOneById(id: number): Promise<User | null> {
+  public FindOneById(id: string): Promise<User | null> {
     return this.userRepository.findOneBy({id});
 }
 
