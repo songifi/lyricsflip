@@ -18,12 +18,11 @@ const wager_module_1 = require("./wager/wager.module");
 const reward_module_1 = require("./reward/reward.module");
 const leaderboard_module_1 = require("./leaderboard/leaderboard.module");
 const notification_module_1 = require("./notification/notification.module");
-const admin_module_1 = require("./admin/admin.module");
-const player_module_1 = require("./player/player.module");
 const typeorm_1 = require("@nestjs/typeorm");
 const access_token_guard_1 = require("./auth/guard/access-token/access-token.guard");
 const core_1 = require("@nestjs/core");
 const config_module_1 = require("./config/config.module");
+const global_interceptor_1 = require("./interceptors/global.interceptor");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -38,8 +37,6 @@ exports.AppModule = AppModule = __decorate([
             reward_module_1.RewardModule,
             leaderboard_module_1.LeaderboardModule,
             notification_module_1.NotificationModule,
-            admin_module_1.AdminModule,
-            player_module_1.PlayerModule,
             config_module_1.ConfigModule,
             typeorm_1.TypeOrmModule.forRoot({
                 type: 'postgres',
@@ -55,7 +52,10 @@ exports.AppModule = AppModule = __decorate([
                 provide: core_1.APP_GUARD,
                 useClass: access_token_guard_1.AccessTokenGuard,
             },
-            access_token_guard_1.AccessTokenGuard,
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: global_interceptor_1.GlobalInterceptor,
+            },
         ],
     })
 ], AppModule);

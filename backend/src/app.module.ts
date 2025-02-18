@@ -9,8 +9,6 @@ import { WagerModule } from './wager/wager.module';
 import { RewardModule } from './reward/reward.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { NotificationModule } from './notification/notification.module';
-import { AdminModule } from './admin/admin.module';
-import { PlayerModule } from './player/player.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
@@ -28,8 +26,6 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
     RewardModule,
     LeaderboardModule,
     NotificationModule,
-    AdminModule,
-    PlayerModule,
     ConfigModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -37,6 +33,7 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
     }),
+    
   ],
   controllers: [AppController],
   providers: [

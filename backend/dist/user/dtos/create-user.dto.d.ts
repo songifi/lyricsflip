@@ -1,3 +1,4 @@
+import { UserRole } from 'src/common/enums/role.enum';
 export declare class UserDTO {
     id?: string;
     username: string;
@@ -5,9 +6,13 @@ export declare class UserDTO {
     password: string;
     avatar?: string;
     tokens: number;
-    totalScore: number;
-    gamesPlayed: number;
-    gamesWon: number;
+    adminTokens?: number;
+    firstname?: string;
+    lastname?: string;
+    totalScore?: number;
+    gamesPlayed?: number;
+    gamesWon?: number;
+    role: UserRole;
     createdAt?: Date;
     updatedAt?: Date;
 }
