@@ -16,6 +16,9 @@ const create_user_services_1 = require("./providers/create-user.services");
 const hashing_provider_1 = require("./providers/hashing.provider");
 const typeorm_1 = require("@nestjs/typeorm");
 const user_entity_1 = require("./user.entity");
+const config_1 = require("@nestjs/config");
+const jwt_1 = require("@nestjs/jwt");
+const jwt_config_1 = require("../auth/authConfig/jwt.config");
 let UserModule = class UserModule {
 };
 exports.UserModule = UserModule;
@@ -28,7 +31,12 @@ exports.UserModule = UserModule = __decorate([
             create_user_services_1.CreateUserProvider,
             hashing_provider_1.HashingProvider,
         ],
-        imports: [typeorm_1.TypeOrmModule.forFeature([user_entity_1.User]), (0, common_1.forwardRef)(() => auth_module_1.AuthModule)],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User]),
+            (0, common_1.forwardRef)(() => auth_module_1.AuthModule),
+            config_1.ConfigModule.forFeature(jwt_config_1.default),
+            jwt_1.JwtModule.registerAsync(jwt_config_1.default.asProvider()),
+        ],
         exports: [user_service_1.UserService, find_one_user_by_email_provider_1.FindOneUserByEmailProvider],
     })
 ], UserModule);
