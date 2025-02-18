@@ -145,22 +145,6 @@ pub mod LyricsFlip {
             self.round_players_count.entry(round_id).read()
         }
 
-        fn is_round_player(
-            self: @ContractState, round_id: u64, player_address: ContractAddress,
-        ) -> bool {
-            let round_players = self.get_round_players(round_id);
-            let mut is_player = false;
-            let mut idx = 0;
-            while (idx < round_players.len()) {
-                if *round_players.at(idx) == player_address {
-                    is_player = true;
-                    break;
-                }
-                idx += 1;
-            };
-            is_player
-        }
-
         fn next_card(ref self: ContractState, round_id: u64) -> Card {
             self._next_round_card(round_id)
         }
@@ -212,11 +196,14 @@ pub mod LyricsFlip {
             let caller_address = get_caller_address();
             let round = self.rounds.entry(round_id);
 
+            //TODO: check if caller is an admin or round participant
             assert(round.admin.read() == caller_address, Errors::NOT_ROUND_ADMIN);
 
             let start_time = get_block_timestamp();
             round.start_time.write(start_time);
             round.is_started.write(true);
+
+            //TODO: call the next_card function to get the first QuestionCard
 
             self
                 .emit(
@@ -231,7 +218,7 @@ pub mod LyricsFlip {
         fn join_round(ref self: ContractState, round_id: u64) {
             let caller_address = get_caller_address();
             assert(self.rounds.entry(round_id).round_id.read() != 0, Errors::NON_EXISTING_ROUND);
-            assert(!self.is_round_player(round_id, caller_address), Errors::ROUND_ALREADY_JOINED);
+            assert(!self._is_round_player(round_id, caller_address), Errors::ROUND_ALREADY_JOINED);
 
             let round = self.rounds.entry(round_id);
 
@@ -307,7 +294,6 @@ pub mod LyricsFlip {
             genre_cards.span()
         }
 
-        //TODO
         fn get_cards_of_artist(self: @ContractState, artist: felt252, seed: u64) -> Span<Card> {
             assert(self.artist_cards.entry(artist.into()).len() > 0, Errors::ARTIST_CARDS_IS_ZERO);
             let mut cards = array![];
@@ -323,7 +309,6 @@ pub mod LyricsFlip {
             };
             cards.span()
         }
-
 
         fn set_role(
             ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
@@ -351,7 +336,6 @@ pub mod LyricsFlip {
 
     #[generate_trait]
     pub impl InternalFunctions of InternalFunctionsTrait {
-        //TODO
         fn get_random_cards(self: @ContractState, seed: u64) -> Span<u64> {
             let amount: u64 = self.cards_per_round.read().into();
             let limit = self.cards_count.read();
@@ -383,6 +367,8 @@ pub mod LyricsFlip {
             if new_index >= round_cards.len().try_into().unwrap() {
                 round.is_completed.write(true);
             }
+
+            //TODO: Build and return QuestionCard
 
             card
         }
@@ -449,5 +435,23 @@ pub mod LyricsFlip {
                 self.accesscontrol._revoke_role(role, recipient);
             }
         }
+
+        fn _is_round_player(
+            self: @ContractState, round_id: u64, player_address: ContractAddress,
+        ) -> bool {
+            let round_players = self.get_round_players(round_id);
+            let mut is_player = false;
+            let mut idx = 0;
+            while (idx < round_players.len()) {
+                if *round_players.at(idx) == player_address {
+                    is_player = true;
+                    break;
+                }
+                idx += 1;
+            };
+            is_player
+        }
+        //TODO
+    // fn _build_question_card(self: @ContractState, card: Card) -> QuestionCard<T> {}
     }
 }
