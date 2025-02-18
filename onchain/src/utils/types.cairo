@@ -117,10 +117,18 @@ pub struct Round {
 
 #[derive(Drop, Clone, Serde)]
 pub struct QuestionCard<T> {
-    pub card_id: u64,
     pub lyric: ByteArray,
+    pub timestamp: u64,
     pub option_one: T,
     pub option_two: T,
     pub option_three: T,
     pub option_four: T,
+}
+
+
+#[derive(Drop, Serde, starknet::Store)]
+pub enum Answer {
+    Felt252: felt252,
+    U64: u64,
+    Bytes: ByteArray,
 }
