@@ -10,13 +10,20 @@ exports.GameSessionModule = void 0;
 const common_1 = require("@nestjs/common");
 const game_session_controller_1 = require("./game-session.controller");
 const game_session_service_1 = require("./providers/game-session.service");
+const config_1 = require("@nestjs/config");
+const jwt_config_1 = require("../auth/authConfig/jwt.config");
+const jwt_1 = require("@nestjs/jwt");
 let GameSessionModule = class GameSessionModule {
 };
 exports.GameSessionModule = GameSessionModule;
 exports.GameSessionModule = GameSessionModule = __decorate([
     (0, common_1.Module)({
+        imports: [
+            config_1.ConfigModule.forFeature(jwt_config_1.default),
+            jwt_1.JwtModule.registerAsync(jwt_config_1.default.asProvider()),
+        ],
         controllers: [game_session_controller_1.GameSessionController],
-        providers: [game_session_service_1.GameSessionService]
+        providers: [game_session_service_1.GameSessionService],
     })
 ], GameSessionModule);
 //# sourceMappingURL=game-session.module.js.map

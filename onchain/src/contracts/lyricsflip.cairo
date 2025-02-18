@@ -203,6 +203,8 @@ pub mod LyricsFlip {
             round.start_time.write(start_time);
             round.is_started.write(true);
 
+            //TODO: call the next_card function to get the first QuestionCard
+
             self
                 .emit(
                     Event::RoundStarted(
