@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserDTO = void 0;
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
+const role_enum_1 = require("../../common/enums/role.enum");
 class UserDTO {
 }
 exports.UserDTO = UserDTO;
@@ -23,8 +24,8 @@ __decorate([
 ], UserDTO.prototype, "id", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)({ message: 'Username is required' }),
-    (0, class_validator_1.MinLength)(3, { message: 'Username must be at least 3 characters long' }),
+    (0, class_validator_1.IsNotEmpty)({ message: 'Username/Name is required' }),
+    (0, class_validator_1.MinLength)(3, { message: 'Username/Name must be at least 3 characters long' }),
     (0, class_transformer_1.Expose)(),
     __metadata("design:type", String)
 ], UserDTO.prototype, "username", void 0);
@@ -54,6 +55,25 @@ __decorate([
     __metadata("design:type", Number)
 ], UserDTO.prototype, "tokens", void 0);
 __decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0, { message: 'Admin tokens cannot be negative' }),
+    (0, class_transformer_1.Expose)(),
+    __metadata("design:type", Number)
+], UserDTO.prototype, "adminTokens", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Expose)(),
+    __metadata("design:type", String)
+], UserDTO.prototype, "firstname", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Expose)(),
+    __metadata("design:type", String)
+], UserDTO.prototype, "lastname", void 0);
+__decorate([
     (0, class_validator_1.IsNumber)(),
     (0, class_validator_1.Min)(0, { message: 'Score cannot be negative' }),
     (0, class_transformer_1.Expose)(),
@@ -71,6 +91,12 @@ __decorate([
     (0, class_transformer_1.Expose)(),
     __metadata("design:type", Number)
 ], UserDTO.prototype, "gamesWon", void 0);
+__decorate([
+    (0, class_validator_1.IsNotEmpty)(),
+    (0, class_validator_1.IsEnum)(role_enum_1.UserRole),
+    (0, class_transformer_1.Expose)(),
+    __metadata("design:type", String)
+], UserDTO.prototype, "role", void 0);
 __decorate([
     (0, class_transformer_1.Expose)(),
     __metadata("design:type", Date)

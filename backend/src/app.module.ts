@@ -9,8 +9,6 @@ import { WagerModule } from './wager/wager.module';
 import { RewardModule } from './reward/reward.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { NotificationModule } from './notification/notification.module';
-import { AdminModule } from './admin/admin.module';
-import { PlayerModule } from './player/player.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
@@ -30,8 +28,6 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
     RewardModule,
     LeaderboardModule,
     NotificationModule,
-    AdminModule,
-    PlayerModule,
     ConfigModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -39,8 +35,12 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
     }),
+<<<<<<< HEAD
+    
+=======
     ChatRoomModule,
     ScoringModule,
+>>>>>>> c658da9e73156dd12a469e16aa11262be3f80820
   ],
   controllers: [AppController],
   providers: [
