@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = void 0;
 const class_transformer_1 = require("class-transformer");
 const typeorm_1 = require("typeorm");
+const role_enum_1 = require("../common/enums/role.enum");
 let User = class User {
 };
 exports.User = User;
@@ -41,6 +42,14 @@ __decorate([
     __metadata("design:type", Number)
 ], User.prototype, "tokens", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "firstname", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "lastname", void 0);
+__decorate([
     (0, typeorm_1.Column)({ default: 0 }),
     __metadata("design:type", Number)
 ], User.prototype, "totalScore", void 0);
@@ -52,6 +61,14 @@ __decorate([
     (0, typeorm_1.Column)({ default: 0 }),
     __metadata("design:type", Number)
 ], User.prototype, "gamesWon", void 0);
+__decorate([
+    (0, typeorm_1.Column)({
+        type: 'enum',
+        enum: role_enum_1.UserRole,
+        default: role_enum_1.UserRole.USER,
+    }),
+    __metadata("design:type", String)
+], User.prototype, "role", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
