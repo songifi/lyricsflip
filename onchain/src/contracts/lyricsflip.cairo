@@ -4,7 +4,7 @@ pub mod LyricsFlip {
     use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Card, Entropy, Genre, Round};
+    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin_access::accesscontrol::{AccessControlComponent};
     use openzeppelin_access::ownable::OwnableComponent;
@@ -153,7 +153,8 @@ pub mod LyricsFlip {
             assert(genre.is_some(), Errors::NON_EXISTING_GENRE);
 
             let caller_address = get_caller_address();
-            let cards = self.get_random_cards(seed);
+            let amount: u64 = self.cards_per_round.read().into();
+            let cards = self.get_random_cards(amount, seed);
 
             let round_id = self.round_count.read() + 1;
             let round = Round {
@@ -332,12 +333,16 @@ pub mod LyricsFlip {
             };
             cards.span()
         }
+
+        // TODO
+        fn submit_answer(self: @ContractState, answer: Answer) -> bool {
+            false
+        }
     }
 
     #[generate_trait]
     pub impl InternalFunctions of InternalFunctionsTrait {
-        fn get_random_cards(self: @ContractState, seed: u64) -> Span<u64> {
-            let amount: u64 = self.cards_per_round.read().into();
+        fn get_random_cards(self: @ContractState, amount: u64, seed: u64) -> Span<u64> {
             let limit = self.cards_count.read();
             self._get_random_numbers(seed, amount, limit, false)
         }

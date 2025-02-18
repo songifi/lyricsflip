@@ -18,9 +18,12 @@ const swagger_1 = require("@nestjs/swagger");
 const user_service_1 = require("./providers/user.service");
 const create_user_dto_1 = require("./dtos/create-user.dto");
 const access_token_guard_1 = require("../auth/guard/access-token/access-token.guard");
+<<<<<<< HEAD
 const roles_guard_1 = require("../common/guards/roles.guard");
 const roles_decorator_1 = require("../common/decorators/roles.decorator");
 const role_enum_1 = require("../common/enums/role.enum");
+=======
+>>>>>>> c658da9e73156dd12a469e16aa11262be3f80820
 let UserController = class UserController {
     constructor(userService) {
         this.userService = userService;
@@ -142,6 +145,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], UserController.prototype, "refreshToken", null);
 __decorate([
+<<<<<<< HEAD
     (0, common_1.Get)('admin'),
     (0, roles_decorator_1.Roles)(role_enum_1.UserRole.ADMIN),
     __metadata("design:type", Function),
@@ -259,6 +263,8 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], UserController.prototype, "deleteUserById", null);
 __decorate([
+=======
+>>>>>>> c658da9e73156dd12a469e16aa11262be3f80820
     (0, common_1.UseGuards)(access_token_guard_1.AccessTokenGuard),
     (0, common_1.Put)('profile'),
     (0, swagger_1.ApiOperation)({
