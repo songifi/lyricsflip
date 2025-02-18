@@ -1,4 +1,4 @@
-use lyricsflip::utils::types::{Card, Genre, Round};
+use lyricsflip::utils::types::{Card, Genre, Round, Answer};
 use starknet::ContractAddress;
 
 #[starknet::interface]
@@ -24,4 +24,7 @@ pub trait ILyricsFlip<TContractState> {
     fn set_role(
         ref self: TContractState, recipient: ContractAddress, role: felt252, is_enable: bool
     );
+
+    //TODO
+    fn submit_answer(self: @TContractState, answer: Answer) -> bool;
 }

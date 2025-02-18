@@ -4,7 +4,7 @@ pub mod LyricsFlip {
     use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Card, Entropy, Genre, Round};
+    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin_access::accesscontrol::{AccessControlComponent};
     use openzeppelin_access::ownable::OwnableComponent;
@@ -203,8 +203,6 @@ pub mod LyricsFlip {
             round.start_time.write(start_time);
             round.is_started.write(true);
 
-            //TODO: call the next_card function to get the first QuestionCard
-
             self
                 .emit(
                     Event::RoundStarted(
@@ -331,6 +329,11 @@ pub mod LyricsFlip {
                 cards.append(card);
             };
             cards.span()
+        }
+
+        // TODO
+        fn submit_answer(self: @ContractState, answer: Answer) -> bool {
+            false
         }
     }
 
