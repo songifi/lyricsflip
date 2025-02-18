@@ -17,6 +17,7 @@ import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
+import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
 
 @Module({
@@ -39,6 +40,7 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
       synchronize: process.env.NODE_ENV === 'development',
     }),
     ChatRoomModule,
+    ScoringModule,
   ],
   controllers: [AppController],
   providers: [
