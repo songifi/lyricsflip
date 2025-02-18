@@ -17,6 +17,7 @@ import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
+import { QuestionsModule } from './questions/questions.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
     }),
+    QuestionsModule,
 <<<<<<< HEAD
     
 =======
