@@ -26,4 +26,7 @@ export class Player {
 
   @UpdateDateColumn()
   updatedAt: Date;
+  currentStreak: number;
+  highestStreak: number;
+  score: number;
 }

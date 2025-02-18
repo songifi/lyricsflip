@@ -17,6 +17,7 @@ import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
+import { ScoringModule } from './scoring/scoring.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
     }),
+    ScoringModule,
   ],
   controllers: [AppController],
   providers: [
