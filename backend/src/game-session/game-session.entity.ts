@@ -20,4 +20,7 @@ export class GameSession {
 
   @ManyToMany(() => Player, player => player.gameSessions)
   players: Player[];
+  playerId: string;
+  questions: any;
+  answers: any;
 }
