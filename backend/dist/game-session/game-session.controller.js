@@ -13,6 +13,7 @@ exports.GameSessionController = void 0;
 const common_1 = require("@nestjs/common");
 const swagger_1 = require("@nestjs/swagger");
 const game_session_service_1 = require("./providers/game-session.service");
+const access_token_guard_1 = require("../auth/guard/access-token/access-token.guard");
 let GameSessionController = class GameSessionController {
     constructor(gameSessionService) {
         this.gameSessionService = gameSessionService;
@@ -103,6 +104,7 @@ __decorate([
 ], GameSessionController.prototype, "getSessionDetails", null);
 exports.GameSessionController = GameSessionController = __decorate([
     (0, swagger_1.ApiTags)('game-session'),
+    (0, common_1.UseGuards)(access_token_guard_1.AccessTokenGuard),
     (0, common_1.Controller)('game-session'),
     __metadata("design:paramtypes", [game_session_service_1.GameSessionService])
 ], GameSessionController);

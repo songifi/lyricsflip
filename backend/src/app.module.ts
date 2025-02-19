@@ -17,6 +17,9 @@ import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
+import { GameGateway,} from './websocket-game comms/providers/gamegateway.gateway';
+import { GameModule } from './websocket-game comms/game.module';
+
 
 @Module({
   imports: [
@@ -31,6 +34,7 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
     AdminModule,
     PlayerModule,
     ConfigModule,
+    GameModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -49,6 +53,7 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
       provide: APP_INTERCEPTOR,
       useClass: GlobalInterceptor,
     },
+    GameGateway,
   ],
 })
 export class AppModule {}
