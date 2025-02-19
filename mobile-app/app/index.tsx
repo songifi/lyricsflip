@@ -1,7 +1,6 @@
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet } from 'react-native'
 import React from 'react'
-<<<<<<< HEAD
-import { Redirect, router } from 'expo-router'
+import { Redirect} from 'expo-router'
 
 export default function () {
   return (
@@ -10,15 +9,6 @@ export default function () {
     // </View>
 
     <Redirect href='/(drawer)/(tabs)' />
-=======
-import OnboardingScreen from "./screens/onboarding/onboarding.screen";
-
-export default function index() {
-  return (
-    <View>
- <OnboardingScreen />
-    </View>
->>>>>>> 4b52bc85332eecc28d69d39ab2f4c88bc262745a
   )
 }
 
