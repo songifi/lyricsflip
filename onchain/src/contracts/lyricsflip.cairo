@@ -4,13 +4,33 @@ pub mod LyricsFlip {
     use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Card, Entropy, Genre, Round};
+    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer};
+    use openzeppelin::introspection::src5::SRC5Component;
+    use openzeppelin_access::accesscontrol::{AccessControlComponent};
+    use openzeppelin_access::ownable::OwnableComponent;
     use starknet::storage::{
         Map, MutableVecTrait, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
         Vec, VecTrait,
     };
     use starknet::{ContractAddress, get_block_number, get_block_timestamp, get_caller_address};
 
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    component!(path: AccessControlComponent, storage: accesscontrol, event: AccessControlEvent);
+    component!(path: SRC5Component, storage: src5, event: SRC5Event);
+
+    #[abi(embed_v0)]
+    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
+
+    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
+
+    #[abi(embed_v0)]
+    impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
+
+    #[abi(embed_v0)]
+    impl AccessControlImpl =
+        AccessControlComponent::AccessControlImpl<ContractState>;
+
+    impl AccessControlInternalImpl = AccessControlComponent::InternalImpl<ContractState>;
 
     #[storage]
     struct Storage {
@@ -26,7 +46,13 @@ pub mod LyricsFlip {
             u64, Map<u256, ContractAddress>,
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
-        round_cards: Map<u64, Vec<u64>> // round_id -> vec<card_ids>
+        round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
+        #[substorage(v0)]
+        ownable: OwnableComponent::Storage,
+        #[substorage(v0)]
+        accesscontrol: AccessControlComponent::Storage,
+        #[substorage(v0)]
+        src5: SRC5Component::Storage,
     }
 
 
@@ -37,6 +63,12 @@ pub mod LyricsFlip {
         RoundStarted: RoundStarted,
         RoundJoined: RoundJoined,
         SetCardPerRound: SetCardPerRound,
+        #[flat]
+        OwnableEvent: OwnableComponent::Event,
+        #[flat]
+        AccessControlEvent: AccessControlComponent::Event,
+        #[flat]
+        SRC5Event: SRC5Component::Event,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -73,8 +105,14 @@ pub mod LyricsFlip {
         pub new_value: u8,
     }
 
+    const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
+
     #[constructor]
-    fn constructor(ref self: ContractState) {}
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
+        self.ownable.initializer(owner);
+        self.accesscontrol.initializer();
+        self.accesscontrol._grant_role(ADMIN_ROLE, owner);
+    }
 
     #[abi(embed_v0)]
     pub impl LyricsFlipImpl of ILyricsFlip<ContractState> {
@@ -107,27 +145,16 @@ pub mod LyricsFlip {
             self.round_players_count.entry(round_id).read()
         }
 
-        fn is_round_player(
-            self: @ContractState, round_id: u64, player_address: ContractAddress,
-        ) -> bool {
-            let round_players = self.get_round_players(round_id);
-            let mut is_player = false;
-            let mut idx = 0;
-            while (idx < round_players.len()) {
-                if *round_players.at(idx) == player_address {
-                    is_player = true;
-                    break;
-                }
-                idx += 1;
-            };
-            is_player
+        fn next_card(ref self: ContractState, round_id: u64) -> Card {
+            self._next_round_card(round_id)
         }
 
         fn create_round(ref self: ContractState, genre: Option<Genre>, seed: u64) -> u64 {
             assert(genre.is_some(), Errors::NON_EXISTING_GENRE);
 
             let caller_address = get_caller_address();
-            let cards = self.get_random_cards(seed);
+            let amount: u64 = self.cards_per_round.read().into();
+            let cards = self.get_random_cards(amount, seed);
 
             let round_id = self.round_count.read() + 1;
             let round = Round {
@@ -170,11 +197,14 @@ pub mod LyricsFlip {
             let caller_address = get_caller_address();
             let round = self.rounds.entry(round_id);
 
+            //TODO: check if caller is an admin or round participant
             assert(round.admin.read() == caller_address, Errors::NOT_ROUND_ADMIN);
 
             let start_time = get_block_timestamp();
             round.start_time.write(start_time);
             round.is_started.write(true);
+
+            //TODO: call the next_card function to get the first QuestionCard
 
             self
                 .emit(
@@ -189,7 +219,7 @@ pub mod LyricsFlip {
         fn join_round(ref self: ContractState, round_id: u64) {
             let caller_address = get_caller_address();
             assert(self.rounds.entry(round_id).round_id.read() != 0, Errors::NON_EXISTING_ROUND);
-            assert(!self.is_round_player(round_id, caller_address), Errors::ROUND_ALREADY_JOINED);
+            assert(!self._is_round_player(round_id, caller_address), Errors::ROUND_ALREADY_JOINED);
 
             let round = self.rounds.entry(round_id);
 
@@ -211,6 +241,7 @@ pub mod LyricsFlip {
 
 
         fn set_cards_per_round(ref self: ContractState, value: u8) {
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
             assert(value > 0, Errors::INVALID_CARDS_PER_ROUND);
 
             let old_value = self.cards_per_round.read();
@@ -231,6 +262,7 @@ pub mod LyricsFlip {
 
 
         fn add_card(ref self: ContractState, card: Card) {
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
             let card_id = self.cards_count.read() + 1;
 
             self.artist_cards.entry(card.artist).append().write(card_id);
@@ -262,15 +294,7 @@ pub mod LyricsFlip {
             };
             genre_cards.span()
         }
-        // // TODO
-        // fn next_card(ref self: ContractState, round_id: u64) -> Card {
-        //     self._next_round_card()
-        // }
 
-        // // TODO
-        // fn get_cards_of_genre(self: @ContractState, genre: Genre, amount: u64) -> Span<Card> {}
-
-        //TODO
         fn get_cards_of_artist(self: @ContractState, artist: felt252, seed: u64) -> Span<Card> {
             assert(self.artist_cards.entry(artist.into()).len() > 0, Errors::ARTIST_CARDS_IS_ZERO);
             let mut cards = array![];
@@ -286,23 +310,73 @@ pub mod LyricsFlip {
             };
             cards.span()
         }
-        // //TODO
-    // fn get_cards_of_a_year(self: @ContractState, year: u64, amount: u64) -> Span<Card> {}
+
+        fn set_role(
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+        ) {
+            self._set_role(recipient, role, is_enable);
+        }
+        fn is_admin(self: @ContractState, role: felt252, address: ContractAddress) -> bool {
+            self.accesscontrol.has_role(role, address)
+        }
+
+        fn get_cards_of_a_year(self: @ContractState, year: u64, seed: u64) -> Span<Card> {
+            let year_cards = self.year_cards.entry(year).len();
+            assert(year_cards > 0, Errors::EMPTY_YEAR_CARDS);
+            let amount = self.cards_per_round.read();
+            let mut cards = ArrayTrait::new();
+            let random_indices = self._get_random_numbers(seed, amount.into(), year_cards, true);
+            for i in random_indices {
+                let card_id = self.year_cards.entry(year).at(*i).read();
+                let card = self.cards.entry(card_id).read();
+                cards.append(card);
+            };
+            cards.span()
+        }
+
+        // TODO
+        fn submit_answer(self: @ContractState, answer: Answer) -> bool {
+            false
+        }
     }
 
     #[generate_trait]
     pub impl InternalFunctions of InternalFunctionsTrait {
-        //TODO
-        fn get_random_cards(self: @ContractState, seed: u64) -> Span<u64> {
-            let amount: u64 = self.cards_per_round.read().into();
+        fn get_random_cards(self: @ContractState, amount: u64, seed: u64) -> Span<u64> {
             let limit = self.cards_count.read();
             self._get_random_numbers(seed, amount, limit, false)
         }
 
-        // // TODO
-        // fn _next_round_card(ref self: ContractState, round_id: u64) -> Card {
-        //     // check round is started and is_completed is false
-        // }
+        fn _next_round_card(ref self: ContractState, round_id: u64) -> Card {
+            // Verify round exists
+            assert(self.rounds.entry(round_id).round_id.read() != 0, Errors::NON_EXISTING_ROUND);
+
+            let round = self.rounds.entry(round_id);
+            // Check round has started and not completed
+            assert(round.is_started.read(), Errors::ROUND_NOT_STARTED);
+            assert(!round.is_completed.read(), Errors::ROUND_COMPLETED);
+
+            let next_index = round.next_card_index.read();
+            let round_cards = self.round_cards.entry(round_id);
+
+            // Get the card ID at current index
+            let card_id = round_cards.at(next_index.into()).read();
+            // Get the actual card
+            let card = self.cards.entry(card_id).read();
+
+            // Update next_card_index
+            let new_index = next_index + 1;
+            round.next_card_index.write(new_index);
+
+            // Check if this was the last card
+            if new_index >= round_cards.len().try_into().unwrap() {
+                round.is_completed.write(true);
+            }
+
+            //TODO: Build and return QuestionCard
+
+            card
+        }
 
         /// Generates unique random numbers within a specified range.
         /// Uses a seed and entropy (block data, timestamp, index) to create randomness,
@@ -353,5 +427,36 @@ pub mod LyricsFlip {
             };
             unique_numbers.span()
         }
+
+        fn _set_role(
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+        ) {
+            self.ownable.assert_only_owner();
+            self.accesscontrol.assert_only_role(ADMIN_ROLE);
+            assert!(role == ADMIN_ROLE, "role not enable");
+            if is_enable {
+                self.accesscontrol._grant_role(role, recipient);
+            } else {
+                self.accesscontrol._revoke_role(role, recipient);
+            }
+        }
+
+        fn _is_round_player(
+            self: @ContractState, round_id: u64, player_address: ContractAddress,
+        ) -> bool {
+            let round_players = self.get_round_players(round_id);
+            let mut is_player = false;
+            let mut idx = 0;
+            while (idx < round_players.len()) {
+                if *round_players.at(idx) == player_address {
+                    is_player = true;
+                    break;
+                }
+                idx += 1;
+            };
+            is_player
+        }
+        //TODO
+    // fn _build_question_card(self: @ContractState, card: Card) -> QuestionCard<T> {}
     }
 }

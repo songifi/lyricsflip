@@ -43,3 +43,5 @@ const ExclamationSVG = () => (
     />
   </svg>
 );
+
+export default ExclamationSVG;

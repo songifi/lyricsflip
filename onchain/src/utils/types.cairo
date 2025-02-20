@@ -32,7 +32,7 @@ pub struct Entropy {
     pub seed: u64,
     pub block_number: u64,
     pub timestamp: u64,
-    pub index: u64
+    pub index: u64,
 }
 
 impl GenreIntoFelt252 of Into<Genre, felt252> {
@@ -95,6 +95,13 @@ impl Felt252TryIntoGenre of TryInto<felt252, Genre> {
 // }
 
 #[derive(Drop, Copy, Serde, starknet::Store)]
+pub enum Difficulty {
+    Easy,
+    Medium,
+    Hard,
+}
+
+#[derive(Drop, Copy, Serde, starknet::Store)]
 pub struct Round {
     pub round_id: u64,
     pub admin: ContractAddress,
@@ -106,4 +113,22 @@ pub struct Round {
     pub is_completed: bool,
     pub end_time: u64,
     pub next_card_index: u8,
+}
+
+#[derive(Drop, Clone, Serde)]
+pub struct QuestionCard<T> {
+    pub lyric: ByteArray,
+    pub timestamp: u64,
+    pub option_one: T,
+    pub option_two: T,
+    pub option_three: T,
+    pub option_four: T,
+}
+
+
+#[derive(Drop, Serde, starknet::Store)]
+pub enum Answer {
+    Felt252: felt252,
+    U64: u64,
+    Bytes: ByteArray,
 }

@@ -11,7 +11,7 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <>
+    <div> {/* Removed unnecessary fragment <> and used a wrapping div */}
       <LockBodyScroll lock={connectModalIsOpen || mobileMenuOpen} />
 
       {connectModalIsOpen &&
@@ -19,6 +19,7 @@ const Header = () => {
           <WalletModal setIsOpen={setConnectModalIsOpen} />,
           document.body
         )}
+
       <div className="fixed w-full bg-custom-gradient z-10">
         <header>
           <Navbar
@@ -29,7 +30,7 @@ const Header = () => {
           />
         </header>
       </div>
-    </>
+    </div>  
   );
 };
 

@@ -6,6 +6,7 @@ import DifficultySelect from "./DifficultySelect";
 import DifficultyLevel from "./DifficultyLevel";
 import GeniusService from "@/services/geniusService";
 import GameCompletion from "./GameCompletion";
+import { Modal } from "../ui/modal";
 
 const Game = () => {
   const {
@@ -20,6 +21,7 @@ const Game = () => {
   } = useGameStore();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(true);
 
   console.log("Selected Difficulty:", selectedDifficulty);
 
@@ -95,8 +97,10 @@ const Game = () => {
 
   if (gameStatus === "idle") return null;
 
+
   return (
-    <div className="min-h-screen bg-[#F5F5F5]">
+    <>
+      {/* <div className="min-h-screen bg-[#F5F5F5]"> */}
       {/* Start Screen */}
       {/* {gameStatus === "idle" && (
         <div className="h-full flex items-center justify-center ">
@@ -134,55 +138,61 @@ const Game = () => {
       )} */}
 
       {/* Game Overlay */}
-      {gameStatus !== "idle" && (
-        <div className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] flex flex-col">
-          {/* Game Header */}
-          <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
-            <div className="flex flex-col items-center justify-center">
-              <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">
-                <h1 className="text-[16px] font-bold text-[#090909]">
-                  {username || "Player"}
-                </h1>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      >
+        {gameStatus !== "idle" && (
+          <div className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] flex flex-col">
+            {/* Game Header */}
+            <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
+              <div className="flex flex-col items-center justify-center">
+                <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">
+                  <h1 className="text-[16px] font-bold text-[#090909]">
+                    {username || "Player"}
+                  </h1>
+                </div>
+                <div className="flex items-center">
+                  <div className="text-[16px] text-[#490878]">
+                    <DifficultyLevel difficulty={selectedDifficulty} />
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center">
-                <div className="text-[16px] text-[#490878]">
-                  <DifficultyLevel difficulty={selectedDifficulty} />
+              <div className="p-3 flex items-center justify-center gap-2">
+                <div className="text-[16px] text-center text-[#666666]">
+                  Time Left:
+                </div>
+                <div className="text-[16px] font-bold text-[#2EAE4E]">
+                  {formatTime(timeLeft)}
                 </div>
               </div>
             </div>
-            <div className="p-3 flex items-center justify-center gap-2">
-              <div className="text-[16px] text-center text-[#666666]">
-                Time Left:
-              </div>
-              <div className="text-[16px] font-bold text-[#2EAE4E]">
-                {formatTime(timeLeft)}
-              </div>
+
+            {/* Game Content */}
+            <div className="flex-1 bg-white mx-auto w-full max-w-4xl overflow-auto rounded-b-[12px]">
+              {(() => {
+                if (gameStatus === "finished") {
+                  return <GameCompletion />;
+                }
+
+                const currentQuestion = getCurrentQuestion();
+                console.log(
+                  "RENDER: Current Question in Game component:",
+                  currentQuestion
+                );
+
+                return currentQuestion ? (
+                  <GameCard />
+                ) : (
+                  <div>No current question available</div>
+                );
+              })()}
             </div>
           </div>
-
-          {/* Game Content */}
-          <div className="flex-1 bg-white mx-auto w-full max-w-4xl overflow-auto rounded-b-[12px]">
-            {(() => {
-              if (gameStatus === "finished") {
-                return <GameCompletion />;
-              }
-
-              const currentQuestion = getCurrentQuestion();
-              console.log(
-                "RENDER: Current Question in Game component:",
-                currentQuestion
-              );
-
-              return currentQuestion ? (
-                <GameCard />
-              ) : (
-                <div>No current question available</div>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </Modal>
+      {/* </div> */}
+    </>
   );
 };
 
