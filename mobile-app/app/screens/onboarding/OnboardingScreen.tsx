@@ -16,6 +16,8 @@ import { Fonts } from "@/constants/Fonts";
 import { Colors } from "@/constants/Colors";
 import { useRouter } from "expo-router";
 import onboardingSteps from "@/app/data/OnboardingSteps";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 const { width } = Dimensions.get("window");
 const onboardingImage = require("../../../assets/images/card.png");
 
@@ -97,7 +99,10 @@ const OnboardingScreen: React.FC = () => {
 
       <View style={styles.skipContainer}>
         <TouchableOpacity
-          onPress={() => router.push("/screens/auth/CreateAccount")}
+          onPress={async () => {
+            await AsyncStorage.setItem("hasSeenOnboarding", "true");
+            router.push("/screens/auth/CreateAccount")
+          }}
         >
           <Text style={styles.skipText}>SKIP </Text>
         </TouchableOpacity>
@@ -177,12 +182,18 @@ const OnboardingScreen: React.FC = () => {
           <Button
             title={"Login"}
             primary={false}
-            onPress={() => router.push("/screens/auth/Login")}
+            onPress={async () => {
+              await AsyncStorage.setItem("hasSeenOnboarding", "true");
+              router.push("/screens/auth/CreateAccount")
+            }}
             isFullWidth={false}
           />
           <Button
             title={"Create Account"}
-            onPress={() => router.push("/screens/auth/CreateAccount")}
+            onPress={async () => {
+              await AsyncStorage.setItem("hasSeenOnboarding", "true");
+              router.push("/screens/auth/CreateAccount")
+            }}
             isFullWidth={false}
           />
         </View>
