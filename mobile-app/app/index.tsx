@@ -1,15 +1,12 @@
-import { StyleSheet } from 'react-native'
-import React from 'react'
-import { Redirect} from 'expo-router'
+import React from "react";
+import OnboardingScreen from "./screens/onboarding/OnboardingScreen";
+import "react-native-gesture-handler";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-export default function () {
+export default function index() {
   return (
-    // <View style={{margin: 50, backgroundColor: '#ccc', padding: 20}}>
-    //   <Text onPress={() => router.push("/(tabs)")}>TABS</Text>
-    // </View>
-
-    <Redirect href='/(drawer)/(tabs)' />
-  )
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <OnboardingScreen />
+    </GestureHandlerRootView>
+  );
 }
-
-const styles = StyleSheet.create({})
