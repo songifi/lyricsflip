@@ -9,14 +9,15 @@ import { WagerModule } from './wager/wager.module';
 import { RewardModule } from './reward/reward.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { NotificationModule } from './notification/notification.module';
-import { AdminModule } from './admin/admin.module';
-import { PlayerModule } from './player/player.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
+import { SongsModule } from './songs/songs.module';
+import { ScoringModule } from './scoring/scoring.module';
+import { ChatRoomModule } from './chat-room/chat-room.module';
 
 @Module({
   imports: [
@@ -28,8 +29,6 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
     RewardModule,
     LeaderboardModule,
     NotificationModule,
-    AdminModule,
-    PlayerModule,
     ConfigModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -37,6 +36,10 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
     }),
+    SongsModule,
+    ChatRoomModule,
+    ScoringModule,
+
   ],
   controllers: [AppController],
   providers: [
