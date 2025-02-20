@@ -17,7 +17,7 @@ import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
-import { GameGateway,} from './websocket-game comms/providers/gamegateway.gateway';
+import { GameGateway,} from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
 
 

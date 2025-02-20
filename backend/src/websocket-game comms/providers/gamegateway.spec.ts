@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { io, Socket } from 'socket.io-client';  // Correct import
 import { createServer } from 'http';
-import { GameGateway } from './gamegateway.gateway';
+import { GameGateway } from './gamegateway';
 
 describe('GameGateway', () => {
   let app: INestApplication;

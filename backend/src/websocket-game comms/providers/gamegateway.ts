@@ -60,13 +60,13 @@ export class GameGateway
   async handleConnection(client: Socket) {
     try {
 
-      // this.logger.log(Client connected: ${client.id});
+      this.logger.log(`Client connected: ${client.id}`);
     
       // // Set client options
-      // client.conn.on('packet', (packet) => {
-      //   // Handle different packet types
-      //   this.logger.debug(Received packet type: ${packet.type});
-      // });
+      client.conn.on('packet', (packet) => {
+        // Handle different packet types
+        this.logger.debug(`Received packet type: ${packet.type}`);
+      });
       // Authenticate client
       const user = await this.validateToken(client.handshake.auth.token);
       client.data.user = user;
@@ -78,16 +78,16 @@ export class GameGateway
         gameId: null,
       });
 
-      // this.logger.log(Client connected: ${client.id});
+      this.logger.log(`Client connected: ${client.id}`);
     } catch (error) {
       client.disconnect();
-      // this.logger.error(Connection error: ${error.message});
+      this.logger.error(`Connection error: ${error.message}`);
     }
   }
 
   handleDisconnect(client: Socket) {
 
-    // this.logger.log(Client disconnected: ${client.id});
+    this.logger.log(`Client disconnected: ${client.id}`);
 
     // Clean up player data
     const player = this.players.get(client.id);
@@ -95,7 +95,7 @@ export class GameGateway
       this.handlePlayerLeave(client, player.gameId);
     }
     this.players.delete(client.id);
-    // this.logger.log(Client disconnected: ${client.id});
+    this.logger.log(`Client disconnected: ${client.id}`);
   }
 
   // Game Room Management
@@ -124,7 +124,7 @@ export class GameGateway
 
       return { success: true, gameId };
     } catch (error) {
-      // this.logger.error(Create game error: ${error.message});
+      this.logger.error(`Create game error: ${error.message}`);
       return { success: false, error: error.message };
     }
   }
@@ -153,7 +153,7 @@ export class GameGateway
 
       return { success: true };
     } catch (error) {
-      // this.logger.error(Join game error: ${error.message});
+      this.logger.error(`Join game error: ${error.message}`);
       return { success: false, error: error.message };
     }
   }
@@ -184,7 +184,7 @@ this.server.to(data.gameId).emit('gameStarted', {
       // Start first round
       this.startNewRound(data.gameId);
     } catch (error) {
-      // this.logger.error(Start game error: ${error.message});
+      this.logger.error(`Start game error: ${error.message}`);
       return { success: false, error: error.message };
     }
   }
@@ -213,7 +213,7 @@ this.server.to(data.gameId).emit('gameStarted', {
         score: game.scores.get(player.userId),
       });
 
-      // return { success: true, score };
+      return { success: true, };
     } catch (error) {
       // this.logger.error(Submit answer error: ${error.message});
       return { success: false, error: error.message };
