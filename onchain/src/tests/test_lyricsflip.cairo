@@ -247,7 +247,7 @@ fn test_start_round() {
 
 #[test]
 #[should_panic(expected: ('Round already started',))]
-fn test_start_round_player_cannot_ready_twice() {
+fn test_start_round_player_cannot_start_round_twice() {
     let lyricsflip = deploy();
 
     // Setup admin and cards
@@ -275,7 +275,7 @@ fn test_start_round_player_cannot_ready_twice() {
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
 
-    // Try to ready twice
+    // Try to start twice
     lyricsflip.start_round(round_id);
     lyricsflip.start_round(round_id); // Should panic
 }
