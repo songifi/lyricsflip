@@ -144,3 +144,94 @@ body {
     --radius: 0.5rem;
   }
 }
+
+@keyframes musical-float {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    filter: drop-shadow(0 4px 8px rgba(113, 227, 199, 0.2));
+  }
+  50% {
+    transform: translateY(-12px) scale(1.05);
+    filter: drop-shadow(0 8px 16px rgba(113, 227, 199, 0.3));
+  }
+}
+
+.animate-musical-float {
+  animation: musical-float 2.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
+  will-change: transform, filter;
+}
+
+.animate-musical-float:hover {
+  animation-duration: 2s;
+  filter: drop-shadow(0 8px 24px rgba(113, 227, 199, 0.4));
+}
+
+/* Heart Animation */
+@keyframes heart-beat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.animate-heart-beat {
+  animation: heart-beat 2s ease-in-out infinite;
+  display: inline-block;
+}
+
+@keyframes fade-in-up {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes soft-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-soft-bounce {
+  animation: soft-bounce 2s ease-in-out infinite;
+}
+
+/* Modern Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8f8f8;
+  border-radius: 8px;
+  margin: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    45deg,
+    rgba(113, 227, 199, 0.8),
+    rgba(73, 8, 120, 0.4)
+  );
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    45deg,
+    rgba(113, 227, 199, 1),
+    rgba(73, 8, 120, 0.6)
+  );
+}
+
+/* Firefox Support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(113, 227, 199, 0.8) #f8f8f8;
+}
+
+
+

@@ -9,7 +9,7 @@ import GeniusService from "@/services/geniusService";
 const steps = [
   {
     title: "Connect Wallet",
-    text: "Securely connect your wallet to start the game. Don’t have one? No worries, we’ll guide you through the setup.",
+    text: "Securely connect your wallet to start the game. Don't have one? No worries, we'll guide you through the setup.",
   },
   {
     title: "Enter Username",

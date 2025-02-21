@@ -3,15 +3,16 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": [
-        "./*"
-      ]
-    }
+      "@/*": ["./*"]
+    },
+    "jsx": "react-native"
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-, "components/Game.jsx", "components/ApiServices.ts"  ]
+    "expo-env.d.ts",
+    "components/Game.jsx",
+    "components/ApiServices.ts"
+  ]
 }
