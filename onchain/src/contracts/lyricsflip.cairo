@@ -47,7 +47,9 @@ pub mod LyricsFlip {
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
         round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
-        round_ready_players: Map<u64, Map<ContractAddress, bool>>, // round_id -> player_address -> is_ready
+        round_ready_players: Map<
+            u64, Map<ContractAddress, bool>
+        >, // round_id -> player_address -> is_ready
         round_ready_count: Map<u64, u256>,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
@@ -226,17 +228,15 @@ pub mod LyricsFlip {
             let ready_count = self.round_ready_count.entry(round_id).read() + 1;
             self.round_ready_count.entry(round_id).write(ready_count);
 
-
             // Emit player ready event
-            self.emit(
-                Event::PlayerReady(
-                    PlayerReady {
-                        round_id,
-                        player: caller_address,
-                        ready_time: get_block_timestamp(),
-                    }
-                )
-            );
+            self
+                .emit(
+                    Event::PlayerReady(
+                        PlayerReady {
+                            round_id, player: caller_address, ready_time: get_block_timestamp(),
+                        }
+                    )
+                );
 
             // check if all players are ready and start round
             let total_players = self.round_players_count.entry(round_id).read();
@@ -246,18 +246,14 @@ pub mod LyricsFlip {
                 round.is_started.write(true);
 
                 self
-                .emit(
-                    Event::RoundStarted(
-                        RoundStarted {
-                            round_id, admin: round.admin.read(), start_time: start_time,
-                        },
-                    ),
-                );
-
+                    .emit(
+                        Event::RoundStarted(
+                            RoundStarted {
+                                round_id, admin: round.admin.read(), start_time: start_time,
+                            },
+                        ),
+                    );
             }
-
-            
-
             //TODO: call the next_card function to get the first QuestionCard
 
         }

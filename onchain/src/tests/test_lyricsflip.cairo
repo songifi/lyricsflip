@@ -176,7 +176,6 @@ fn test_start_round() {
     lyricsflip.set_cards_per_round(valid_cards_per_round);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-
     // Player 1 creates and join round
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
@@ -213,9 +212,7 @@ fn test_start_round() {
                     lyricsflip.contract_address,
                     LyricsFlip::Event::PlayerReady(
                         LyricsFlip::PlayerReady {
-                            round_id,
-                            player: PLAYER_1(),
-                            ready_time: get_block_timestamp(),
+                            round_id, player: PLAYER_1(), ready_time: get_block_timestamp(),
                         }
                     )
                 ),
@@ -223,9 +220,7 @@ fn test_start_round() {
                     lyricsflip.contract_address,
                     LyricsFlip::Event::PlayerReady(
                         LyricsFlip::PlayerReady {
-                            round_id,
-                            player: PLAYER_2(),
-                            ready_time: get_block_timestamp(),
+                            round_id, player: PLAYER_2(), ready_time: get_block_timestamp(),
                         }
                     )
                 ),
@@ -233,9 +228,7 @@ fn test_start_round() {
                     lyricsflip.contract_address,
                     LyricsFlip::Event::RoundStarted(
                         LyricsFlip::RoundStarted {
-                            round_id,
-                            admin: round.admin,
-                            start_time: round.start_time,
+                            round_id, admin: round.admin, start_time: round.start_time,
                         }
                     )
                 ),
@@ -256,17 +249,18 @@ fn test_start_round_player_cannot_start_round_twice() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
-    for i in 0..5_u64 {
-        let card = Card {
-            card_id: i.into(),
-            genre: Genre::HipHop,
-            artist: 'Bob Marley',
-            title: "",
-            year: 2000,
-            lyrics: "Lorem Ipsum",
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum",
+            };
+            lyricsflip.add_card(card);
         };
-        lyricsflip.add_card(card);
-    };
 
     lyricsflip.set_cards_per_round(5);
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -291,17 +285,18 @@ fn test_start_round_only_participants_can_ready() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
-    for i in 0..5_u64 {
-        let card = Card {
-            card_id: i.into(),
-            genre: Genre::HipHop,
-            artist: 'Bob Marley',
-            title: "",
-            year: 2000,
-            lyrics: "Lorem Ipsum",
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum",
+            };
+            lyricsflip.add_card(card);
         };
-        lyricsflip.add_card(card);
-    };
 
     lyricsflip.set_cards_per_round(5);
     stop_cheat_caller_address(lyricsflip.contract_address);
