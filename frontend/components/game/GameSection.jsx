@@ -23,8 +23,6 @@ const Game = () => {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(true);
 
-  console.log("Selected Difficulty:", selectedDifficulty);
-
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -36,10 +34,6 @@ const Game = () => {
       stopTimer(); // Stop the timer on component unmount
     };
   }, [stopTimer]);
-
-  const shuffleArray = (array) => {
-    return [...array].sort(() => Math.random() - 0.5);
-  };
 
   const handleStartGame = async () => {
     if (!selectedDifficulty) return;
@@ -84,7 +78,6 @@ const Game = () => {
         };
       });
 
-      console.log("Formatted Questions:", formatted);
       setQuestions(formatted);
       initializeGame();
     } catch (err) {
@@ -95,73 +88,92 @@ const Game = () => {
     }
   };
 
-  if (gameStatus === "idle") return null;
+  const getDifficultyColor = () => {
+    switch (selectedDifficulty) {
+      case "Beginner":
+        return "text-[#2EAE4E]"; // Green
+      case "Intermediate":
+        return "text-[#F4A261]"; // Orange
+      case "Expert":
+        return "text-[#E63946]"; // Red
+      default:
+        return "text-[#666666]";
+    }
+  };
 
+  const getAvatarColor = () => {
+    switch (selectedDifficulty) {
+      case "Beginner":
+        return "#2EAE4E"; // Green
+      case "Intermediate":
+        return "#F4A261"; // Orange
+      case "Expert":
+        return "#E63946"; // Red
+      default:
+        return "#666666"; // Default color
+    }
+  };
+
+  if (gameStatus === "idle") return null;
 
   return (
     <>
-      {/* <div className="min-h-screen bg-[#F5F5F5]"> */}
-      {/* Start Screen */}
-      {/* {gameStatus === "idle" && (
-        <div className="h-full flex items-center justify-center ">
-          <div className="flex flex-col items-center space-y-6 mt-12">
-            <h1 className="text-[4xl] font-bold text-[#490878]">Thetimleyin</h1>
-
-            {error && (
-              <div className="text-red-600 bg-red-100 p-3 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            <div className="flex flex-col items-center space-y-4">
-              <DifficultySelect />
-
-              <button
-                onClick={handleStartGame}
-                disabled={!selectedDifficulty || isLoading}
-                className="px-8 py-4 text-[#490878] bg-[#92f2da] rounded-xl text-xl font-bold 
-                  hover:shadow-2xl transition-all duration-200 disabled:opacity-50
-                  relative min-w-[200px]"
-              >
-                {isLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#490878]"></span>
-                    Loading...
-                  </span>
-                ) : (
-                  "Start Game"
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
-
       {/* Game Overlay */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      >
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         {gameStatus !== "idle" && (
           <div className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] flex flex-col">
             {/* Game Header */}
             <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
-              <div className="flex flex-col items-center justify-center">
-                <div className="bg-white border border-[#DBE1E7] p-2 rounded-[1000px] pr-[12px]">
-                  <h1 className="text-[16px] font-bold text-[#090909]">
-                    {username || "Player"}
-                  </h1>
-                </div>
-                <div className="flex items-center">
-                  <div className="text-[16px] text-[#490878]">
-                    <DifficultyLevel difficulty={selectedDifficulty} />
+              <div className="flex flex-col items-start gap-2">
+                {/* Username and Avatar */}
+                <div className="flex items-center gap-3">
+                  {/* SVG Avatar with transparent background */}
+                  <div className="w-10 h-10">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      className="w-full h-full"
+                    >
+                      {/* Transparent background circle */}
+                      <circle cx="12" cy="12" r="10" fill="transparent" />
+                      {/* Dynamic user-like image color */}
+                      <path
+                        d="M12 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0 2c2.67 0 8 1.34 8 4v1H4v-1c0-2.66 5.33-4 8-4z"
+                        fill={getAvatarColor()} // Dynamic color based on difficulty
+                      />
+                    </svg>
+                  </div>
+
+                  {/* Username */}
+                  <div>
+                    <h1 className="text-[14px] font-bold text-[#090909]">
+                      {username || "Player"}
+                    </h1>
                   </div>
                 </div>
-              </div>
-              <div className="p-3 flex items-center justify-center gap-2">
-                <div className="text-[16px] text-center text-[#666666]">
-                  Time Left:
+
+                {/* Difficulty */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[14px] text-[#666666]">Difficulty:</span>
+                  <span
+                    className={`text-[14px] font-bold flex items-center gap-1 ${getDifficultyColor()}`}
+                  >
+                    {selectedDifficulty}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                    </svg>
+                  </span>
                 </div>
+              </div>
+
+              {/* Timer */}
+              <div className="p-3 flex items-center justify-center gap-2">
+                <div className="text-[16px] text-center text-[#666666]">🕒</div>
                 <div className="text-[16px] font-bold text-[#2EAE4E]">
                   {formatTime(timeLeft)}
                 </div>
@@ -176,10 +188,6 @@ const Game = () => {
                 }
 
                 const currentQuestion = getCurrentQuestion();
-                console.log(
-                  "RENDER: Current Question in Game component:",
-                  currentQuestion
-                );
 
                 return currentQuestion ? (
                   <GameCard />
@@ -191,7 +199,6 @@ const Game = () => {
           </div>
         )}
       </Modal>
-      {/* </div> */}
     </>
   );
 };

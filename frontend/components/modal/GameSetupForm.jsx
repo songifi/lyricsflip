@@ -48,7 +48,7 @@ export function GameSetupForm({ onStart }) {
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="h-10 w-full"
+            className="h-10 !border-2 !border-[#70E3C7]/30 hover:!border-[#70E3C7]/50 focus:!border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90"
           />
         </div>
 
@@ -58,11 +58,16 @@ export function GameSetupForm({ onStart }) {
           </label>
           <div className="h-10 w-full">
             <Select>
-              <SelectTrigger id="genre" className="h-full">
-                <SelectValue placeholder="" />
+              <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+                <SelectValue placeholder="Select genre" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pop">Pop</SelectItem>
+              <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
+                <SelectItem 
+                  value="pop"
+                  className="rounded-[6px] transition-colors duration-200 hover:bg-transparent"
+                >
+                  Pop
+                </SelectItem>
                 <SelectItem value="rock">Rock</SelectItem>
                 <SelectItem value="hip-hop">Hip Hop</SelectItem>
                 <SelectItem value="jazz">Jazz</SelectItem>
@@ -78,7 +83,9 @@ export function GameSetupForm({ onStart }) {
           >
             Difficulty Level
           </label>
-          <DifficultySelect />
+          <div className="border-2 border-[rgba(113,227,199,0.3)] hover:border-[rgba(113,227,199,0.5)] rounded-lg transition-colors duration-300 w-full">
+            <DifficultySelect />
+          </div>
         </div>
         <div className="space-y-2 flex flex-col items-start">
           <label
@@ -89,10 +96,10 @@ export function GameSetupForm({ onStart }) {
           </label>
           <div className="h-10 w-full">
             <Select>
-              <SelectTrigger id="duration" className="h-full">
+              <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
                 <SelectValue placeholder="" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
                 <SelectItem value="5">5 minutes</SelectItem>
                 <SelectItem value="10">10 minutes</SelectItem>
                 <SelectItem value="15">15 minutes</SelectItem>
@@ -106,10 +113,10 @@ export function GameSetupForm({ onStart }) {
           </label>
           <div className="h-10 w-full">
             <Select>
-              <SelectTrigger id="mode" className="h-full">
+              <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
                 <SelectValue placeholder="" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
                 <SelectItem value="single">Single Player</SelectItem>
                 <SelectItem value="multi">Multiplayer</SelectItem>
               </SelectContent>
@@ -125,10 +132,10 @@ export function GameSetupForm({ onStart }) {
           </label>
           <div className="h-10 w-full">
             <Select>
-              <SelectTrigger id="players" className="h-full">
+              <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
                 <SelectValue placeholder="" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
                 <SelectItem value="2">2 Players</SelectItem>
                 <SelectItem value="3">3 Players</SelectItem>
                 <SelectItem value="4">4 Players</SelectItem>
