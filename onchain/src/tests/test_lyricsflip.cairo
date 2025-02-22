@@ -949,3 +949,52 @@ fn test_next_card_should_panic_with_completed_round() {
     lyricsflip.next_card(round_id);
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
+
+
+#[test]
+fn test_start_round_updates_player_stats() {
+    let lyricsflip = deploy();
+
+    start_cheat_block_timestamp_global(1736593692);
+
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    for i in 0
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Bob Marley',
+                title: "",
+                year: 2000,
+                lyrics: "Lorem Ipsum",
+            };
+            lyricsflip.add_card(card);
+        };
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let seed = 1;
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
+
+    let player_stats = lyricsflip.get_player_stat(PLAYER_1());
+
+    assert(player_stats.total_rounds == 0, 'total rounds not zero');
+    lyricsflip.start_round(round_id);
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let round = lyricsflip.get_round(round_id);
+
+    let player_stats = lyricsflip.get_player_stat(PLAYER_1());
+
+    assert(player_stats.total_rounds == 1, 'Player stats not updated');
+
+    stop_cheat_block_timestamp_global();
+}
