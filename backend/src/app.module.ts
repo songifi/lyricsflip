@@ -18,6 +18,8 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
+import { TournamentService } from './tournament/tournament.service';
+import { TournamentModule } from './tournament/tournament.module';
 
 @Module({
   imports: [
@@ -39,6 +41,7 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
     SongsModule,
     ChatRoomModule,
     ScoringModule,
+    TournamentModule,
 
   ],
   controllers: [AppController],
@@ -52,6 +55,7 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
       provide: APP_INTERCEPTOR,
       useClass: GlobalInterceptor,
     },
+    TournamentService,
   ],
 })
 export class AppModule {}
