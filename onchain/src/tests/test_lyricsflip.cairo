@@ -146,7 +146,6 @@ fn test_set_role_should_panic_when_called_by_non_owner() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
 
-
 #[test]
 fn test_start_round() {
     let lyricsflip = deploy();
@@ -706,7 +705,6 @@ fn test_get_cards_of_artist_should_panic_with_zero_cards() {
             assert(*artist_cards.at(i).artist == 'Tupac', 'wrong artist');
         }
 }
-
 
 #[test]
 fn test_get_cards_of_a_year() {
