@@ -246,10 +246,6 @@ export default function Leaderboard() {
         </div>
       </div>
 
-      <div className="flex justify-center items-center gap-7 mt-5">
-        <HomeButton />
-        <PlayAgainButton  />
-      </div>
 
       <Modal
         isOpen={isModalOpen}
