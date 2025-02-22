@@ -22,6 +22,7 @@ import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
 import { GameGateway,} from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
+import { AchievementModule } from './achievement/achievement.module';
 
 
 
@@ -47,6 +48,7 @@ import { GameModule } from './websocket-game comms/game.module';
     ChatRoomModule,
     ScoringModule,
     TournamentModule,
+    AchievementModule,
 
   ],
   controllers: [AppController],
