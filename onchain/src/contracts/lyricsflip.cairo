@@ -214,9 +214,6 @@ pub mod LyricsFlip {
             //check if caller is a participant
             assert(self._is_round_player(round_id, caller_address), Errors::NOT_A_PARTICIPANT);
 
-            //check if round hasn't started
-            assert(!round.is_started.read(), Errors::ROUND_ALREADY_STARTED);
-
             //check if caller has already signaled readiness
             let is_ready = self.round_ready_players.entry(round_id).entry(caller_address).read();
             assert(!is_ready, Errors::ALREADY_READY);

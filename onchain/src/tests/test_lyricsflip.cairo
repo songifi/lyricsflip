@@ -239,7 +239,7 @@ fn test_start_round() {
 }
 
 #[test]
-#[should_panic(expected: ('Round already started',))]
+#[should_panic(expected: ('Already signalled ready',))]
 fn test_start_round_player_cannot_start_round_twice() {
     let lyricsflip = deploy();
 
