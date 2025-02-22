@@ -6,8 +6,6 @@ import rankThree from "../public/leaderboard-img/rankThree.svg"
 import avatar from "../public/leaderboard-img/avatar.svg";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { IoMdArrowDropdown } from "react-icons/io";
-import HomeButton from "./ui/HomeButton"; 
-import PlayAgainButton from "./ui/PlayAgainButton"
 import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
 import { useState } from "react";
