@@ -2,9 +2,12 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './utility/Swagger';
+import { SocketIOAdapter } from './config/socket-io.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.useWebSocketAdapter(new SocketIOAdapter(app));
 
   // const config = new DocumentBuilder()
   //   .setTitle('Songify LyricFlip API')
