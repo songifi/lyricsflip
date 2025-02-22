@@ -54,8 +54,8 @@ fn setup_nft_dispatcher(lyrics_flip_address: ContractAddress) -> (ContractAddres
     nft_calldata.append(owner().into());
     nft_calldata.append(lyrics_flip_address.into());
 
-    let name: ByteArray = "TestNFT";
-    let symbol: ByteArray = "LYNFT";
+    let name: ByteArray = "LyricNFT";
+    let symbol: ByteArray = "LYFNFT";
     let base_uri: ByteArray = "baseuri";
 
     name.serialize(ref nft_calldata);
@@ -68,7 +68,7 @@ fn setup_nft_dispatcher(lyrics_flip_address: ContractAddress) -> (ContractAddres
 }
 
 #[test]
-#[should_panic()]
+#[should_panic]
 fn test_constructor_fails_with_invalid_minter() {
     let contract = declare("LyricsFlipNFT").unwrap().contract_class();
     let mut calldata: Array<felt252> = ArrayTrait::new();
@@ -200,7 +200,7 @@ fn test_mint_by_new_lyrics_flip_contract_should_fail() {
     // Deploy second LyricsFlip contract
     let second_lyrics_flip = deploy_lyrics_flip();
 
-    // Try to mint using the second LyricsFlip contract (should fail)
+    // Mint using the second LyricsFlip contract (should fail)
     start_cheat_caller_address(nft_address, second_lyrics_flip);
     dispatcher.mint(recipient());
     stop_cheat_caller_address(nft_address);

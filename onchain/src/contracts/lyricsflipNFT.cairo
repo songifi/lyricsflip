@@ -72,6 +72,7 @@ mod LyricsFlipNFT {
         token_symbol: ByteArray,
         base_uri: ByteArray
     ) {
+        // Verify minter is a LyricsFlip contract by using a method defined on interface
         let lyrics_flip = ILyricsFlipDispatcher { contract_address: minter };
         match lyrics_flip.is_admin(selector!("ADMIN_ROLE"), owner) {
             true => (), // Contract exists and responds correctly
