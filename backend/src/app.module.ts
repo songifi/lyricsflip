@@ -20,6 +20,10 @@ import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
 import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
+import { GameGateway,} from './websocket-game comms/providers/gamegateway';
+import { GameModule } from './websocket-game comms/game.module';
+
+
 
 @Module({
   imports: [
@@ -32,6 +36,7 @@ import { TournamentModule } from './tournament/tournament.module';
     LeaderboardModule,
     NotificationModule,
     ConfigModule,
+    GameModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -56,6 +61,7 @@ import { TournamentModule } from './tournament/tournament.module';
       useClass: GlobalInterceptor,
     },
     TournamentService,
+    GameGateway,
   ],
 })
 export class AppModule {}
