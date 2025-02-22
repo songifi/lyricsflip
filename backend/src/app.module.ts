@@ -18,8 +18,11 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
+import { TournamentService } from './tournament/tournament.service';
+import { TournamentModule } from './tournament/tournament.module';
 import { GameGateway,} from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
+
 
 
 @Module({
@@ -43,6 +46,7 @@ import { GameModule } from './websocket-game comms/game.module';
     SongsModule,
     ChatRoomModule,
     ScoringModule,
+    TournamentModule,
 
   ],
   controllers: [AppController],
@@ -56,6 +60,7 @@ import { GameModule } from './websocket-game comms/game.module';
       provide: APP_INTERCEPTOR,
       useClass: GlobalInterceptor,
     },
+    TournamentService,
     GameGateway,
   ],
 })
