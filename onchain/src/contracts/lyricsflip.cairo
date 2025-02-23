@@ -25,6 +25,7 @@ pub mod LyricsFlip {
 
     #[abi(embed_v0)]
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
+    impl SRC5InternalImpl = SRC5Component::InternalImpl<ContractState>;
 
     #[abi(embed_v0)]
     impl AccessControlImpl =
@@ -106,12 +107,14 @@ pub mod LyricsFlip {
     }
 
     const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
+    const ILYRICSFLIP_ID: felt252 = selector!("ILyricsFlip");
 
     #[constructor]
     fn constructor(ref self: ContractState, owner: ContractAddress) {
         self.ownable.initializer(owner);
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(ADMIN_ROLE, owner);
+        self.src5.register_interface(ILYRICSFLIP_ID);
     }
 
     #[abi(embed_v0)]
