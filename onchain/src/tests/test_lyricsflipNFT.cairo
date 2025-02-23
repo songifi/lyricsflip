@@ -2,36 +2,38 @@ use core::array::ArrayTrait;
 use core::byte_array::ByteArray;
 use core::result::ResultTrait;
 use core::traits::Into;
+// use lyricsflip::contracts::lyricsflipNFT::LyricsFlipNFT;
 use lyricsflip::contracts::lyricsflipNFT::{
-    ILyricsFlipNFTDispatcher as NFTDispatcher, ILyricsFlipNFTDispatcherTrait as NFTDispatcherTrait
+    ILyricsFlipNFTDispatcher as NFTDispatcher, ILyricsFlipNFTDispatcherTrait as NFTDispatcherTrait,
+    LyricsFlipNFT
 };
 use openzeppelin::token::erc721::interface::{IERC721Dispatcher, IERC721DispatcherTrait};
 use openzeppelin_access::accesscontrol::interface::{
     IAccessControlDispatcher, IAccessControlDispatcherTrait
 };
 use snforge_std::{
-    declare, ContractClassTrait, DeclareResultTrait, start_cheat_caller_address,
-    stop_cheat_caller_address
+    ContractClassTrait, DeclareResultTrait, EventSpyAssertionsTrait, declare, spy_events,
+    start_cheat_caller_address, stop_cheat_caller_address,
 };
-use starknet::ContractAddress;
+use starknet::{ContractAddress, contract_address_const};
 
 const MINTER_ROLE: felt252 = selector!("MINTER_ROLE");
 
 // Account functions
 fn owner() -> ContractAddress {
-    'OWNER'.try_into().unwrap()
+    contract_address_const::<'OWNER'>()
 }
 
 fn lyrics_flip() -> ContractAddress {
-    'LYRICS_FLIP'.try_into().unwrap()
+    contract_address_const::<'LYRICS_FLIP'>()
 }
 
 fn non_minter() -> ContractAddress {
-    'NON_MINTER'.try_into().unwrap()
+    contract_address_const::<'NON_MINTER'>()
 }
 
 fn recipient() -> ContractAddress {
-    'RECIPIENT'.try_into().unwrap()
+    contract_address_const::<'RECIPIENT'>()
 }
 
 fn zero_address_const() -> ContractAddress {
@@ -68,14 +70,14 @@ fn setup_nft_dispatcher(lyrics_flip_address: ContractAddress) -> (ContractAddres
 }
 
 #[test]
-#[should_panic]
-fn test_constructor_fails_with_invalid_minter() {
+#[should_panic(expected: ('Result::unwrap failed.',))]
+fn test_constructor_fails_with_zero_owner() {
     let contract = declare("LyricsFlipNFT").unwrap().contract_class();
     let mut calldata: Array<felt252> = ArrayTrait::new();
 
-    // Set owner and LyricsFlip contract address as minter
-    calldata.append(owner().into());
-    calldata.append(non_minter().into()); // Not a LyricsFlip contract
+    // Set zero address as owner
+    calldata.append(contract_address_const::<0>().into());
+    calldata.append(lyrics_flip().into());
 
     let name: ByteArray = "TestNFT";
     let symbol: ByteArray = "LYNFT";
@@ -85,23 +87,40 @@ fn test_constructor_fails_with_invalid_minter() {
     symbol.serialize(ref calldata);
     base_uri.serialize(ref calldata);
 
-    // This fail because non_minter() is not a LyricsFlip contract
     let (_, _) = contract.deploy(@calldata).unwrap();
 }
 
 #[test]
-fn test_successful_mint_by_lyrics_flip() {
+#[should_panic(expected: ('Result::unwrap failed.',))]
+fn test_constructor_fails_with_zero_minter() {
+    let contract = declare("LyricsFlipNFT").unwrap().contract_class();
+    let mut calldata: Array<felt252> = ArrayTrait::new();
+
+    // Set zero address as minter
+    calldata.append(owner().into());
+    calldata.append(contract_address_const::<0>().into());
+
+    let name: ByteArray = "TestNFT";
+    let symbol: ByteArray = "LYNFT";
+    let base_uri: ByteArray = "baseuri";
+
+    name.serialize(ref calldata);
+    symbol.serialize(ref calldata);
+    base_uri.serialize(ref calldata);
+
+    let (_, _) = contract.deploy(@calldata).unwrap();
+}
+
+#[test]
+#[should_panic(expected: ('Cannot mint to zero address',))]
+fn test_mint_to_zero_address_should_fail() {
     let lyrics_flip_address = deploy_lyrics_flip();
     let (nft_address, dispatcher) = setup_nft_dispatcher(lyrics_flip_address);
+    let zero_address: ContractAddress = contract_address_const::<0>();
 
-    // Mint using deployed LyricsFlip contract address
     start_cheat_caller_address(nft_address, lyrics_flip_address);
-    dispatcher.mint(recipient());
+    dispatcher.mint(zero_address);
     stop_cheat_caller_address(nft_address);
-
-    let erc721 = IERC721Dispatcher { contract_address: nft_address };
-    assert(erc721.owner_of(1) == recipient(), 'Wrong owner');
-    assert(erc721.balance_of(recipient()) == 1, 'Wrong balance');
 }
 
 #[test]
@@ -126,6 +145,86 @@ fn test_mint_by_non_minter_should_fail() {
     start_cheat_caller_address(nft_address, non_minter());
     dispatcher.mint(recipient());
     stop_cheat_caller_address(nft_address);
+}
+
+#[test]
+fn test_successful_mint_by_lyrics_flip() {
+    let lyrics_flip_address = deploy_lyrics_flip();
+    let (nft_address, dispatcher) = setup_nft_dispatcher(lyrics_flip_address);
+
+    // Mint using deployed LyricsFlip contract address
+    start_cheat_caller_address(nft_address, lyrics_flip_address);
+    dispatcher.mint(recipient());
+    stop_cheat_caller_address(nft_address);
+
+    let erc721 = IERC721Dispatcher { contract_address: nft_address };
+    assert(erc721.owner_of(1) == recipient(), 'Wrong owner');
+    assert(erc721.balance_of(recipient()) == 1, 'Wrong balance');
+}
+
+#[test]
+fn test_mint_event_emission() {
+    let lyrics_flip_address = deploy_lyrics_flip();
+    let (nft_address, dispatcher) = setup_nft_dispatcher(lyrics_flip_address);
+
+    // Start spying on events
+    let mut spy = spy_events();
+
+    // Mint token
+    start_cheat_caller_address(nft_address, lyrics_flip_address);
+    dispatcher.mint(recipient());
+    stop_cheat_caller_address(nft_address);
+
+    // Assert event was emitted with correct parameters and in the right order
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    nft_address,
+                    LyricsFlipNFT::Event::NFTMinted(
+                        LyricsFlipNFT::NFTMinted { token_id: 1, recipient: recipient(), },
+                    ),
+                ),
+            ],
+        );
+}
+
+#[test]
+fn test_multiple_mint_events() {
+    let lyrics_flip_address = deploy_lyrics_flip();
+    let (nft_address, dispatcher) = setup_nft_dispatcher(lyrics_flip_address);
+    let recipient2 = contract_address_const::<'RECIPIENT2'>();
+
+    // Start spying on events
+    let mut spy = spy_events();
+
+    start_cheat_caller_address(nft_address, lyrics_flip_address);
+
+    // Mint first token
+    dispatcher.mint(recipient());
+
+    // Mint second token
+    dispatcher.mint(recipient2);
+    stop_cheat_caller_address(nft_address);
+
+    // Assert both events were emitted with correct parameters
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    nft_address,
+                    LyricsFlipNFT::Event::NFTMinted(
+                        LyricsFlipNFT::NFTMinted { token_id: 1, recipient: recipient(), },
+                    ),
+                ),
+                (
+                    nft_address,
+                    LyricsFlipNFT::Event::NFTMinted(
+                        LyricsFlipNFT::NFTMinted { token_id: 2, recipient: recipient2, },
+                    ),
+                ),
+            ]
+        );
 }
 
 #[test]
@@ -173,7 +272,7 @@ fn test_mint_to_different_recipients() {
     let lyrics_flip_address = deploy_lyrics_flip();
     let (nft_address, dispatcher) = setup_nft_dispatcher(lyrics_flip_address);
     let erc721 = IERC721Dispatcher { contract_address: nft_address };
-    let recipient2 = 'RECIPIENT2'.try_into().unwrap();
+    let recipient2 = contract_address_const::<'RECIPIENT2'>();
 
     start_cheat_caller_address(nft_address, lyrics_flip_address);
 
@@ -211,8 +310,7 @@ fn test_mint_after_transfer() {
     let lyrics_flip_address = deploy_lyrics_flip();
     let (nft_address, dispatcher) = setup_nft_dispatcher(lyrics_flip_address);
     let erc721 = IERC721Dispatcher { contract_address: nft_address };
-    let new_owner = 'NEWOWNER'.try_into().unwrap();
-
+    let new_owner = contract_address_const::<'NEWOWNER'>();
     // Mint token
     start_cheat_caller_address(nft_address, lyrics_flip_address);
     dispatcher.mint(recipient());
@@ -237,17 +335,6 @@ fn test_mint_after_transfer() {
 }
 
 #[test]
-fn test_mint_to_zero_address_should_fail() {
-    let lyrics_flip_address = deploy_lyrics_flip();
-    let (nft_address, dispatcher) = setup_nft_dispatcher(lyrics_flip_address);
-    let zero_address: ContractAddress = zero_address_const();
-
-    start_cheat_caller_address(nft_address, lyrics_flip_address);
-    dispatcher.mint(zero_address);
-    stop_cheat_caller_address(nft_address);
-}
-
-#[test]
 fn test_concurrent_minting() {
     let lyrics_flip_address = deploy_lyrics_flip();
     let (nft_address, dispatcher) = setup_nft_dispatcher(lyrics_flip_address);
@@ -257,14 +344,14 @@ fn test_concurrent_minting() {
     start_cheat_caller_address(nft_address, lyrics_flip_address);
 
     let mut recipients = array![
-        'RECIPIENT3'.try_into().unwrap(),
-        'RECIPIENT4'.try_into().unwrap(),
-        'RECIPIENT5'.try_into().unwrap(),
-        'RECIPIENT6'.try_into().unwrap(),
-        'RECIPIENT7'.try_into().unwrap(),
-        'RECIPIENT8'.try_into().unwrap(),
-        'RECIPIENT9'.try_into().unwrap(),
-        'RECIPIENT10'.try_into().unwrap()
+        contract_address_const::<'RECIPIENT3'>(),
+        contract_address_const::<'RECIPIENT4'>(),
+        contract_address_const::<'RECIPIENT5'>(),
+        contract_address_const::<'RECIPIENT6'>(),
+        contract_address_const::<'RECIPIENT7'>(),
+        contract_address_const::<'RECIPIENT8'>(),
+        contract_address_const::<'RECIPIENT9'>(),
+        contract_address_const::<'RECIPIENT10'>()
     ];
 
     // Mint tokens to different recipients rapidly
