@@ -1,7 +1,9 @@
 {
   "dependencies": {
+    "@nestjs/platform-socket.io": "^11.0.10",
     "@nestjs/swagger": "^11.0.2",
     "@react-navigation/drawer": "^7.1.1",
+    "@nestjs/websockets": "^11.0.10",
     "swagger-ui-express": "^5.0.1"
   }
 }
