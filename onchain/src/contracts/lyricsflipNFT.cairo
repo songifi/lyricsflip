@@ -6,15 +6,14 @@ pub trait ILyricsFlipNFT<TContractState> {
 }
 
 #[starknet::contract]
-mod LyricsFlipNFT {
-    use lyricsflip::interfaces::lyricsflip::{ILyricsFlipDispatcher, ILyricsFlipDispatcherTrait};
+pub mod LyricsFlipNFT {
     use openzeppelin::access::ownable::OwnableComponent;
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
     use openzeppelin_access::accesscontrol::AccessControlComponent;
     use starknet::storage::StoragePointerReadAccess;
     use starknet::storage::StoragePointerWriteAccess;
-    use starknet::{ContractAddress};
+    use starknet::{ContractAddress, contract_address_const};
 
     component!(path: ERC721Component, storage: erc721, event: ERC721Event);
     component!(path: SRC5Component, storage: src5, event: SRC5Event);
@@ -52,7 +51,7 @@ mod LyricsFlipNFT {
 
     #[event]
     #[derive(Drop, starknet::Event)]
-    enum Event {
+    pub enum Event {
         #[flat]
         ERC721Event: ERC721Component::Event,
         #[flat]
@@ -61,6 +60,14 @@ mod LyricsFlipNFT {
         OwnableEvent: OwnableComponent::Event,
         #[flat]
         AccessControlEvent: AccessControlComponent::Event,
+        NFTMinted: NFTMinted,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct NFTMinted {
+        #[key]
+        pub token_id: u256,
+        pub recipient: ContractAddress,
     }
 
     #[constructor]
@@ -72,12 +79,8 @@ mod LyricsFlipNFT {
         token_symbol: ByteArray,
         base_uri: ByteArray
     ) {
-        // Verify minter is a LyricsFlip contract by using a method defined on interface
-        let lyrics_flip = ILyricsFlipDispatcher { contract_address: minter };
-        match lyrics_flip.is_admin(selector!("ADMIN_ROLE"), owner) {
-            true => (), // Contract exists and responds correctly
-            false => (), // Contract exists but owner is not admin, which is fine
-        };
+        assert(owner != contract_address_const::<0>(), 'Zero address detected');
+        assert(minter != contract_address_const::<0>(), 'Zero address detected');
 
         self.erc721.initializer(token_name, token_symbol, base_uri);
         self.ownable.initializer(owner);
@@ -89,10 +92,14 @@ mod LyricsFlipNFT {
     impl ILyricsFlipNFTImpl of super::ILyricsFlipNFT<ContractState> {
         fn mint(ref self: ContractState, recipient: ContractAddress) {
             self.accesscontrol.assert_only_role(MINTER_ROLE);
+            assert(recipient != contract_address_const::<0>(), 'Cannot mint to zero address');
+
             let mut token_id = self.token_count.read() + 1;
             assert(!self.erc721.exists(token_id), 'NFT with id already exists');
             self.erc721.mint(recipient, token_id);
             self.token_count.write(token_id);
+
+            self.emit(NFTMinted { token_id, recipient });
         }
     }
 }
