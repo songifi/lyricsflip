@@ -48,7 +48,6 @@ pub mod LyricsFlip {
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
         round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
-
         player_stats: Map<ContractAddress, PlayerStats>, // player_address -> PlayerStats
         round_ready_players: Map<
             u64, Map<ContractAddress, bool>
@@ -220,7 +219,6 @@ pub mod LyricsFlip {
             //check if caller has already signaled readiness
             let is_ready = self.round_ready_players.entry(round_id).entry(caller_address).read();
             assert(!is_ready, Errors::ALREADY_READY);
-
 
             let round_players_count = self.round_players_count.entry(round_id).read();
             let mut round_players = array![];
