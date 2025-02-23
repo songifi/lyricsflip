@@ -25,6 +25,10 @@ fn PLAYER_2() -> ContractAddress {
     'PLAYER_2'.try_into().unwrap()
 }
 
+fn PLAYER_3() -> ContractAddress {
+    'PLAYER_3'.try_into().unwrap()
+}
+
 const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
 const INVALID_ROLE: felt252 = selector!("INVALID_ROLE");
 
@@ -1013,8 +1017,6 @@ fn test_next_card_should_panic_with_completed_round() {
 fn test_start_round_updates_player_stats() {
     let lyricsflip = deploy();
 
-    start_cheat_block_timestamp_global(1736593692);
-
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
@@ -1037,22 +1039,48 @@ fn test_start_round_updates_player_stats() {
     lyricsflip.set_cards_per_round(valid_cards_per_round);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let seed = 1;
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
-
-    let player_stats = lyricsflip.get_player_stat(PLAYER_1());
-
-    assert(player_stats.total_rounds == 0, 'total rounds not zero');
-    lyricsflip.start_round(round_id);
 
     stop_cheat_caller_address(lyricsflip.contract_address);
 
-    let round = lyricsflip.get_round(round_id);
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_3());
 
-    let player_stats = lyricsflip.get_player_stat(PLAYER_1());
+    lyricsflip.join_round(round_id);
 
-    assert(player_stats.total_rounds == 1, 'Player stats not updated');
+    stop_cheat_caller_address(lyricsflip.contract_address);
 
-    stop_cheat_block_timestamp_global();
+    let player_one_stats = lyricsflip.get_player_stat(PLAYER_1());
+    let player_two_stats = lyricsflip.get_player_stat(PLAYER_2());
+    let player_three_stats = lyricsflip.get_player_stat(PLAYER_3());
+
+    assert(player_one_stats.total_rounds == 0, 'total rounds not zero');
+    assert(player_two_stats.total_rounds == 0, 'total rounds not zero');
+    assert(player_three_stats.total_rounds == 0, 'total rounds not zero');
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    lyricsflip.start_round(round_id);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let curr_player_stats = lyricsflip.get_player_stat(PLAYER_1());
+    let curr_player_two_stats = lyricsflip.get_player_stat(PLAYER_2());
+    let curr_player_three_stats = lyricsflip.get_player_stat(PLAYER_3());
+
+    assert(curr_player_stats.total_rounds == 1, 'Player stats not updated');
+    assert(curr_player_two_stats.total_rounds == 0, 'Player two stats updated');
+    assert(curr_player_three_stats.total_rounds == 1, 'Player three stats not updated');
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());
+
+    let round_two_id = lyricsflip.create_round(Option::Some(Genre::HipHop), seed);
+
+    lyricsflip.start_round(round_two_id);
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    let new_player_two_stats = lyricsflip.get_player_stat(PLAYER_2());
+
+    assert(new_player_two_stats.total_rounds == 1, 'Player two stats not updated');
 }
