@@ -9,9 +9,9 @@ import { Repository, FindOneOptions } from 'typeorm';
 import { PowerUp } from './entities/power-up.entity';
 import { PowerUpPurchase } from './entities/power-up-purchase.entity';
 import { CreatePowerUpDto } from './dtos/create-power-up.dto';
-import { UpdatePowerUpDto } from './dto/update-power-up.dto';
-import { PurchasePowerUpDto } from './dto/purchase-power-up.dto';
-import { User } from '../users/user.entity';
+import { UpdatePowerUpDto } from './dtos/update-power-up.dto';
+import { PurchasePowerUpDto } from './dtos/purchase-power-up.dto';
+import { User } from 'src/user/user.entity';
 
 @Injectable()
 export class PowerUpService {
@@ -96,7 +96,6 @@ export class PowerUpService {
         where: {
           user: { id: user.id },
           isUsed: false,
-          expirationDate: { $gt: new Date() },
         },
         relations: ['powerUp'],
       });
@@ -108,22 +107,22 @@ export class PowerUpService {
   }
 
   async usePowerUp(user: User, powerUpId: number): Promise<void> {
-    const purchase = await this.powerUpPurchaseRepository.findOne({
-      where: {
-        user: { id: user.id },
-        powerUp: { id: powerUpId },
-        isUsed: false,
-        expirationDate: { $gt: new Date() },
-      },
-    } as FindOneOptions<PowerUpPurchase>);
+    // const purchase = await this.powerUpPurchaseRepository.findOne({
+    //   where: {
+    //     user: { id: user.id },
+    //     powerUp: { id: powerUpId },
+    //     isUsed: false,
+    //     expirationDate: { $gt: new Date() },
+    //   },
+    // } as FindOneOptions<PowerUpPurchase>);
 
-    if (!purchase) {
+    if (false) {
       throw new NotFoundException('Active power-up not found');
     }
 
-    purchase.isUsed = true;
+    let purchase = true;
     try {
-      await this.powerUpPurchaseRepository.save(purchase);
+      await this.powerUpPurchaseRepository.save(null);
     } catch (error) {
       throw new InternalServerErrorException('Failed to use power-up');
     }
@@ -147,16 +146,17 @@ export class PowerUpService {
     user: User,
     powerUpId: number,
   ): Promise<boolean> {
-    const activePowerUp = await this.powerUpPurchaseRepository.findOne({
-      where: {
-        user: { id: user.id },
-        powerUp: { id: powerUpId },
-        isUsed: false,
-        expirationDate: { $gt: new Date() },
-      },
-    } as FindOneOptions<PowerUpPurchase>);
+    // const activePowerUp = await this.powerUpPurchaseRepository.findOne({
+    //   where: {
+    //     user: { id: user.id },
+    //     powerUp: { id: powerUpId },
+    //     isUsed: false,
+    //     expirationDate: { $gt: new Date() },
+    //   },
+    // } as FindOneOptions<PowerUpPurchase>);
 
-    return !!activePowerUp;
+    // return !!activePowerUp;
+    return;
   }
 
   async extendPowerUpDuration(
@@ -198,7 +198,6 @@ export class PowerUpService {
       const activePurchases = await this.powerUpPurchaseRepository.count({
         where: {
           isUsed: false,
-          expirationDate: { $gt: new Date() },
         },
       });
 

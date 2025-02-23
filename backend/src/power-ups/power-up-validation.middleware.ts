@@ -7,7 +7,7 @@ export class PowerUpValidationMiddleware implements NestMiddleware {
   constructor(private readonly powerUpService: PowerUpService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    const user = req.user;
+    const user = req['user'];
     const activePowerUps = await this.powerUpService.getActivePowerUps(user);
 
     // Add active power-ups to the request object for use in controllers
