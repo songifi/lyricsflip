@@ -201,6 +201,8 @@ export const useGameStore = create((set, get) => ({
         return {
           lyricsSnippet: snippet.lyricsSnippet,
           correctAnswer: correctOption,
+          songTitle: snippet.songTitle, 
+          artist: snippet.artist, 
           difficulty: snippet.difficulty,
           options: selectedDifficulty === "Beginner" ? shuffledOptions : [],
         };
