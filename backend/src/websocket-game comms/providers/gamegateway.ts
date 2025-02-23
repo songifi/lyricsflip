@@ -41,7 +41,7 @@ export class GameGateway
   }
 
 
-
+ // Add authentication/validation to this side
    
   //   Server-wide event handlers
   //   server.use((socket: Socket, next) => {
