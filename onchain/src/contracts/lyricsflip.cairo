@@ -4,6 +4,7 @@ pub mod LyricsFlip {
     use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
+
     use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer, PlayerStats};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin_access::accesscontrol::{AccessControlComponent};
@@ -381,7 +382,7 @@ pub mod LyricsFlip {
         }
 
         fn set_role(
-            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool,
         ) {
             self._set_role(recipient, role, is_enable);
         }
@@ -502,7 +503,7 @@ pub mod LyricsFlip {
         }
 
         fn _set_role(
-            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool,
         ) {
             self.ownable.assert_only_owner();
             self.accesscontrol.assert_only_role(ADMIN_ROLE);
