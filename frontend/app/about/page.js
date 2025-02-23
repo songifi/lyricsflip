@@ -5,6 +5,7 @@ import FeatureCards from "@/components/about-us/FeatureCards";
 import VisionSection from "@/components/about-us/VisionSection";
 import JoinSection from "@/components/about-us/JoinSection";
 import StatsSection from "@/components/about-us/StatsSection";
+import Game from "@/components/game/GameSection";
 
 
 export default function AboutPage() {
@@ -16,6 +17,7 @@ export default function AboutPage() {
       <VisionSection />
       <JoinSection />
       <StatsSection />
+      <Game/>
       <Footer />
     </div>
   );
