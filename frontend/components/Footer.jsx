@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { BsEnvelope } from "react-icons/bs";
 import { FaInstagram } from "react-icons/fa";
@@ -10,7 +9,7 @@ const Footer = () => {
   const getCurrentYear = () => new Date().getFullYear();
 
   return (
-    <footer className="bg-[#490878] text-white px-10 py-10">
+    <footer className="bg-[#490878] text-white px-10 py-10" aria-label="Footer">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col gap-10 md:flex-row justify-between">
           {/* Logo and Description Section */}
@@ -28,52 +27,58 @@ const Footer = () => {
           {/* Navigation and Social Links */}
           <div className="flex flex-col md:flex-col gap-5 items-center md:items-end space-y-3 md:space-y-0">
             {/* Navigation Links */}
-            <nav className="flex flex-wrap gap-4 text-xs font-[geist]">
+            <nav className="flex flex-wrap gap-4 text-xs font-[geist]" aria-label="Footer navigation">
               <Link
                 href="/play"
                 className="hover:text-gray-300 transition-colors"
+                aria-label="Play the game"
               >
                 Play Game
               </Link>
               <Link
                  href="/about"
                 className="hover:text-gray-300 transition-colors"
+                aria-label="About the game"
               >
                 About Us
               </Link>
               <Link
                 href="/contact"
                 className="hover:text-gray-300 transition-colors"
+                aria-label="Contact us"
               >
                 Contact Us
               </Link>
               <Link
                 href="/privacy"
                 className="hover:text-gray-300 transition-colors"
+                aria-label="Privacy policy"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/terms"
                 className="hover:text-gray-300 transition-colors"
+                aria-label="Terms of service"
               >
                 Terms of Service
               </Link>
             </nav>
 
             {/* Social Media Icons */}
-            <div className="flex gap-14 md:gap-8">
+            <div className="flex gap-14 md:gap-8" aria-label="Social media links">
               {[
-                BsEnvelope,
-                FaInstagram,
-                CiFacebook,
-                FaXTwitter,
-                PiDiscordLogo,
-              ].map((Icon, index) => (
+                { Icon: BsEnvelope, label: "Email" },
+                { Icon: FaInstagram, label: "Instagram" },
+                { Icon: CiFacebook, label: "Facebook" },
+                { Icon: FaXTwitter, label: "Twitter" },
+                { Icon: PiDiscordLogo, label: "Discord" },
+              ].map(({ Icon, label }, index) => (
                 <Link
                   key={index}
                   href="#"
                   className="bg-[#70E3C7] hover:bg-[#3CC8B9] transition-colors p-2 rounded-full"
+                  aria-label={`Follow us on ${label}`}
                 >
                   <Icon className="h-5 w-5 text-white" />
                 </Link>
@@ -82,7 +87,7 @@ const Footer = () => {
           </div>
         </div>
         {/* Copyright */}
-        <div className="text-center text-sm text-[#FFFFFF] pt-7 border-t border-[#FFFFFF]">
+        <div className="text-center text-sm text-[#FFFFFF] pt-7 border-t border-[#FFFFFF]" aria-label="Copyright Information">
           &copy; {getCurrentYear()} LyricFlip. All rights reserved
         </div>
       </div>

@@ -32,12 +32,20 @@ const FeatureCards = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.2 }}
             className="bg-white rounded-xl shadow-xl p-8 hover:transform hover:-translate-y-2 transition-all duration-300"
+            aria-labelledby={`feature-title-${index}`}
+            aria-describedby={`feature-description-${index}`}
           >
             <div className="bg-[#490878]/10 w-20 h-20 rounded-full flex items-center justify-center mb-6">
-              {feature.icon}
+              <span role="img" aria-hidden="true">
+                {feature.icon}
+              </span>
             </div>
-            <h3 className="text-2xl font-semibold text-[#490878] mb-4">{feature.title}</h3>
-            <p className="text-gray-600">{feature.description}</p>
+            <h3 id={`feature-title-${index}`} className="text-2xl font-semibold text-[#490878] mb-4">
+              {feature.title}
+            </h3>
+            <p id={`feature-description-${index}`} className="text-gray-600">
+              {feature.description}
+            </p>
           </motion.div>
         ))}
       </div>

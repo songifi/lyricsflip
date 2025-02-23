@@ -11,8 +11,11 @@ const StatsSection = () => {
   ];
 
   return (
-    <section className="py-20">
+    <section className="py-20" aria-labelledby="stats-section">
       <div className="container mx-auto px-4">
+        <h2 id="stats-section" className="sr-only">
+          Key Statistics
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           {stats.map((stat, index) => (
             <motion.div
@@ -22,7 +25,9 @@ const StatsSection = () => {
               transition={{ delay: index * 0.1 }}
               className="text-center"
             >
-              <h3 className="text-4xl font-bold text-[#490878] mb-2">{stat.number}</h3>
+              <h3 className="text-4xl font-bold text-[#490878] mb-2" aria-live="polite">
+                {stat.number}
+              </h3>
               <p className="text-gray-600">{stat.label}</p>
             </motion.div>
           ))}

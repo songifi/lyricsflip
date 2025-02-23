@@ -1,6 +1,5 @@
 "use client";
-import { title } from "process";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
 import { useGameStore } from "@/store/gameStore";
@@ -83,15 +82,23 @@ const HowItWorks = () => {
     }
   };
 
+  // Close modal on Escape key press
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === "Escape") {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
   return (
-    <section
-      id="howItWorks"
-      className="bg-[#490878] px-4 py-12"
-    >
-      <div className="mx-auto max-w-7xl text-center border-red-500 py-[100px]">
+    <section id="howItWorks" className="bg-[#490878] px-4 py-12" role="region" aria-labelledby="howItWorksTitle">
+      <div className="mx-auto max-w-7xl text-center py-[100px]">
         {/* Header Section */}
         <div className="">
-          <h2 className="pb-4 text-5xl font-semibold text-[#FFFFFF] md:text-5xl lg:text-6xl">
+          <h2 id="howItWorksTitle" className="pb-4 text-5xl font-semibold text-[#FFFFFF] md:text-5xl lg:text-6xl">
             How it works
           </h2>
           <p className="text-lg text-[#FFFFFF] md:text-xl">
@@ -104,33 +111,41 @@ const HowItWorks = () => {
           {steps.map((step, index) => (
             <div className="space-y-4 my-10" key={index}>
               <h3
-                key={index}
+                id={`step-${index}`}
                 className="text-2xl font-bold text-[#FFFFFF] lg:text-3xl pb-3"
+                role="heading" aria-level="3"
               >
                 {step.title}
               </h3>
-              <p className="mx-auto max-w-sm text-[#FFFFFF]"></p>
-              <p>{step.text}</p>
+              <p className="mx-auto max-w-sm text-[#FFFFFF]">{step.text}</p>
             </div>
           ))}
         </div>
 
         {/* Buttons */}
-        <div className=" flex flex-col items-center justify-center gap-4 md:flex-row ">
+        <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
           <button
             className="w-full rounded-full bg-[#70E3C7] px-[69px] py-6 font-semibold text-[#090909] transition md:w-auto"
             onClick={() => setIsModalOpen(true)}
+            aria-label="Start the game"
           >
             Play Game
           </button>
+          
+          {/* Modal */}
           <Modal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             title="Guess the song"
+            aria-labelledby="modalTitle"
           >
             <GameSetupForm onStart={handleStartGame} />
           </Modal>
-          <button className="w-full rounded-full border-2 border-[#70E3C7] px-[51px] py-6  font-semibold text-[#70E3C7] md:w-auto">
+
+          <button
+            className="w-full rounded-full border-2 border-[#70E3C7] px-[51px] py-6 font-semibold text-[#70E3C7] md:w-auto"
+            aria-label="Connect your wallet to play"
+          >
             Connect Wallet
           </button>
         </div>

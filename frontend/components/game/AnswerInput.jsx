@@ -12,6 +12,8 @@ const MCQOption = ({
   <button
     onClick={onSelect}
     disabled={disabled}
+    aria-pressed={isSelected}
+    aria-label={option}
     className={`min-w-full p-3 lg:w-[392px] lg:h-[70px] text-left text-[16px] text-[#090909] rounded-lg transition-colors border disabled:cursor-not-allowed
       ${
         isSelected && isCorrect
@@ -94,6 +96,9 @@ const AnswerInput = ({ onAnswer }) => {
         }}
         placeholder="Type your guess here"
         disabled={isAnswerSubmitted}
+        aria-label="Answer input field"
+        aria-invalid={isAnswerSubmitted ? !isAnswerCorrect : undefined}
+        aria-describedby="answer-status"
         className={`input input-bordered input-lg w-[70%] rounded-[8px] bg-white border-[#70E3C7] text-[#666666] text-[14px] ${
           isAnswerSubmitted
             ? isAnswerCorrect
@@ -102,9 +107,13 @@ const AnswerInput = ({ onAnswer }) => {
             : "bg-gray-200"
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       />
+      <p id="answer-status" className="sr-only">
+        {isAnswerSubmitted ? (isAnswerCorrect ? "Correct" : "Incorrect") : ""}
+      </p>
       <button
         onClick={() => handleSubmitAnswer(userAnswer)}
         disabled={isAnswerSubmitted}
+        aria-label={isAnswerSubmitted ? (isAnswerCorrect ? "Correct answer" : "Incorrect answer") : "Submit answer"}
         className={`w-[70%] text-sm/6 font-semibold px-[32px] py-[24px] text-center text-[16px] rounded-[1000px] transition-colors ${
           isAnswerSubmitted
             ? isAnswerCorrect

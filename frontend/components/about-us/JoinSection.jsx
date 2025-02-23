@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const JoinSection = () => {
   return (
-    <section className="py-20 bg-gradient-to-r from-[#490878] to-[#70E3C7] text-white">
+    <section className="py-20 bg-gradient-to-r from-[#490878] to-[#70E3C7] text-white" aria-labelledby="join-section">
       <div className="container mx-auto px-4 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -13,7 +13,9 @@ const JoinSection = () => {
           transition={{ duration: 0.8 }}
           className="max-w-3xl mx-auto"
         >
-          <h2 className="text-4xl font-bold mb-6">Start Your Journey Today</h2>
+          <h2 id="join-section" className="text-4xl font-bold mb-6">
+            Start Your Journey Today
+          </h2>
           <p className="text-xl mb-8">
             Whether you're a casual listener or a die-hard music fan, LyricFlip offers 
             a unique and entertaining way to experience the world of lyrics.
@@ -22,12 +24,14 @@ const JoinSection = () => {
             <Link 
               href="/signup"
               className="bg-white text-[#490878] px-8 py-3 rounded-full font-semibold hover:bg-opacity-90 transition-all"
+              aria-label="Sign up to join LyricFlip"
             >
               Join Now
             </Link>
             <Link 
               href="/play"
               className="bg-transparent border-2 border-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-[#490878] transition-all"
+              aria-label="Try the LyricFlip demo"
             >
               Try Demo
             </Link>
