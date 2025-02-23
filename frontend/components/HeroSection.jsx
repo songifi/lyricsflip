@@ -9,15 +9,14 @@ import GameSection from "./game/GameSection";
 import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
 import { StarBackground } from "./ui/StarBackground";
+import GeniusService from "@/services/geniusService";
+import { useState } from "react";
 
 export default function HeroSection() {
   // Remove the GameSection prop
-  const { setGameStatus } = useGameStore();
-  const { showGame, isModalOpen, setShowGame, setIsModalOpen } = useUIStore();
+  const { handleStartGame, isModalOpen, setIsModalOpen } = useGameStore();
+  const { showGame,  } = useUIStore();
 
-  const handleStartGame = () => {
-    setIsModalOpen(true); // Show modal first instead of starting game directly
-  };
 
   if (showGame) {
     return <GameSection />; // Use the imported GameSection component
@@ -41,7 +40,7 @@ export default function HeroSection() {
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={handleStartGame} // Changed to handleStartGame
+                  onClick={() => setIsModalOpen(true)}
                   className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-[#490878] rounded-lg bg-[#70E3C7] hover:bg-[#5fcfb5] transition-colors duration-300 flex items-center justify-center gap-2"
                 >
                   <FaPlay className="text-lg" />
@@ -73,11 +72,7 @@ export default function HeroSection() {
         title="Guess the song"
       >
         <GameSetupForm
-          onStart={() => {
-            setGameStatus("playing");
-            setShowGame(true);
-            setIsModalOpen(false);
-          }}
+          onStart={handleStartGame}
         />
       </Modal>
     </div>
