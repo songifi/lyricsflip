@@ -23,17 +23,11 @@ const navigation = [
 const Navbar = () => {
   const [isMounted, setIsMounted] = useState(false);
 
-  const { initializeGame, selectedDifficulty, username, setQuestions } =
-    useGameStore();
+  const { handleStartGame, isModalOpen, setIsModalOpen } = useGameStore();
+
   const {
     mobileMenuOpen,
     setMobileMenuOpen,
-    isModalOpen,
-    setIsModalOpen,
-    isLoading,
-    setIsLoading,
-    error,
-    setError,
   } = useUIStore();
   // Remove these duplicate state declarations
   // const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,33 +48,7 @@ const Navbar = () => {
     [setIsModalOpen, setMobileMenuOpen]
   );
 
-  const handleStartGame = useCallback(async () => {
-    if (!selectedDifficulty || !username) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const geniusService = GeniusService.getInstance();
-      const snippets = await geniusService.getRandomLyricSnippets("", 20);
-      const filtered = snippets.filter(
-        (s) => s.difficulty === selectedDifficulty
-      );
-      setQuestions(filtered);
-      initializeGame();
-    } catch (err) {
-      setError(err.message || "Failed to start game. Please try again.");
-    } finally {
-      setIsLoading(false);
-      setIsModalOpen(false);
-    }
-  }, [
-    selectedDifficulty,
-    username,
-    initializeGame,
-    setQuestions,
-    setIsModalOpen,
-    setIsLoading,
-    setError,
-  ]);
+  
 
   useEffect(() => {
     setIsMounted(true);
