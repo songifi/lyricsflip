@@ -111,7 +111,7 @@ fn test_create_round() {
 #[test]
 fn test_set_role() {
     let lyricsflip = deploy();
-    let mut spy = spy_events();
+    let mut _spy = spy_events();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
@@ -125,7 +125,7 @@ fn test_set_role() {
 #[should_panic(expected: "role not enable")]
 fn test_set_role_should_panic_when_invalid_role_is_passed() {
     let lyricsflip = deploy();
-    let mut spy = spy_events();
+    let mut _spy = spy_events();
 
     start_cheat_caller_address(lyricsflip.contract_address, OWNER());
     lyricsflip.set_role(ADMIN_ADDRESS(), INVALID_ROLE, true);
@@ -145,7 +145,6 @@ fn test_set_role_should_panic_when_called_by_non_owner() {
     lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
-
 
 #[test]
 fn test_start_round() {
@@ -766,7 +765,6 @@ fn test_get_cards_of_artist_should_panic_with_zero_cards() {
             assert(*artist_cards.at(i).artist == 'Tupac', 'wrong artist');
         }
 }
-
 
 #[test]
 fn test_get_cards_of_a_year() {
