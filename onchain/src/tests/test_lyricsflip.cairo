@@ -1017,22 +1017,26 @@ fn test_submit_correct_artist_answer() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
-    let test_card = Card {
-        card_id: 1,
-        genre: Genre::HipHop,
-        artist: 'Test Artist',
-        title: "Test Title",
-        year: 2000,
-        lyrics: "Test Lyrics",
-    };
-    lyricsflip.add_card(test_card);
-    lyricsflip.set_cards_per_round(1);
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Test Artist',
+                title: "Test Title",
+                year: 2000,
+                lyrics: "Test Lyrics",
+            };
+            lyricsflip.add_card(card);
+        };
+    lyricsflip.set_cards_per_round(5);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     // Create and start round
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
     lyricsflip.start_round(round_id);
+    lyricsflip.next_card(round_id);
 
     let answer = Answer::Artist('Test Artist');
     let result = lyricsflip.submit_answer(round_id, answer);
@@ -1051,22 +1055,26 @@ fn test_submit_correct_year_answer() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
-    let test_card = Card {
-        card_id: 1,
-        genre: Genre::HipHop,
-        artist: 'Test Artist',
-        title: "Test Title",
-        year: 2000,
-        lyrics: "Test Lyrics",
-    };
-    lyricsflip.add_card(test_card);
-    lyricsflip.set_cards_per_round(1);
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Test Artist',
+                title: "Test Title",
+                year: 2000,
+                lyrics: "Test Lyrics",
+            };
+            lyricsflip.add_card(card);
+        };
+    lyricsflip.set_cards_per_round(5);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     // Create and start round
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
     lyricsflip.start_round(round_id);
+    lyricsflip.next_card(round_id);
 
     let answer = Answer::Year(2000);
     let result = lyricsflip.submit_answer(round_id, answer);
@@ -1085,22 +1093,26 @@ fn test_submit_correct_title_answer() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
-    let test_card = Card {
-        card_id: 1,
-        genre: Genre::HipHop,
-        artist: 'Test Artist',
-        title: "Test Title",
-        year: 2000,
-        lyrics: "Test Lyrics",
-    };
-    lyricsflip.add_card(test_card);
-    lyricsflip.set_cards_per_round(1);
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Test Artist',
+                title: "Test Title",
+                year: 2000,
+                lyrics: "Test Lyrics",
+            };
+            lyricsflip.add_card(card);
+        };
+    lyricsflip.set_cards_per_round(5);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     // Create and start round
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
     lyricsflip.start_round(round_id);
+    lyricsflip.next_card(round_id);
 
     let answer = Answer::Title("Test Title");
     let result = lyricsflip.submit_answer(round_id, answer);
@@ -1119,22 +1131,26 @@ fn test_submit_incorrect_answer() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
-    let test_card = Card {
-        card_id: 1,
-        genre: Genre::HipHop,
-        artist: 'Test Artist',
-        title: "Test Title",
-        year: 2000,
-        lyrics: "Test Lyrics",
-    };
-    lyricsflip.add_card(test_card);
-    lyricsflip.set_cards_per_round(1);
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Test Artist',
+                title: "Test Title",
+                year: 2000,
+                lyrics: "Test Lyrics",
+            };
+            lyricsflip.add_card(card);
+        };
+    lyricsflip.set_cards_per_round(5);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     // Create and start round
     start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
     lyricsflip.start_round(round_id);
+    lyricsflip.next_card(round_id);
 
     // Test incorrect answers for each type
     let wrong_artist = Answer::Artist('WrongArtist');
@@ -1235,16 +1251,19 @@ fn test_submit_answer_should_panic_with_completed_round() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
-    let test_card = Card {
-        card_id: 1,
-        genre: Genre::HipHop,
-        artist: 'Test Artist',
-        title: "Test Title",
-        year: 2000,
-        lyrics: "Test Lyrics",
-    };
-    lyricsflip.add_card(test_card);
-    lyricsflip.set_cards_per_round(1);
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Test Artist',
+                title: "Test Title",
+                year: 2000,
+                lyrics: "Test Lyrics",
+            };
+            lyricsflip.add_card(card);
+        };
+    lyricsflip.set_cards_per_round(5);
     stop_cheat_caller_address(lyricsflip.contract_address);
 
     // Create and start round
@@ -1252,8 +1271,10 @@ fn test_submit_answer_should_panic_with_completed_round() {
     let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
     lyricsflip.start_round(round_id);
 
-    // Complete the round by calling next card
-    lyricsflip.next_card(round_id);
+    // Complete round
+    for _i in 0..5_u64 {
+        lyricsflip.next_card(round_id);
+    };
 
     // Try to submit another answer after round completion
     let another_answer = Answer::Title("Test Title");

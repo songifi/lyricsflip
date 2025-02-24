@@ -389,7 +389,7 @@ pub mod LyricsFlip {
             assert(!round.is_completed, Errors::ROUND_COMPLETED);
 
             // Get current card index and card
-            let current_index = round.next_card_index;
+            let current_index = round.next_card_index - 1;
 
             let round_cards = self.round_cards.entry(round_id);
             let current_card_id = round_cards.at((current_index).into()).read();
