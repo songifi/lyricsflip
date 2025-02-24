@@ -10,6 +10,14 @@ pub struct Card {
     pub lyrics: ByteArray,
 }
 
+#[derive(Drop, Serde, starknet::Store)]
+pub struct PlayerStats {
+    pub total_rounds: u64,
+    pub rounds_won: u64,
+    pub current_streak: u64,
+    pub max_streak: u64,
+}
+
 #[derive(Drop, Copy, Serde, PartialEq, starknet::Store)]
 pub enum Genre {
     HipHop,

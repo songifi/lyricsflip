@@ -23,17 +23,11 @@ const navigation = [
 const Navbar = () => {
   const [isMounted, setIsMounted] = useState(false);
 
-  const { initializeGame, selectedDifficulty, username, setQuestions } =
-    useGameStore();
+  const { handleStartGame, isModalOpen, setIsModalOpen } = useGameStore();
+
   const {
     mobileMenuOpen,
     setMobileMenuOpen,
-    isModalOpen,
-    setIsModalOpen,
-    isLoading,
-    setIsLoading,
-    error,
-    setError,
   } = useUIStore();
   // Remove these duplicate state declarations
   // const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,33 +48,7 @@ const Navbar = () => {
     [setIsModalOpen, setMobileMenuOpen]
   );
 
-  const handleStartGame = useCallback(async () => {
-    if (!selectedDifficulty || !username) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const geniusService = GeniusService.getInstance();
-      const snippets = await geniusService.getRandomLyricSnippets("", 20);
-      const filtered = snippets.filter(
-        (s) => s.difficulty === selectedDifficulty
-      );
-      setQuestions(filtered);
-      initializeGame();
-    } catch (err) {
-      setError(err.message || "Failed to start game. Please try again.");
-    } finally {
-      setIsLoading(false);
-      setIsModalOpen(false);
-    }
-  }, [
-    selectedDifficulty,
-    username,
-    initializeGame,
-    setQuestions,
-    setIsModalOpen,
-    setIsLoading,
-    setError,
-  ]);
+  
 
   useEffect(() => {
     setIsMounted(true);
@@ -89,9 +57,12 @@ const Navbar = () => {
   const renderContent = () => (
     <div className="container mx-auto flex items-center justify-between">
       <div className="flex-none">
-        <Link href="#" className="-m-1.5 p-1.5">
+        <Link href="/" className="-m-1.5 p-1.5">
           <span className="sr-only">LyricsFlip</span>
-          <span className="text-3xl font-bold text-white">LOGO</span>
+          <img src="/assets/LyricsFlipLogo.svg"
+           alt="LyricFlip Logo"
+          width="65"
+          />
         </Link>
       </div>
 
@@ -130,7 +101,12 @@ const Navbar = () => {
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" />
           <Dialog.Panel className="fixed inset-y-0 right-0 z-50 w-full max-w-xs overflow-y-auto bg-[#040311] px-6 py-6">
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-white">LOGO</span>
+              <span className="text-2xl font-bold text-white">
+              <img src="/assets/LyricsFlipLogo.svg"
+                alt="LyricFlip Logo"
+                width="30"
+              />
+              </span>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}

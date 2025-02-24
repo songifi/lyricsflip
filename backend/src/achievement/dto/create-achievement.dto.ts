@@ -1,19 +1,25 @@
-import { IsString, IsInt, Min, IsObject, IsNotEmpty } from 'class-validator';
+// src/achievement/dto/create-achievement.dto.ts
+import { IsString, IsEnum, IsNumber, IsObject, IsNotEmpty } from 'class-validator';
+import { AchievementCategory } from '../entities/achievement.entity';
 
 export class CreateAchievementDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  title: string;
 
   @IsString()
   @IsNotEmpty()
   description: string;
 
-  @IsInt()
-  @Min(0)
-  points: number;
+  @IsString()
+  icon: string;
+
+  @IsEnum(AchievementCategory)
+  category: AchievementCategory;
+
+  @IsNumber()
+  pointsValue: number;
 
   @IsObject()
-  @IsNotEmpty()
   criteria: Record<string, any>;
 }
