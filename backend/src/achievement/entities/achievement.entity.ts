@@ -1,5 +1,15 @@
-import { User } from 'src/user/user.entity';
-// import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable } from 'typeorm';
+Achievement System Implementation
+
+// src/achievement/entities/achievement.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+
+export enum AchievementCategory {
+  STREAK = 'STREAK',
+  SCORE = 'SCORE',
+  GENRE = 'GENRE',
+  SOCIAL = 'SOCIAL',
+  MISC = 'MISC',
+}
 
 @Entity()
 export class Achievement {
@@ -7,18 +17,26 @@ export class Achievement {
   id: string;
 
   @Column()
-  name: string;
+  title: string;
 
   @Column('text')
   description: string;
 
   @Column()
-  points: number;
+  icon: string;
+
+  @Column({ type: 'enum', enum: AchievementCategory })
+  category: AchievementCategory;
+
+  @Column('int')
+  pointsValue: number;
 
   @Column('json')
   criteria: Record<string, any>;
 
-  @ManyToMany(() => User, (user) => user.achievements)
-  @JoinTable()
-  unlockedBy: User[];
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

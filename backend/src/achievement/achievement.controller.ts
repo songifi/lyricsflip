@@ -1,17 +1,12 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
-import { AchievementService } from './provider/achievement.service';
+// src/achievement/achievement.controller.ts
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { AchievementService } from './achievement.service';
 import { CreateAchievementDto } from './dto/create-achievement.dto';
-import { UpdateAchievementDto } from './dto/update-achievement.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @Controller('achievements')
+@UseGuards(JwtAuthGuard)
 export class AchievementController {
   constructor(private readonly achievementService: AchievementService) {}
 
@@ -20,26 +15,13 @@ export class AchievementController {
     return this.achievementService.create(createAchievementDto);
   }
 
-  @Get()
-  findAll() {
-    return this.achievementService.findAll();
+  @Get('user')
+  getUserAchievements(@CurrentUser() userId: string) {
+    return this.achievementService.getUserAchievements(userId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.achievementService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateAchievementDto: UpdateAchievementDto,
-  ) {
-    return this.achievementService.update(id, updateAchievementDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.achievementService.remove(id);
+  @Get('leaderboard')
+  getLeaderboard() {
+    return this.achievementService.getLeaderboard();
   }
 }
