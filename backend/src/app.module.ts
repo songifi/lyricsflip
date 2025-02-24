@@ -23,6 +23,9 @@ import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
 import { GameGateway } from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
+import { AchievementModule } from './achievement/achievement.module';
+import { SocialModule } from './social/social.module';
+import { AchievementModule } from './achievement/achievement.module';
 
 @Module({
   imports: [
@@ -47,6 +50,8 @@ import { GameModule } from './websocket-game comms/game.module';
     ScoringModule,
     PowerUpModule,
     TournamentModule,
+    AchievementModule,
+    SocialModule,
   ],
   controllers: [AppController],
   providers: [

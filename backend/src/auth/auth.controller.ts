@@ -10,6 +10,10 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './providers/auth.service';
 import { SignInDto } from './dtos/signIn.dto';
 import { UserDTO } from './../user/dtos/create-user.dto';
+import { RefreshTokenDto } from './dtos/refresh-token.dto';
+import { ForgotPasswordDto } from './dtos/forgot-password.dto';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
+
 
 @ApiTags('auth') // Groups all endpoints under the 'auth' tag in Swagger
 @Controller('auth')
@@ -65,7 +69,35 @@ export class AuthController {
       },
     },
   })
-  public async createUser(@Body() userDTO: UserDTO) {
-    return await this.authService.signUp(userDTO);
+  public async createUser(@Body() UserDTO: UserDTO) {
+    return await this.authService.signUp(UserDTO);
   }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({ status: 200, description: 'Token refreshed successfully.' })
+  @ApiResponse({ status: 401, description: 'Invalid refresh token.' })
+  @ApiBody({ type: RefreshTokenDto })
+  public async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refreshToken(refreshTokenDto);
+  }
+
+  @Post('forgot-password')
+@ApiOperation({ summary: 'Request password reset' })
+@ApiResponse({ status: 200, description: 'Reset email sent.' })
+@ApiBody({ type: ForgotPasswordDto })
+async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+  return this.authService.forgotPassword(forgotPasswordDto.email);
+}
+
+@Post('reset-password')
+@ApiOperation({ summary: 'Reset password' })
+@ApiResponse({ status: 200, description: 'Password reset successful.' })
+@ApiBody({ type: ResetPasswordDto })
+async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+  return this.authService.resetPassword(
+    resetPasswordDto.token,
+    resetPasswordDto.newPassword,
+  );
+}
 }
