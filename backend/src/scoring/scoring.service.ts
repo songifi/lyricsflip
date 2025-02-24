@@ -9,12 +9,17 @@ import {
   StreakUpdatedEvent,
 } from './events/scoring.events';
 import { Player } from 'src/player/player.entity';
+import { Scoring } from './entities/scoring.entity';
 
 @Injectable()
 export class ScoringService {
   constructor(
     @InjectRepository(Player)
     private readonly playerRepository: Repository<Player>,
+
+    @InjectRepository(Scoring)
+    private readonly scoringRepository: Repository<Scoring>,
+
     private eventEmitter: EventEmitter2,
   ) {}
 
@@ -139,4 +144,26 @@ export class ScoringService {
 
     await this.playerRepository.save(player);
   }
+
+  async recordScore(userId: string, score: number): Promise<Scoring> {
+    const newScore = this.scoringRepository.create({ userId, score });
+    return await this.scoringRepository.save(newScore);
+  }
+
+  async calculateRankings(): Promise<Scoring[]> {
+    const scores = await this.scoringRepository.find({ order: { score: 'DESC' } });
+    scores.forEach((score, index) => {
+      score.ranking = index + 1;
+    });
+    return await this.scoringRepository.save(scores);
+  }
+
+  async getUserStatistics(userId: string): Promise<Scoring | null> {
+    return await this.scoringRepository.findOne({ where: { userId } });
+  }
+
+  async getLeaderboard(): Promise<Scoring[]> {
+    return await this.scoringRepository.find({ order: { score: 'DESC' }, take: 10 });
+  }
 }
+
