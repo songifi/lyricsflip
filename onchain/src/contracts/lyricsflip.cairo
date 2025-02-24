@@ -4,7 +4,7 @@ pub mod LyricsFlip {
     use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer};
+    use lyricsflip::utils::types::{Answer, Card, Entropy, Genre, Round};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin_access::accesscontrol::{AccessControlComponent};
     use openzeppelin_access::ownable::OwnableComponent;
@@ -47,6 +47,10 @@ pub mod LyricsFlip {
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
         round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
+        round_ready_players: Map<
+            u64, Map<ContractAddress, bool>
+        >, // round_id -> player_address -> is_ready
+        round_ready_count: Map<u64, u256>,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
         #[substorage(v0)]
@@ -63,6 +67,7 @@ pub mod LyricsFlip {
         RoundStarted: RoundStarted,
         RoundJoined: RoundJoined,
         SetCardPerRound: SetCardPerRound,
+        PlayerReady: PlayerReady,
         #[flat]
         OwnableEvent: OwnableComponent::Event,
         #[flat]
@@ -103,6 +108,15 @@ pub mod LyricsFlip {
         #[key]
         pub old_value: u8,
         pub new_value: u8,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct PlayerReady {
+        #[key]
+        pub round_id: u64,
+        #[key]
+        pub player: ContractAddress,
+        pub ready_time: u64,
     }
 
     const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
@@ -197,23 +211,48 @@ pub mod LyricsFlip {
             let caller_address = get_caller_address();
             let round = self.rounds.entry(round_id);
 
-            //TODO: check if caller is an admin or round participant
-            assert(round.admin.read() == caller_address, Errors::NOT_ROUND_ADMIN);
+            //check if caller is a participant
+            assert(self._is_round_player(round_id, caller_address), Errors::NOT_A_PARTICIPANT);
 
-            let start_time = get_block_timestamp();
-            round.start_time.write(start_time);
-            round.is_started.write(true);
+            //check if caller has already signaled readiness
+            let is_ready = self.round_ready_players.entry(round_id).entry(caller_address).read();
+            assert(!is_ready, Errors::ALREADY_READY);
 
-            //TODO: call the next_card function to get the first QuestionCard
+            // mark player as ready
+            self.round_ready_players.entry(round_id).entry(caller_address).write(true);
 
+            // update ready players count
+            let ready_count = self.round_ready_count.entry(round_id).read() + 1;
+            self.round_ready_count.entry(round_id).write(ready_count);
+
+            // Emit player ready event
             self
                 .emit(
-                    Event::RoundStarted(
-                        RoundStarted {
-                            round_id, admin: round.admin.read(), start_time: start_time,
-                        },
-                    ),
+                    Event::PlayerReady(
+                        PlayerReady {
+                            round_id, player: caller_address, ready_time: get_block_timestamp(),
+                        }
+                    )
                 );
+
+            // check if all players are ready and start round
+            let total_players = self.round_players_count.entry(round_id).read();
+            if ready_count == total_players {
+                let start_time = get_block_timestamp();
+                round.start_time.write(start_time);
+                round.is_started.write(true);
+
+                self
+                    .emit(
+                        Event::RoundStarted(
+                            RoundStarted {
+                                round_id, admin: round.admin.read(), start_time: start_time,
+                            },
+                        ),
+                    );
+            }
+            //TODO: call the next_card function to get the first QuestionCard
+
         }
 
         fn join_round(ref self: ContractState, round_id: u64) {
@@ -312,7 +351,7 @@ pub mod LyricsFlip {
         }
 
         fn set_role(
-            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool,
         ) {
             self._set_role(recipient, role, is_enable);
         }
@@ -429,7 +468,7 @@ pub mod LyricsFlip {
         }
 
         fn _set_role(
-            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool,
         ) {
             self.ownable.assert_only_owner();
             self.accesscontrol.assert_only_role(ADMIN_ROLE);

@@ -48,8 +48,20 @@ const AnswerInput = ({ onAnswer }) => {
     setIsAnswerCorrect(false);
   }, [currentQuestion]);
 
+  const validateAnswer = (answer) => {
+    if (selectedDifficulty === "Beginner") {
+      // For MCQ, compare the full string (song title - artist)
+      return answer === currentQuestion.correctAnswer;
+    } else {
+      // For text input, only compare the song title
+      const correctSongTitle = currentQuestion.correctAnswer.split(" - ")[0].toLowerCase().trim();
+      const userSongTitle = answer.toLowerCase().trim();
+      return correctSongTitle === userSongTitle;
+    }
+  };
+
   const handleSubmitAnswer = (answer) => {
-    const isCorrect = answer === currentQuestion.correctAnswer;
+    const isCorrect = validateAnswer(answer);
     setIsAnswerSubmitted(true);
     setIsAnswerCorrect(isCorrect);
     handleAnswer(isCorrect);

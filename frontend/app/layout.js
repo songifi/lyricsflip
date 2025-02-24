@@ -6,7 +6,6 @@ import { StarknetProvider } from "@/components/starknet-provider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-  
 });
 
 const geistMono = Geist_Mono({
@@ -27,7 +26,6 @@ export default function RootLayout({ children }) {
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          
           {children}
         </body>
       </StarknetProvider>

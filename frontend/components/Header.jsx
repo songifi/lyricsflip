@@ -1,30 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import LockBodyScroll from "./LockBodyScroll";
-import { createPortal } from "react-dom";
 import { WalletModal } from "./WalletModal";
 import Navbar from "./Navbar";
+import { useUIStore } from "@/store/uiStore";
 
 const Header = () => {
-  const [connectModalIsOpen, setConnectModalIsOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const { connectModalIsOpen, mobileMenuOpen } = useUIStore();
 
-  // Close modal on Escape key press
   useEffect(() => {
-    const handleEsc = (event) => {
-      if (event.key === 'Escape') {
-        setConnectModalIsOpen(false);
-        setMobileMenuOpen(false);
-      }
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    setIsMounted(true);
   }, []);
 
   return (
-    <div>
-      {/* Lock body scroll when modal or mobile menu is open */}
+    <div className="w-full">
       <LockBodyScroll lock={connectModalIsOpen || mobileMenuOpen} />
 
       {/* Render WalletModal with accessibility improvements */}

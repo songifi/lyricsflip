@@ -18,6 +18,14 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
+import { PowerUpModule } from './power-ups/power-up.module';
+import { TournamentService } from './tournament/tournament.service';
+import { TournamentModule } from './tournament/tournament.module';
+import { GameGateway } from './websocket-game comms/providers/gamegateway';
+import { GameModule } from './websocket-game comms/game.module';
+import { AchievementModule } from './achievement/achievement.module';
+import { SocialModule } from './social/social.module';
+import { AchievementModule } from './achievement/achievement.module';
 
 @Module({
   imports: [
@@ -30,6 +38,7 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
     LeaderboardModule,
     NotificationModule,
     ConfigModule,
+    GameModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -39,7 +48,10 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
     SongsModule,
     ChatRoomModule,
     ScoringModule,
-
+    PowerUpModule,
+    TournamentModule,
+    AchievementModule,
+    SocialModule,
   ],
   controllers: [AppController],
   providers: [
@@ -52,6 +64,8 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
       provide: APP_INTERCEPTOR,
       useClass: GlobalInterceptor,
     },
+    TournamentService,
+    GameGateway,
   ],
 })
 export class AppModule {}
