@@ -3,7 +3,9 @@
   "compilerOptions": {
     "strict": true,
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     },
     "jsx": "react-native"
   },
@@ -13,6 +15,7 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts",
     "components/Game.jsx",
-    "components/ApiServices.ts"
+    "components/ApiServices.ts",
+    "nativewind-env.d.ts"
   ]
 }
