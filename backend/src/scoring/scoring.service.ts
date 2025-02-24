@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
@@ -9,12 +9,17 @@ import {
   StreakUpdatedEvent,
 } from './events/scoring.events';
 import { Player } from 'src/player/player.entity';
+import { Scoring } from './entities/scoring.entity';
+import { UpdateScoringDto } from './dto/update-scoring.dto';
 
 @Injectable()
 export class ScoringService {
   constructor(
     @InjectRepository(Player)
     private readonly playerRepository: Repository<Player>,
+
+    @InjectRepository(Scoring)
+    private readonly scoringRepository: Repository<Scoring>,
     private eventEmitter: EventEmitter2,
   ) {}
 
@@ -139,4 +144,37 @@ export class ScoringService {
 
     await this.playerRepository.save(player);
   }
+
+  async recordScore(userId: string, score: number): Promise<Scoring> {
+    const newScore = this.scoringRepository.create({ userId, score });
+    return await this.scoringRepository.save(newScore);
+  }
+
+  async calculateRankings(): Promise<Scoring[]> {
+    const scores = await this.scoringRepository.find({ order: { score: 'DESC' } });
+    scores.forEach((score, index) => {
+      score.ranking = index + 1;
+    });
+    return await this.scoringRepository.save(scores);
+  }
+
+  async getUserStatistics(userId: string): Promise<Scoring | null> {
+    return await this.scoringRepository.findOne({ where: { userId } });
+  }
+
+  async getLeaderboard(): Promise<Scoring[]> {
+    return await this.scoringRepository.find({ order: { score: 'DESC' }, take: 10 });
+  }
+
+  async updateScore(id: number, updateScoringDto: UpdateScoringDto): Promise<Scoring> {
+    const scoreEntry = await this.scoringRepository.findOne({ where: { id } });
+  
+    if (!scoreEntry) {
+      throw new NotFoundException(`Score entry with ID ${id} not found`);
+    }
+  
+    Object.assign(scoreEntry, updateScoringDto);
+    return await this.scoringRepository.save(scoreEntry);
+  }
+  
 }
