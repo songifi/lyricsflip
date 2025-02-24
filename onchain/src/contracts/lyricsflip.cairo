@@ -4,7 +4,8 @@ pub mod LyricsFlip {
     use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Answer, Card, Entropy, Genre, Round};
+
+    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer, PlayerStats};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin_access::accesscontrol::{AccessControlComponent};
     use openzeppelin_access::ownable::OwnableComponent;
@@ -47,6 +48,7 @@ pub mod LyricsFlip {
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
         round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
+        player_stats: Map<ContractAddress, PlayerStats>, // player_address -> PlayerStats
         round_ready_players: Map<
             u64, Map<ContractAddress, bool>
         >, // round_id -> player_address -> is_ready
@@ -218,6 +220,33 @@ pub mod LyricsFlip {
             let is_ready = self.round_ready_players.entry(round_id).entry(caller_address).read();
             assert(!is_ready, Errors::ALREADY_READY);
 
+            let round_players_count = self.round_players_count.entry(round_id).read();
+            let mut round_players = array![];
+            let mut idx = 0;
+            while (idx < round_players_count) {
+                round_players.append(self.round_players.entry(round_id).entry(idx).read());
+                idx += 1;
+            };
+
+            let mut index = 0_u32;
+            let mut i = 0_u256;
+            while (i < round_players_count) {
+                let curr_player: ContractAddress = *round_players.at(index);
+                let curr_player_stat = self.player_stats.entry(curr_player).read();
+                let new_total_rounds = curr_player_stat.total_rounds + 1;
+                let new_stats = PlayerStats {
+                    total_rounds: new_total_rounds,
+                    rounds_won: curr_player_stat.rounds_won,
+                    current_streak: curr_player_stat.current_streak,
+                    max_streak: curr_player_stat.max_streak
+                };
+
+                self.player_stats.entry(curr_player).write(new_stats);
+                index += 1;
+                i += 1;
+            };
+
+            //TODO: call the next_card function to get the first QuestionCard
             // mark player as ready
             self.round_ready_players.entry(round_id).entry(caller_address).write(true);
 
@@ -371,6 +400,10 @@ pub mod LyricsFlip {
                 cards.append(card);
             };
             cards.span()
+        }
+
+        fn get_player_stat(self: @ContractState, player: ContractAddress) -> PlayerStats {
+            self.player_stats.entry(player).read()
         }
 
         // TODO
