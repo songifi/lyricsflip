@@ -373,9 +373,34 @@ pub mod LyricsFlip {
             cards.span()
         }
 
-        // TODO
-        fn submit_answer(self: @ContractState, answer: Answer) -> bool {
-            false
+        fn submit_answer(ref self: ContractState, round_id: u64, answer: Answer) -> bool {
+            // Verify round exists
+            assert(self.rounds.entry(round_id).round_id.read() != 0, Errors::NON_EXISTING_ROUND);
+
+            let caller_address = get_caller_address();
+
+            // Verify caller is a participant
+            assert(self._is_round_player(round_id, caller_address), Errors::NOT_A_PARTICIPANT);
+
+            let round = self.rounds.entry(round_id).read();
+
+            // Verify round has started and not completed
+            assert(round.is_started, Errors::ROUND_NOT_STARTED);
+            assert(!round.is_completed, Errors::ROUND_COMPLETED);
+
+            // Get current card index and card
+            let current_index = round.next_card_index;
+
+            let round_cards = self.round_cards.entry(round_id);
+            let current_card_id = round_cards.at((current_index).into()).read();
+            let current_card = self.cards.entry(current_card_id).read();
+
+            // Compare answer with card data
+            match answer {
+                Answer::Artist(value) => { value == current_card.artist },
+                Answer::Year(value) => { value == current_card.year },
+                Answer::Title(value) => { value == current_card.title }
+            }
         }
     }
 

@@ -128,7 +128,7 @@ pub struct QuestionCard<T> {
 
 #[derive(Drop, Serde, starknet::Store)]
 pub enum Answer {
-    Felt252: felt252,
-    U64: u64,
-    Bytes: ByteArray,
+    Artist: felt252,
+    Year: u64,
+    Title: ByteArray,
 }

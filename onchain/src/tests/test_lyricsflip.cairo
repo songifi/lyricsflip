@@ -1,7 +1,7 @@
 use LyricsFlip::{InternalFunctions, InternalFunctionsTrait};
 use lyricsflip::contracts::lyricsflip::LyricsFlip;
 use lyricsflip::interfaces::lyricsflip::{ILyricsFlipDispatcher, ILyricsFlipDispatcherTrait};
-use lyricsflip::utils::types::{Card, Genre};
+use lyricsflip::utils::types::{Card, Genre, Answer};
 use snforge_std::{
     ContractClassTrait, DeclareResultTrait, EventSpyAssertionsTrait, declare, spy_events,
     start_cheat_block_timestamp_global, start_cheat_caller_address,
@@ -1005,5 +1005,258 @@ fn test_next_card_should_panic_with_completed_round() {
 
     // Try to get one more card after round is completed
     lyricsflip.next_card(round_id);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+#[test]
+fn test_submit_correct_artist_answer() {
+    let lyricsflip = deploy();
+
+    // Setup admin and initial card
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    let test_card = Card {
+        card_id: 1,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Test Title",
+        year: 2000,
+        lyrics: "Test Lyrics",
+    };
+    lyricsflip.add_card(test_card);
+    lyricsflip.set_cards_per_round(1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Create and start round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    lyricsflip.start_round(round_id);
+
+    let answer = Answer::Artist('Test Artist');
+    let result = lyricsflip.submit_answer(round_id, answer);
+    assert(result == true, 'Should accept correct artist');
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+fn test_submit_correct_year_answer() {
+    let lyricsflip = deploy();
+
+    // Setup admin and initial card
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    let test_card = Card {
+        card_id: 1,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Test Title",
+        year: 2000,
+        lyrics: "Test Lyrics",
+    };
+    lyricsflip.add_card(test_card);
+    lyricsflip.set_cards_per_round(1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Create and start round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    lyricsflip.start_round(round_id);
+
+    let answer = Answer::Year(2000);
+    let result = lyricsflip.submit_answer(round_id, answer);
+    assert(result == true, 'Should accept correct year');
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+fn test_submit_correct_title_answer() {
+    let lyricsflip = deploy();
+
+    // Setup admin and initial card
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    let test_card = Card {
+        card_id: 1,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Test Title",
+        year: 2000,
+        lyrics: "Test Lyrics",
+    };
+    lyricsflip.add_card(test_card);
+    lyricsflip.set_cards_per_round(1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Create and start round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    lyricsflip.start_round(round_id);
+
+    let answer = Answer::Title("Test Title");
+    let result = lyricsflip.submit_answer(round_id, answer);
+    assert(result == true, 'Should accept correct title');
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+fn test_submit_incorrect_answer() {
+    let lyricsflip = deploy();
+
+    // Setup admin and initial card
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    let test_card = Card {
+        card_id: 1,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Test Title",
+        year: 2000,
+        lyrics: "Test Lyrics",
+    };
+    lyricsflip.add_card(test_card);
+    lyricsflip.set_cards_per_round(1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Create and start round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    lyricsflip.start_round(round_id);
+
+    // Test incorrect answers for each type
+    let wrong_artist = Answer::Artist('WrongArtist');
+    let result = lyricsflip.submit_answer(round_id, wrong_artist);
+    assert(result == false, 'Should reject wrong artist');
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+#[should_panic(expected: ('Round does not exists',))]
+fn test_submit_answer_should_panic_with_non_existing_round() {
+    let lyricsflip = deploy();
+
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let answer = Answer::Year(2000);
+    lyricsflip.submit_answer(999, answer);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+#[should_panic(expected: ('Not a participant',))]
+fn test_submit_answer_should_panic_with_non_participant() {
+    let lyricsflip = deploy();
+
+    // Setup admin and initial card
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    let test_card = Card {
+        card_id: 1,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Test Title",
+        year: 2000,
+        lyrics: "Test Lyrics",
+    };
+    lyricsflip.add_card(test_card);
+    lyricsflip.set_cards_per_round(1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // PLAYER_1 creates round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    lyricsflip.start_round(round_id);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // PLAYER_2 tries to submit answer without joining
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());
+    let answer = Answer::Year(2000);
+    lyricsflip.submit_answer(round_id, answer);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+#[should_panic(expected: ('Round not started',))]
+fn test_submit_answer_should_panic_with_non_started_round() {
+    let lyricsflip = deploy();
+
+    // Setup admin and initial card
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    let test_card = Card {
+        card_id: 1,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Test Title",
+        year: 2000,
+        lyrics: "Test Lyrics",
+    };
+    lyricsflip.add_card(test_card);
+    lyricsflip.set_cards_per_round(1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Create round but don't start it
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+
+    // Try to submit answer
+    let answer = Answer::Year(2000);
+    lyricsflip.submit_answer(round_id, answer);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+#[should_panic(expected: ('Round already completed',))]
+fn test_submit_answer_should_panic_with_completed_round() {
+    let lyricsflip = deploy();
+
+    // Setup admin and initial card
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    let test_card = Card {
+        card_id: 1,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Test Title",
+        year: 2000,
+        lyrics: "Test Lyrics",
+    };
+    lyricsflip.add_card(test_card);
+    lyricsflip.set_cards_per_round(1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Create and start round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    lyricsflip.start_round(round_id);
+
+    // Complete the round by calling next card
+    lyricsflip.next_card(round_id);
+
+    // Try to submit another answer after round completion
+    let another_answer = Answer::Title("Test Title");
+    lyricsflip.submit_answer(round_id, another_answer);
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
