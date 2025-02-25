@@ -32,4 +32,5 @@ Dark/Light theme variants
 Accessibility guidelines
 Animation specifications for developers
 Design tokens for easy implementation
+
 https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=715-5041&t=DYVCuWSnjHjRe0Co-4
