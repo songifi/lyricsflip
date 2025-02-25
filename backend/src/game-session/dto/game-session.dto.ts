@@ -1,19 +1,31 @@
 export class CreateGameSessionDto {}
-import { IsUUID, IsOptional, IsString, IsInt, IsEnum, IsDate, IsNumber } from "class-validator";
+import {
+  IsOptional,
+  IsString,
+  IsInt,
+  IsEnum,
+  IsDate,
+  IsNumber,
+  IsNotEmpty,
+} from 'class-validator';
+import { GameStatus } from '../enums/game-status.enum';
 
 export class GameSessionDto {
-  @IsUUID()
-  id: string;
+  @IsString()
+  @IsNotEmpty()
+  playerId: string;
 
   @IsDate()
+  @IsNotEmpty()
   startTime: Date;
 
   @IsOptional()
   @IsDate()
   endTime?: Date;
 
-  @IsEnum(["active", "completed", "canceled"])
-  status: string;
+  @IsEnum(GameStatus)
+  @IsNotEmpty()
+  status: GameStatus;
 
   @IsInt()
   maxPlayers: number;
@@ -23,18 +35,6 @@ export class GameSessionDto {
   score?: number;
 
   @IsOptional()
-  @IsString()
-  location?: string;
-
-  @IsOptional()
-  metadata?: Record<string, any>;
-
-  @IsDate()
-  createdAt: Date;
-
-  @IsDate()
-  updatedAt: Date;
-
   @IsString()
   description: string;
 }
