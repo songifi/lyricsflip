@@ -78,7 +78,7 @@ export function Modal({ isOpen, onClose, title, children, className }) {
             aria-modal="true"
             aria-labelledby="modal-title"
           >
-            <div className="flex items-center justify-between py-5 px-10 bg-[#F5F5F5] text-[#090909] rounded-t-[13px] border-b-[2px] sticky top-0 z-10">
+            <div className="flex items-center justify-between py-5 px-10 bg-background-paper text-text-primary rounded-t-[13px] border-b-[2px] sticky top-0 z-10">
               <h2 id="modal-title" className="text-xl font-bold">
                 {title}
               </h2>
@@ -88,7 +88,7 @@ export function Modal({ isOpen, onClose, title, children, className }) {
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-7 w-7 text-[#490878] transition-transform duration-300 hover:rotate-90"
+                  className="h-7 w-7 text-primary-main transition-transform duration-300 hover:rotate-90"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

@@ -43,10 +43,10 @@ const HowItWorks = () => {
       <div className="mx-auto max-w-7xl text-center py-[100px]">
         {/* Header Section */}
         <div className="">
-          <h2 id="howItWorksTitle" className="pb-4 text-5xl font-semibold text-[#FFFFFF] md:text-5xl lg:text-6xl">
+          <h2 className="pb-4 text-5xl font-semibold text-background-default md:text-5xl lg:text-6xl">
             How it works
           </h2>
-          <p className="text-lg text-[#FFFFFF] md:text-xl">
+          <p className="text-lg text-background-default md:text-xl">
             Have fun testing your lyrical knowledge in three (3) easy steps 😊
           </p>
         </div>
@@ -56,13 +56,13 @@ const HowItWorks = () => {
           {steps.map((step, index) => (
             <div className="space-y-4 my-10" key={index}>
               <h3
-                id={`step-${index}`}
-                className="text-2xl font-bold text-[#FFFFFF] lg:text-3xl pb-3"
-                role="heading" aria-level="3"
+                key={index}
+                className="text-2xl font-bold text-background-default lg:text-3xl pb-3"
               >
                 {step.title}
               </h3>
-              <p className="mx-auto max-w-sm text-[#FFFFFF]">{step.text}</p>
+              <p className="mx-auto max-w-sm text-background-default"></p>
+              <p>{step.text}</p>
             </div>
           ))}
         </div>
@@ -70,7 +70,7 @@ const HowItWorks = () => {
         {/* Buttons */}
         <div className="flex flex-col items-center justify-center gap-4 md:flex-row">
           <button
-            className="w-full rounded-full bg-[#70E3C7] px-[69px] py-6 font-semibold text-[#090909] transition md:w-auto"
+            className="w-full rounded-full bg-primary-light px-[69px] py-6 font-semibold text-[#090909] transition md:w-auto"
             onClick={() => setIsModalOpen(true)}
             aria-label="Start the game"
           >
@@ -86,11 +86,7 @@ const HowItWorks = () => {
           >
             <GameSetupForm onStart={handleStartGame} />
           </Modal>
-
-          <button
-            className="w-full rounded-full border-2 border-[#70E3C7] px-[51px] py-6 font-semibold text-[#70E3C7] md:w-auto"
-            aria-label="Connect your wallet to play"
-          >
+          <button className="w-full rounded-full border-2 border-primary-light px-[51px] py-6  font-semibold text-primary-light md:w-auto">
             Connect Wallet
           </button>
         </div>

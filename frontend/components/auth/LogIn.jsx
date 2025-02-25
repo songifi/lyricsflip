@@ -115,10 +115,10 @@ const LogIn = () => {
                 />
               </div>
 
-              {/* Password Field */}
-              <div className="space-y-2 mb-5">
-                <Label htmlFor="password">
-                  <p className="font-semibold text-[#A09D9D]">Password</p>
+              {/* password field  */}
+              <div className='space-y-2 mb-5'>
+                <Label htmlFor='password'>
+                  <p className=' font-semibold text-gray-400'>Password</p>
                 </Label>
                 <div>
                   <div className="bg-slate-100 flex items-center justify-between">
@@ -174,8 +174,8 @@ const LogIn = () => {
               {/* Submit Button */}
               <div>
                 <Button
-                  type="submit"
-                  className="w-full rounded-3xl bg-[#D9D9D9] text-[#8C8282]"
+                  type='submit'
+                  className='w-full rounded-3xl bg-gray-300 text-gray-500'
                   disabled={isSubmitting}
                   aria-live="assertive"
                 >
@@ -186,9 +186,8 @@ const LogIn = () => {
           )}
         </Formik>
 
-        {/* Sign up link */}
-        <p className="mt-14 text-center text-sm">
-          Don't have an account? <a href="#" className="text-[#70E3C7]" aria-label="Sign Up">Sign Up</a>
+        <p className='mt-14 text-center text-sm'>
+          Don't have an account? <a className='text-primary-libg-primary-light'>Sign Up</a>
         </p>
       </div>
     </div>

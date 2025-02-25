@@ -92,13 +92,13 @@ const Game = () => {
   const getDifficultyColor = () => {
     switch (selectedDifficulty) {
       case "Beginner":
-        return "text-[#2EAE4E]"; // Green
+        return "text-status-success"; // Green
       case "Intermediate":
         return "text-[#F4A261]"; // Orange
       case "Expert":
         return "text-[#E63946]"; // Red
       default:
-        return "text-[#666666]";
+        return "text-text-secondary";
     }
   };
 
@@ -173,7 +173,7 @@ const Game = () => {
 
                 {/* Difficulty */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-[#666666]">Difficulty:</span>
+                  <span className="text-[14px] text-text-secondary">Difficulty:</span>
                   <span
                     className={`text-[14px] font-bold flex items-center gap-1 ${getDifficultyColor()}`}
                     aria-label={`Current difficulty: ${selectedDifficulty}`}

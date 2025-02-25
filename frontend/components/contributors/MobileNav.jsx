@@ -37,7 +37,7 @@ const MobileNav = () => {
 
   return (
     <div className="flex items-center justify-between px-8  bg-gray-100">
-      <button className="px-4 py-2 rounded-full bg-[#490878] text-white text-xs">
+      <button className="px-4 py-2 rounded-full bg-primary-main text-white text-xs">
         {selected.label}
       </button>
 
@@ -54,8 +54,8 @@ const MobileNav = () => {
                     href={item.href}
                     className={`block cursor-pointer px-4 py-2 text-sm transition duration-200 ${
                       active
-                        ? "bg-[#490878] text-white hover:bg-[#490878]"
-                        : "text-black hover:bg-[#490878] hover:text-white"
+                        ? "bg-primary-main text-white hover:bg-primary-main"
+                        : "text-black hover:bg-primary-main hover:text-white"
                     }`}
                   >
                     <div className="flex justify-center ">

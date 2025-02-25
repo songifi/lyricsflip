@@ -9,13 +9,13 @@ const Footer = () => {
   const getCurrentYear = () => new Date().getFullYear();
 
   return (
-    <footer className="bg-[#490878] text-white px-10 py-10" aria-label="Footer">
+    <footer className="bg-primary-main text-white px-10 py-10">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col gap-10 md:flex-row justify-between">
           {/* Logo and Description Section */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">
-              Lyric<span className="text-[#70E3C7]">Flip</span>
+              Lyric<span className="text-primary-light">Flip</span>
             </h2>
             <p className="text-gray-300 max-w-2xl">
               Test your lyrical knowledge, flip the cards, and guess the song!
@@ -87,7 +87,7 @@ const Footer = () => {
           </div>
         </div>
         {/* Copyright */}
-        <div className="text-center text-sm text-[#FFFFFF] pt-7 border-t border-[#FFFFFF]" aria-label="Copyright Information">
+        <div className="text-center text-sm text-background-default pt-7 border-t border-background-default">
           &copy; {getCurrentYear()} LyricFlip. All rights reserved
         </div>
       </div>

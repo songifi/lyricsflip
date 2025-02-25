@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 const HeroSection = () => {
   return (
-    <div className="relative h-[60vh] bg-gradient-to-r from-[#490878] to-[#70E3C7]">
+    <div className="relative h-[60vh] bg-gradient-to-r from-primary-main to-primary-light">
       <div className="absolute inset-0 bg-black/50" />
       <div className="relative z-0 container mx-auto px-4 h-full flex items-center justify-center text-center"> {/* Added z-0 */}
         <motion.div

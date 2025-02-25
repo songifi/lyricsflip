@@ -88,79 +88,73 @@ export function GameSetupForm({ onStart }) {
         <div className="border-2 border-[rgba(113,227,199,0.3)] hover:border-[rgba(113,227,199,0.5)] rounded-lg transition-colors duration-300 w-full">
           <DifficultySelect aria-label="Select difficulty level" />
         </div>
+        <div className="space-y-2 flex flex-col items-start">
+          <label
+            htmlFor="duration"
+            className="text-sm font-medium text-text-primary"
+          >
+            Duration
+          </label>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger className="h-10 border-2 border-primary-light/30 hover:border-primary-light/50 focus:border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+                <SelectValue placeholder="" />
+              </SelectTrigger>
+              <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
+                <SelectItem value="5">5 minutes</SelectItem>
+                <SelectItem value="10">10 minutes</SelectItem>
+                <SelectItem value="15">15 minutes</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="space-y-2 flex flex-col items-start">
+          <label htmlFor="mode" className="text-sm font-medium text-text-primary">
+            Game Mode
+          </label>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger className="h-10 border-2 border-primary-light/30 hover:border-primary-light/50 focus:border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+                <SelectValue placeholder="" />
+              </SelectTrigger>
+              <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
+                <SelectItem value="single">Single Player</SelectItem>
+                <SelectItem value="multi">Multiplayer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="space-y-2 flex flex-col items-start">
+          <label
+            htmlFor="players"
+            className="text-sm font-medium text-text-primary"
+          >
+            Players
+          </label>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger className="h-10 border-2 border-primary-light/30 hover:border-primary-light/50 focus:border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+                <SelectValue placeholder="" />
+              </SelectTrigger>
+              <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
+                <SelectItem value="2">2 Players</SelectItem>
+                <SelectItem value="3">3 Players</SelectItem>
+                <SelectItem value="4">4 Players</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
-  
-      <div className="space-y-2 flex flex-col items-start">
-        <label
-          htmlFor="duration"
-          className="text-sm font-medium text-[#212121]"
+
+      <div className="max-w-[300px] mx-auto pt-4">
+        <Button
+          onClick={onStart}
+          disabled={!username || !selectedDifficulty}
+          className="w-full bg-primary-light py-7 text-md font-bold text-black hover:bg-primary-light/90 rounded-full disabled:opacity-50"
         >
-          Duration
-        </label>
-        <div className="h-10 w-full">
-          <Select aria-label="Select the duration of the game">
-            <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
-              <SelectValue placeholder="" />
-            </SelectTrigger>
-            <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
-              <SelectItem value="5">5 minutes</SelectItem>
-              <SelectItem value="10">10 minutes</SelectItem>
-              <SelectItem value="15">15 minutes</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-  
-      <div className="space-y-2 flex flex-col items-start">
-        <label htmlFor="mode" className="text-sm font-medium text-[#212121]">
-          Game Mode
-        </label>
-        <div className="h-10 w-full">
-          <Select aria-label="Select the game mode">
-            <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
-              <SelectValue placeholder="" />
-            </SelectTrigger>
-            <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
-              <SelectItem value="single">Single Player</SelectItem>
-              <SelectItem value="multi">Multiplayer</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-  
-      <div className="space-y-2 flex flex-col items-start">
-        <label
-          htmlFor="players"
-          className="text-sm font-medium text-[#212121]"
-        >
-          Players
-        </label>
-        <div className="h-10 w-full">
-          <Select aria-label="Select the number of players">
-            <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
-              <SelectValue placeholder="" />
-            </SelectTrigger>
-            <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
-              <SelectItem value="2">2 Players</SelectItem>
-              <SelectItem value="3">3 Players</SelectItem>
-              <SelectItem value="4">4 Players</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+          Start Game
+        </Button>
       </div>
     </div>
-  
-    <div className="max-w-[300px] mx-auto pt-4">
-      <Button
-        onClick={onStart}
-        disabled={!username || !selectedDifficulty}
-        className="w-full bg-[#70E3C7] py-7 text-md font-bold text-black hover:bg-[#70E3C7]/90 rounded-full disabled:opacity-50"
-        aria-disabled={!username || !selectedDifficulty}
-      >
-        Start Game
-      </Button>
-    </div>
-  </div>
-  
   );
 }
