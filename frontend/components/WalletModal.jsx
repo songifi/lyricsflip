@@ -48,7 +48,7 @@ export function WalletModal() {
       onClick={() => setConnectModalIsOpen(false)}
     >
       <div
-        className="w-full md:w-[610px] bg-primary-light bg-opacity-80 text-primary-main rounded-3xl py-12 px-6 relative text-center"
+        className="w-full md:w-[610px] bg-[#70E3C7] bg-opacity-80 text-[#490878] rounded-3xl py-12 px-6 relative text-center"
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-xl font-semibold">Connect Wallet</h3>
@@ -98,7 +98,7 @@ export function WalletModal() {
           className={`w-[264px] sm:w-[264px] mt-7 block py-5 rounded-[8px] disabled:cursor-not-allowed
             ${
               selectedConnector
-                ? "bg-primary-light hover:bg-opacity-80"
+                ? "bg-[#70E3C7] hover:bg-opacity-80"
                 : "bg-slate-500"
             }
             text-[#F9F9F9] text-base font-semibold mx-auto transition-colors`}

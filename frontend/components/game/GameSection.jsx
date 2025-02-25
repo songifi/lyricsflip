@@ -91,13 +91,13 @@ const Game = () => {
   const getDifficultyColor = () => {
     switch (selectedDifficulty) {
       case "Beginner":
-        return "text-status-success"; // Green
+        return "text-[#2EAE4E]"; // Green
       case "Intermediate":
         return "text-[#F4A261]"; // Orange
       case "Expert":
         return "text-[#E63946]"; // Red
       default:
-        return "text-text-secondary";
+        return "text-[#666666]";
     }
   };
 
@@ -146,7 +146,7 @@ const Game = () => {
 
                   {/* Username */}
                   <div>
-                    <h1 className="text-[14px] font-bold text-text-primary">
+                    <h1 className="text-[14px] font-bold text-[#090909]">
                       {username || "Player"}
                     </h1>
                   </div>
@@ -154,7 +154,7 @@ const Game = () => {
 
                 {/* Difficulty */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-text-secondary">Difficulty:</span>
+                  <span className="text-[14px] text-[#666666]">Difficulty:</span>
                   <span
                     className={`text-[14px] font-bold flex items-center gap-1 ${getDifficultyColor()}`}
                   >
@@ -173,8 +173,8 @@ const Game = () => {
 
               {/* Timer */}
               <div className="p-3 flex items-center justify-center gap-2">
-                <div className="text-[16px] text-center text-text-secondary">🕒</div>
-                <div className="text-[16px] font-bold text-status-success">
+                <div className="text-[16px] text-center text-[#666666]">🕒</div>
+                <div className="text-[16px] font-bold text-[#2EAE4E]">
                   {formatTime(timeLeft)}
                 </div>
               </div>

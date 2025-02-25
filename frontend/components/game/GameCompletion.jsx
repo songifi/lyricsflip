@@ -106,7 +106,7 @@ const GameCompletion = () => {
           </motion.div>
 
           <motion.div
-            className="text-[24px] text-black"
+            className="text-[24px] text-[#000000]"
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
@@ -126,7 +126,7 @@ const GameCompletion = () => {
 
         <motion.button
           onClick={resetGame}
-          className="w-[80%] px-6 py-3 bg-[#92f2da] text-primary-main rounded-[1000px] 
+          className="w-[80%] px-6 py-3 bg-[#92f2da] text-[#490878] rounded-[1000px] 
             text-lg font-bold hover:bg-[#70E3C7] transition-colors duration-200"
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}

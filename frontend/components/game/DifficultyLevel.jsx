@@ -1,8 +1,9 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Star } from "lucide-react";
 
 const DifficultyLevel = ({ difficulty }) => {
-  // determine star color based on difficulty
+  // Determine star color based on difficulty
   const getStarColor = (level) => {
     switch (level?.toLowerCase()) {
       case "beginner":
@@ -27,6 +28,11 @@ const DifficultyLevel = ({ difficulty }) => {
       />
     </div>
   );
+};
+
+DifficultyLevel.propTypes = {
+  difficulty: PropTypes.oneOf(["beginner", "intermediate", "expert"])
+    .isRequired,
 };
 
 export default DifficultyLevel;

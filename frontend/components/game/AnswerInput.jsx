@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { useGameStore } from "../../store/gameStore";
 
 const MCQOption = ({
@@ -12,12 +13,12 @@ const MCQOption = ({
   <button
     onClick={onSelect}
     disabled={disabled}
-    className={`min-w-full p-3 lg:w-[392px] lg:h-[70px] text-left text-[16px] text-text-primary rounded-lg transition-colors border disabled:cursor-not-allowed
+    className={`min-w-full p-3 lg:w-[392px] lg:h-[70px] text-left text-[16px] text-[#090909] rounded-lg transition-colors border disabled:cursor-not-allowed
       ${
         isSelected && isCorrect
-          ? "bg-green-500 border-green-400"
+          ? "bg-[#2EAE4E] border-green-400"
           : isSelected && !isCorrect
-          ? "bg-red-600 border-red-400"
+          ? "bg-[#CE0000] border-red-400"
           : !isSelected && isCorrect && isAnswerSubmitted
           ? "bg-[#70E3C7CC] border-green-200"
           : "bg-[#EEFCF8CC] border-[#CBF6EA]"
@@ -27,6 +28,15 @@ const MCQOption = ({
     {option}
   </button>
 );
+
+MCQOption.propTypes = {
+  option: PropTypes.string.isRequired,
+  isCorrect: PropTypes.bool.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  isAnswerSubmitted: PropTypes.bool.isRequired,
+  disabled: PropTypes.bool.isRequired,
+};
 
 const AnswerInput = ({ onAnswer }) => {
   const { getCurrentQuestion, handleAnswer, selectedDifficulty } =
@@ -39,7 +49,6 @@ const AnswerInput = ({ onAnswer }) => {
   const currentQuestion = getCurrentQuestion();
 
   useEffect(() => {
-    // Reset state when the question changes
     setUserAnswer("");
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
@@ -48,13 +57,13 @@ const AnswerInput = ({ onAnswer }) => {
 
   const validateAnswer = (answer) => {
     if (selectedDifficulty === "Beginner") {
-      // For MCQ, compare the full string (song title - artist)
       return answer === currentQuestion.correctAnswer;
     } else {
-      // For text input, only compare the song title
-      const correctSongTitle = currentQuestion.correctAnswer.split(" - ")[0].toLowerCase().trim();
-      const userSongTitle = answer.toLowerCase().trim();
-      return correctSongTitle === userSongTitle;
+      const correctSongTitle = currentQuestion.correctAnswer
+        .split(" - ")[0]
+        .toLowerCase()
+        .trim();
+      return correctSongTitle === answer.toLowerCase().trim();
     }
   };
 
@@ -66,7 +75,6 @@ const AnswerInput = ({ onAnswer }) => {
     onAnswer(isCorrect);
   };
 
-  // Render MCQ for Beginner difficulty
   if (selectedDifficulty === "Beginner" && currentQuestion.options) {
     return (
       <div className="mb-4">
@@ -92,7 +100,6 @@ const AnswerInput = ({ onAnswer }) => {
     );
   }
 
-  // Default text input for Intermediate and Advanced
   return (
     <div className="w-full flex flex-col items-center justify-center space-y-4 mx-auto p-4">
       <input
@@ -106,11 +113,11 @@ const AnswerInput = ({ onAnswer }) => {
         }}
         placeholder="Type your guess here"
         disabled={isAnswerSubmitted}
-        className={`input input-bordered input-lg w-[70%] rounded-[8px] bg-white border-primary-light text-text-secondary text-[14px] ${
+        className={`input input-bordered input-lg w-[70%] rounded-[8px] bg-white border-[#70E3C7] text-[#666666] text-[14px] ${
           isAnswerSubmitted
             ? isAnswerCorrect
-              ? "bg-status-success"
-              : "bg-status-error"
+              ? "bg-[#2EAE4E]"
+              : "bg-[#CE0000]"
             : "bg-gray-200"
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       />
@@ -122,7 +129,7 @@ const AnswerInput = ({ onAnswer }) => {
             ? isAnswerCorrect
               ? "text-green-700 bg-green-300 hover:bg-green-400"
               : "text-red-700 bg-red-300 hover:bg-red-400"
-            : "text-primary-main bg-[#92f2da] hover:bg-[#5bc4ab]"
+            : "text-[#490878] bg-[#92f2da] hover:bg-[#5bc4ab]"
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         {isAnswerSubmitted
@@ -133,6 +140,20 @@ const AnswerInput = ({ onAnswer }) => {
       </button>
     </div>
   );
+};
+
+// Define reusable question prop type
+const questionPropType = PropTypes.shape({
+  correctAnswer: PropTypes.string.isRequired,
+  options: PropTypes.arrayOf(PropTypes.string),
+});
+
+AnswerInput.propTypes = {
+  onAnswer: PropTypes.func.isRequired,
+};
+
+AnswerInput.defaultProps = {
+  onAnswer: () => {},
 };
 
 export default AnswerInput;

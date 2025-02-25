@@ -127,7 +127,7 @@ const Navbar = () => {
                         handleScroll(e, item);
                         setMobileMenuOpen(false);
                       }}
-                      className="block px-3 py-2 text-base font-semibold text-white hover:bg-primary-light/20"
+                      className="block px-3 py-2 text-base font-semibold text-white hover:bg-[#70E3C7]/20"
                     >
                       {item.name}
                     </Link>

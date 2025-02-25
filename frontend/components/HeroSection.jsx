@@ -41,7 +41,7 @@ export default function HeroSection() {
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-primary-main rounded-lg bg-primary-light hover:bg-[#5fcfb5] transition-colors duration-300 flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-[#490878] rounded-lg bg-[#70E3C7] hover:bg-[#5fcfb5] transition-colors duration-300 flex items-center justify-center gap-2"
                 >
                   <FaPlay className="text-lg" />
                   Play Now
@@ -55,7 +55,7 @@ export default function HeroSection() {
                       section.scrollIntoView({ behavior: "smooth" });
                     }
                   }}
-                  className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-primary-light rounded-lg border-2 border-primary-light hover:bg-primary-light hover:text-primary-main transition-colors duration-300 flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-[#70E3C7] rounded-lg border-2 border-[#70E3C7] hover:bg-[#70E3C7] hover:text-[#490878] transition-colors duration-300 flex items-center justify-center gap-2"
                 >
                   <IoInformationCircleOutline className="text-xl" />
                   How to Play

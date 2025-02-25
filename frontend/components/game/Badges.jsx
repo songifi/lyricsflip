@@ -60,8 +60,8 @@ const BadgesModal = ({ isOpen, onClose }) => {
 
         {/* Header */}
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-text-primary">Your Badges</h2>
-          <p className="text-gray-600 mt-[2px] text-[14px]">
+          <h2 className="text-xl font-bold text-[#090909]">Your Badges</h2>
+          <p className="text-[#5A5A5A] mt-[2px] text-[14px]">
             <span className="text-black font-bold">6</span>/48 of badges
             unlocked
           </p>
@@ -97,7 +97,7 @@ const BadgesModal = ({ isOpen, onClose }) => {
                   </div>
                 )}
               </div>
-              <span className="mt-2 text-xs text-center italic text-text-primary">
+              <span className="mt-2 text-xs text-center italic text-[#090909]">
                 Music Connoisseur
               </span>
             </div>
