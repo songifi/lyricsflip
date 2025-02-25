@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const JoinSection = () => {
   return (
-    <section className="py-20 bg-gradient-to-r from-[#490878] to-[#70E3C7] text-white">
+    <section className="py-20 bg-gradient-to-r from-primary-main to-primary-light text-white">
       <div className="container mx-auto px-4 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -21,13 +21,13 @@ const JoinSection = () => {
           <div className="flex gap-4 justify-center">
             <Link 
               href="/signup"
-              className="bg-white text-[#490878] px-8 py-3 rounded-full font-semibold hover:bg-opacity-90 transition-all"
+              className="bg-white text-primary-main px-8 py-3 rounded-full font-semibold hover:bg-opacity-90 transition-all"
             >
               Join Now
             </Link>
             <Link 
               href="/play"
-              className="bg-transparent border-2 border-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-[#490878] transition-all"
+              className="bg-transparent border-2 border-white px-8 py-3 rounded-full font-semibold hover:bg-white hover:text-primary-main transition-all"
             >
               Try Demo
             </Link>
