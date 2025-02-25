@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -26,7 +26,9 @@ import { GameModule } from './websocket-game comms/game.module';
 import { AchievementModule } from './achievement/achievement.module';
 import { SongGenreModule } from './song-genre/song-genre.module';
 import { SocialModule } from './social/social.module';
-import { AchievementModule } from './achievement/achievement.module';
+// import { AchievementModule } from './achievement/achievement.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import * as redisStore from 'cache-manager-redis-store';
 
 @Module({
   imports: [
@@ -45,6 +47,14 @@ import { AchievementModule } from './achievement/achievement.module';
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
+    }),
+    CacheModule.register({
+      store: redisStore,
+      socket: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT) || 6379,
+      },
+      ttl: 3600, 
     }),
     SongsModule,
     ChatRoomModule,
