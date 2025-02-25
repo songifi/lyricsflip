@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PropTypes from "prop-types";
 import { useGameStore } from "../../store/gameStore";
 
 const MCQOption = ({
@@ -28,6 +29,15 @@ const MCQOption = ({
   </button>
 );
 
+MCQOption.propTypes = {
+  option: PropTypes.string.isRequired,
+  isCorrect: PropTypes.bool.isRequired,
+  isSelected: PropTypes.bool.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  isAnswerSubmitted: PropTypes.bool.isRequired,
+  disabled: PropTypes.bool.isRequired,
+};
+
 const AnswerInput = ({ onAnswer }) => {
   const { getCurrentQuestion, handleAnswer, selectedDifficulty } =
     useGameStore();
@@ -39,7 +49,6 @@ const AnswerInput = ({ onAnswer }) => {
   const currentQuestion = getCurrentQuestion();
 
   useEffect(() => {
-    // Reset state when the question changes
     setUserAnswer("");
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
@@ -48,13 +57,10 @@ const AnswerInput = ({ onAnswer }) => {
 
   const validateAnswer = (answer) => {
     if (selectedDifficulty === "Beginner") {
-      // For MCQ, compare the full string (song title - artist)
       return answer === currentQuestion.correctAnswer;
     } else {
-      // For text input, only compare the song title
       const correctSongTitle = currentQuestion.correctAnswer.split(" - ")[0].toLowerCase().trim();
-      const userSongTitle = answer.toLowerCase().trim();
-      return correctSongTitle === userSongTitle;
+      return correctSongTitle === answer.toLowerCase().trim();
     }
   };
 
@@ -66,7 +72,6 @@ const AnswerInput = ({ onAnswer }) => {
     onAnswer(isCorrect);
   };
 
-  // Render MCQ for Beginner difficulty
   if (selectedDifficulty === "Beginner" && currentQuestion.options) {
     return (
       <div className="mb-4">
@@ -92,7 +97,6 @@ const AnswerInput = ({ onAnswer }) => {
     );
   }
 
-  // Default text input for Intermediate and Advanced
   return (
     <div className="w-full flex flex-col items-center justify-center space-y-4 mx-auto p-4">
       <input
@@ -133,6 +137,10 @@ const AnswerInput = ({ onAnswer }) => {
       </button>
     </div>
   );
+};
+
+AnswerInput.propTypes = {
+  onAnswer: PropTypes.func.isRequired,
 };
 
 export default AnswerInput;

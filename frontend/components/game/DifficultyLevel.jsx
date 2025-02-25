@@ -1,8 +1,19 @@
 import React from "react";
+import PropTypes from "prop-types";
 import { Star } from "lucide-react";
 
+/**
+ * DifficultyLevel Component
+ * Displays a difficulty label with a corresponding colored star icon.
+ *
+ * @param {string} difficulty - The difficulty level ("beginner", "intermediate", "expert").
+ */
 const DifficultyLevel = ({ difficulty }) => {
-  // determine star color based on difficulty
+  /**
+   * Determines star color based on difficulty level.
+   * @param {string} level - Difficulty level.
+   * @returns {string} - Corresponding hex color.
+   */
   const getStarColor = (level) => {
     switch (level?.toLowerCase()) {
       case "beginner":
@@ -27,6 +38,14 @@ const DifficultyLevel = ({ difficulty }) => {
       />
     </div>
   );
+};
+
+DifficultyLevel.propTypes = {
+  difficulty: PropTypes.oneOf(["beginner", "intermediate", "expert"]).isRequired,
+};
+
+DifficultyLevel.defaultProps = {
+  difficulty: "beginner", // Default difficulty level
 };
 
 export default DifficultyLevel;
