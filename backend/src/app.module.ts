@@ -33,6 +33,7 @@ import { SocialModule } from './social/social.module';
 // import { AchievementModule } from './achievement/achievement.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
@@ -46,6 +47,10 @@ import * as redisStore from 'cache-manager-redis-store';
     NotificationModule,
     ConfigModule,
     GameModule,
+    ThrottlerModule.forRoot({
+      ttl: 60, // Time window in seconds (1 minute)
+      limit: 10, // Max 10 requests per minute per user/IP
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
