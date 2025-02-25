@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Difficulty } from 'src/difficulty/entities/difficulty.entity';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('songs')
 export class Song {
@@ -17,8 +18,13 @@ export class Song {
   @Column()
   genre: string;
 
+  // @Column()
+  @ManyToOne(() => Difficulty)
+  @JoinColumn({name: 'difficultyId'})
+  difficulty: Difficulty;
+
   @Column()
-  difficulty: number;
+  difficultyId: string
 
   @Column({ default: 0 })
   playCount: number;

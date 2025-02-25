@@ -22,6 +22,22 @@ export class SongsController {
     return this.songsService.findAll();
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Get songs with filtering, sorting, and searching' })
+  async getSongs(
+    @Query('difficulty') difficultyId?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+    @Query('q') searchQuery?: string, // Added search parameter
+  ) {
+    return this.songsService.searchSongs(
+      searchQuery,
+      { difficultyId },
+      { field: sortBy, order: sortOrder },
+      
+    );
+  }
+
   @Get('search')
   @ApiOperation({ summary: 'Search songs' })
   search(@Query('q') query: string) {
