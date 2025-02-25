@@ -28,7 +28,7 @@ const GameCard = () => {
     <div className="relative">
       <div className="flex-col justify-center items-center p-4">
         <div className="flex justify-center items-center">
-          <div className="p-4 bg-[#F5F5F5] rounded-[24px] border border-[#DBE2E7]">
+          <div className="p-4 bg-gray-100 rounded-[24px] border border-gray-200">
             <motion.div
               className="relative w-[304px] h-[436px] mx-auto cursor-default rounded-[24px] overflow-hidden"
               animate={{
@@ -36,7 +36,7 @@ const GameCard = () => {
                 scale: isFlipped ? 0.96 : 1,
                 rotateX: isFlipped ? -3 : 0,
                 y: isFlipped ? [-10, 0] : 0,
-                boxShadow: isFlipped 
+                boxShadow: isFlipped
                   ? "0 25px 50px -12px rgba(113, 227, 199, 0.4)"
                   : "0 8px 24px -6px rgba(73, 9, 120, 0.2)"
               }}
@@ -52,19 +52,19 @@ const GameCard = () => {
                 perspective: "1000px",
                 willChange: "transform, box-shadow"
               }}
-              whileHover={{ 
+              whileHover={{
                 scale: 1.02,
                 transition: { type: "spring", stiffness: 150, damping: 15 }
               }}
-              whileTap={{ 
+              whileTap={{
                 scale: 0.98,
                 transition: { type: "spring", stiffness: 300, damping: 20 }
               }}
             >
               {/* Front Face */}
               <div
-                className="absolute inset-0 bg-[#70E3C7] p-4 rounded-[24px] backface-hidden"
-                style={{ 
+                className="absolute inset-0 bg-primary-light p-4 rounded-[24px] backface-hidden"
+                style={{
                   transform: "rotateY(0deg)",
                   backfaceVisibility: "hidden",
                   transformStyle: "preserve-3d",
@@ -101,8 +101,8 @@ const GameCard = () => {
 
               {/* Back Face */}
               <div
-                className="absolute inset-0 bg-[#70E3C7] p-4 rounded-[24px] backface-hidden"
-                style={{ 
+                className="absolute inset-0 bg-primary-light p-4 rounded-[24px] backface-hidden"
+                style={{
                   transform: "rotateY(180deg)",
                   backfaceVisibility: "hidden",
                   transformStyle: "preserve-3d"
@@ -110,7 +110,7 @@ const GameCard = () => {
               >
                 <motion.div
                   className="flex flex-col justify-center items-center min-h-full p-4"
-                  style={{ 
+                  style={{
                     transform: "rotateY(0deg) translateZ(1px)",
                     backfaceVisibility: "visible"
                   }}
