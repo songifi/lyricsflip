@@ -14,10 +14,7 @@ const contributorShape = PropTypes.shape({
 const Card = ({ contributor, index, className, ...props }) => {
   return (
     <div
-      className={cn(
-        "flex flex-col items-center w-[105px] h-[135px] sm:w-[305px] sm:h-[367px] p-4 border rounded-2xl shadow-lg bg-white relative hover:bg-[#70E3C7]",
-        className
-      )}
+      className={cn("flex flex-col items-center...", className )}
       {...props}
     >
       <div className="relative sm:mt-8">
