@@ -27,66 +27,65 @@ export function GameSetupForm({ onStart }) {
 
   return (
     <div className="space-y-6">
-    <div className="flex flex-col gap-2.5 items-start">
-      <p className="text-base text-black font-medium -mb-1">
-        Ready to show your lyrical prowess?🌚
-      </p>
-      <p className="text-[12px] text-[#666666]">
-        Fill in the form below to continue
-      </p>
-    </div>
-  
-    <div className="grid gap-4 md:grid-cols-2">
-      <div className="space-y-2 flex flex-col items-start">
-        <label
-          htmlFor="username"
-          className="text-sm font-medium text-[#212121]"
-        >
-          Username
-        </label>
-        <Input
-          id="username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="h-10 !border-2 !border-[#70E3C7]/30 hover:!border-[#70E3C7]/50 focus:!border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90"
-          aria-required="true"
-          aria-label="Enter your username"
-        />
+      <div className="flex flex-col gap-2.5 items-start">
+        <p className="text-base text-black font-medium -mb-1">
+          Ready to show your lyrical prowess?🌚
+        </p>
+        <p className="text-[12px] text-[#666666]">
+          Fill in the form below to continue
+        </p>
       </div>
-  
-      <div className="space-y-2 flex flex-col items-start">
-        <label htmlFor="genre" className="text-sm font-medium text-[#212121]">
-          Genre
-        </label>
-        <div className="h-10 w-full">
-          <Select aria-label="Select a genre">
-            <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
-              <SelectValue placeholder="Select genre" />
-            </SelectTrigger>
-            <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
-              <SelectItem
-                value="pop"
-                className="rounded-[6px] transition-colors duration-200 hover:bg-transparent"
-              >
-                Pop
-              </SelectItem>
-              <SelectItem value="rock">Rock</SelectItem>
-              <SelectItem value="hip-hop">Hip Hop</SelectItem>
-              <SelectItem value="jazz">Jazz</SelectItem>
-            </SelectContent>
-          </Select>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2 flex flex-col items-start">
+          <label
+            htmlFor="username"
+            className="text-sm font-medium text-text-primary"
+          >
+            Username
+          </label>
+          <Input
+            id="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="h-10 !border-2 !border-primary-light/30 hover:!border-primary-light/50 focus:!border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90"
+          />
         </div>
-      </div>
-  
-      <div className="space-y-2 flex flex-col items-start">
-        <label
-          htmlFor="difficulty"
-          className="text-sm font-medium text-[#212121]"
-        >
-          Difficulty Level
-        </label>
-        <div className="border-2 border-[rgba(113,227,199,0.3)] hover:border-[rgba(113,227,199,0.5)] rounded-lg transition-colors duration-300 w-full">
-          <DifficultySelect aria-label="Select difficulty level" />
+
+        <div className="space-y-2 flex flex-col items-start">
+          <label htmlFor="genre" className="text-sm font-medium text-text-primary">
+            Genre
+          </label>
+          <div className="h-10 w-full">
+            <Select>
+              <SelectTrigger className="h-10 border-2 border-primary-light/30 hover:border-primary-light/50 focus:border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+                <SelectValue placeholder="Select genre" />
+              </SelectTrigger>
+              <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
+                <SelectItem 
+                  value="pop"
+                  className="rounded-[6px] transition-colors duration-200 hover:bg-transparent"
+                >
+                  Pop
+                </SelectItem>
+                <SelectItem value="rock">Rock</SelectItem>
+                <SelectItem value="hip-hop">Hip Hop</SelectItem>
+                <SelectItem value="jazz">Jazz</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-2 flex flex-col items-start">
+          <label
+            htmlFor="difficulty"
+            className="text-sm font-medium text-text-primary"
+          >
+            Difficulty Level
+          </label>
+          <div className="border-2 border-[rgba(113,227,199,0.3)] hover:border-[rgba(113,227,199,0.5)] rounded-lg transition-colors duration-300 w-full">
+            <DifficultySelect />
+          </div>
         </div>
         <div className="space-y-2 flex flex-col items-start">
           <label
