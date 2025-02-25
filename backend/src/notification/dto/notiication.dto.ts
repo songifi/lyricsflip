@@ -12,8 +12,10 @@ export class NotificationDto {
   message: string;
 
   @IsEnum(NotificationType)
+  @IsNotEmpty()
   type: NotificationType;
 
   @IsEnum(NotificationStatus)
+  @IsNotEmpty()
   status: NotificationStatus;
 }

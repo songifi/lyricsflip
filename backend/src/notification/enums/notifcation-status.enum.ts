@@ -3,6 +3,6 @@ export enum NotificationStatus {
   UNREAD = 'unread',
   DELETED = 'deleted',
   SENT = 'sent',
-  PENDING = 'reading',
-  RECIPIENT_DELETED = 'recepient_deleted',
+  PENDING = 'pending',
+  RECIPIENT_DELETED = 'recipient_deleted',
 }
