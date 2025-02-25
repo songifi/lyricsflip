@@ -24,7 +24,11 @@ import { TournamentModule } from './tournament/tournament.module';
 import { GameGateway } from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
 import { AchievementModule } from './achievement/achievement.module';
+
+import { GameModeModule } from './game-mode/game-mode.module';
+
 import { SongGenreModule } from './song-genre/song-genre.module';
+
 import { SocialModule } from './social/social.module';
 // import { AchievementModule } from './achievement/achievement.module';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -63,7 +67,11 @@ import * as redisStore from 'cache-manager-redis-store';
     TournamentModule,
     AchievementModule,
     SocialModule,
+
+    GameModeModule,
+
     SongGenreModule,
+
   ],
   controllers: [AppController],
   providers: [
