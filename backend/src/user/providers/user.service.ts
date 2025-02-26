@@ -3,7 +3,7 @@ import { AuthService } from './../../auth/providers/auth.service';
 import { FindOneUserByEmailProvider } from './find-one-user-by-email.provider';
 import { User } from '../user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm'
+import { Repository } from 'typeorm';
 import { CreateUserProvider } from './create-user.services';
 import { UserDTO } from '../dtos/create-user.dto';
 import { CustomLoggerService } from '../../logger/custom-logger.service';
@@ -69,14 +69,16 @@ export class UserService {
   }
 
   public FindOneById(id: string): Promise<User | null> {
-    return this.userRepository.findOneBy({id});
-}
-//update password
+    return this.userRepository.findOneBy({ id });
+  }
+  //update password
 
-public async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
-  await this.userRepository.update(userId, { password: hashedPassword });
-}
-
+  public async updateUserPassword(
+    userId: string,
+    hashedPassword: string,
+  ): Promise<void> {
+    await this.userRepository.update(userId, { password: hashedPassword });
+  }
 
   // Placeholder for user-related business logic
   // Sign up a user.
@@ -110,5 +112,12 @@ public async updateUserPassword(userId: string, hashedPassword: string): Promise
   updateProfile() {
     // Implement profile update logic
     return 'userService: Update profile logic placeholder';
+  }
+
+  //Reward system integration
+  async completeLesson(userId: string) {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    user.points += 10;
+    return this.userRepository.save(user);
   }
 }

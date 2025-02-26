@@ -26,6 +26,8 @@ import { GameGateway } from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
 import { AchievementModule } from './achievement/achievement.module';
 
+import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
+
 import { GameModeModule } from './game-mode/game-mode.module';
 
 import { SongGenreModule } from './song-genre/song-genre.module';
@@ -76,11 +78,9 @@ import { ThrottlerModule } from '@nestjs/throttler';
     TournamentModule,
     AchievementModule,
     SocialModule,
-
+    MusicTheoryLessonModule,
     GameModeModule,
-
     SongGenreModule,
-
   ],
   controllers: [AppController],
   providers: [
