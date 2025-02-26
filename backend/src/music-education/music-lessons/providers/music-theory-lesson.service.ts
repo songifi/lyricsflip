@@ -9,7 +9,7 @@ export class MusicLessonsService {
     @InjectRepository(MusicLesson)
     private readonly lessonRepo: Repository<MusicLesson>,
   ) {}
-
+  //hey
   findAll() {
     return this.lessonRepo.find();
   }
