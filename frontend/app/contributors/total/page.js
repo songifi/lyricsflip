@@ -80,7 +80,7 @@ const Total = () => {
               contributors.map((contributor, index) => (
                 <tr
                   key={contributor.id}
-                  className="border-b last:border-b-0 hover:bg-[#70E3C7]"
+                  className="border-b last:border-b-0 hover:primary-light"
                 >
                   <td className="px-4 py-2 w-[150px] text-center">
                     <div className="flex items-center justify-between">
@@ -109,7 +109,6 @@ const Total = () => {
                       )}
                     </div>
                   </td>
-
                   <td className="flex flex-col gap-y-4 px-4 pt-3 items-center">
                     <div className="overflow-hidden">
                       <Image
@@ -156,22 +155,22 @@ const Total = () => {
               contributors.map((contributor, index) => (
                 <tr
                   key={contributor.id}
-                  className="border-b last:border-b-0 hover:bg-[#70E3C7]"
+                  className="border-b last:border-b-0 hover:primary-light"
                 >
                   <td className="px-1 py-2 text-center">
                     <div className="flex items-center justify-between">
-                      {index > 2 ? (
+                      {contributor.badge === "Number" ? (
                         <span className="w-9 text-base">{index + 1}</span>
                       ) : (
                         <div className="relative w-10 h-10">
                           <Image
                             src={
-                              index === 0
-                                ? "/Star.png"
-                                : index === 1
-                                ? "/Star2.png"
-                                : "/Star3.png"
-                            }
+                            contributor.badge === "gold"
+                              ? "/Star.png"
+                              : contributor.badge === "silver"
+                              ? "/Star2.png"
+                              : "/Star3.png"
+                          }
                             alt={`${contributor.badge} Star`}
                             width={24}
                             height={24}
@@ -184,6 +183,7 @@ const Total = () => {
                       )}
                     </div>
                   </td>
+
 
                   <td className="flex flex-col gap-y-4 px-2 pt-3 items-center">
                     <div className="overflow-hidden">

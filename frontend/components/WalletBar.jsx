@@ -25,8 +25,8 @@ const WalletBar = () => {
         <button
           onClick={handleConnect}
           disabled={isConnecting}
-          className="px-6 py-3 bg-gradient-to-r from-[#70E3C7] to-[#5ac7ad] text-black rounded-lg 
-                   hover:from-[#5ac7ad] hover:to-[#70E3C7] transition-all duration-300 
+          className="px-6 py-3 bg-gradient-to-r from-primary-light to-[#5ac7ad] text-black rounded-lg 
+                   hover:from-[#5ac7ad] hover:to-primary-light transition-all duration-300 
                    shadow-lg hover:shadow-xl hover:scale-105 active:scale-95
                    flex items-center gap-2 group relative overflow-hidden"
         >
