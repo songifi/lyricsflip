@@ -34,7 +34,7 @@ const page = () => {
             {contributorsList.slice(0, 4).map((contributor, index) => (
               <tr
                 key={contributor.id}
-                className="border-b last:border-b-0 hover:bg-[#70E3C7] "
+                className="border-b last:border-b-0 hover:bg-primary-light "
               >
                 {/* Badge Column */}
                 <td className="px-4 py-2 w-[130px] text-center">
@@ -120,7 +120,7 @@ const page = () => {
             {contributors.map((contributor, index) => (
               <tr
                 key={contributor.id}
-                className="border-b last:border-b-0 hover:bg-[#70E3C7]"
+                className="border-b last:border-b-0 hover:bg-primary-light"
               >
                 {/* Badge Column */}
                 <td className="px-1 py-2  text-center">

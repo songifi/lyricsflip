@@ -59,4 +59,7 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date; // Timestamp for the last account update
+
+  @Column({ default: 0 })
+  points: number;
 }
