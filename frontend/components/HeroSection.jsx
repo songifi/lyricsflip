@@ -1,62 +1,80 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import { FaMusic } from "react-icons/fa6"
-import { useGameStore } from "../store/gameStore"
-import GameSection from "../components/game/GameSection"
+import Link from "next/link";
+import { FaMusic, FaPlay } from "react-icons/fa6";
+import { IoInformationCircleOutline } from "react-icons/io5";
+import { useGameStore } from "../store/gameStore";
+import { useUIStore } from "../store/uiStore";
+import GameSection from "./game/GameSection";
+import { Modal } from "./ui/modal";
+import { GameSetupForm } from "./modal/GameSetupForm";
+import { StarBackground } from "./ui/StarBackground";
+import GeniusService from "@/services/geniusService";
+import { useState } from "react";
 
+export default function HeroSection() {
+  // Remove the GameSection prop
+  const { handleStartGame, isModalOpen, setIsModalOpen } = useGameStore();
+  const { showGame,  } = useUIStore();
 
-export default function HeroSection({ GameSection }) {
-  const { setGameStatus } = useGameStore()
-  const [showGame, setShowGame] = useState(false)
-
-  const handlePlayNow = () => {
-    setGameStatus("playing")
-    setShowGame(true)
-  }
 
   if (showGame) {
-    return <GameSection />
+    return <GameSection />; // Use the imported GameSection component
   }
 
   return (
-    <div>
-      <section
-      className="bg-cover bg-no-repeat min-h-screen flex items-center"
-      style={{ backgroundImage: "url('/img/hero-background.svg')" }}
-    >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-2xl lg:max-w-3xl xl:max-w-4xl relative z-[1]">
-            <h1 className="lg:mt-16 text-[40px] md:text-5xl lg:text-6xl xl:text-7xl font-semibold tracking-tight text-pretty text-[#490878]">
-              Sing <FaMusic className="inline text-[0.7em]" /> Guess <FaMusic className="inline text-[0.7em]" /> Earn
-            </h1>
-            <p className="mt-8 pt-8 text-lg md:text-xl lg:text-2xl font-medium text-gray-700 md:text-white sm:text-2xl/8">
-              Test your lyrical knowledge, flip the cards, and guess the song! Discover your favorite genres, wager
-              tokens, and compete for the top spot. Let the music challenge begin!
-            </p>
-            <div className="mt-6 sm:mt-8 flex flex-col md:flex-row gap-4">
-            <button
-                onClick={handlePlayNow}
-                className="w-full sm:w-auto text-sm sm:text-base font-semibold text-[#490878] px-6 py-3 text-center rounded-lg bg-[#70E3C7] hover:bg-[#5fcfb5] transition-colors duration-300"
-              >
-                Play Now
-              </button>
-              <Link
-                href="#"
-                className="w-full sm:w-auto text-sm sm:text-base font-semibold text-[#70E3C7] px-6 py-3 text-center rounded-lg border-2 border-[#70E3C7] hover:bg-[#70E3C7] hover:text-[#490878] transition-colors duration-300 relative z-[1]"
-              >
-                How to Play
-              </Link>
+    <div className="relative min-h-[800px] w-full overflow-hidden">
+      <StarBackground />
+
+      <section className="relative z-10 min-h-[800px] flex items-start pt-[200px]">
+        <div className="container mx-auto px-4 w-full">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-start">
+            <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl relative z-[1] ml-2 lg:ml-4">
+              <h1 className="text-[56px] font-[800] tracking-tight text-white leading-tight font-geist">
+                Sing, Guess and Earn
+              </h1>
+              <p className="mt-6 text-base sm:text-lg md:text-xl text-white max-w-xl font-inter font-[300]">
+                Test your lyrical knowledge, flip the cards, and guess the song!
+                Discover your favorite genres, wager tokens, and compete for the
+                top spot. Let the music challenge begin!
+              </p>
+              <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-primary-main rounded-lg bg-primary-light hover:bg-[#5fcfb5] transition-colors duration-300 flex items-center justify-center gap-2"
+                >
+                  <FaPlay className="text-lg" />
+                  Play Now
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const section = document.getElementById("howItWorks");
+                    if (section) {
+                      section.scrollIntoView({ behavior: "smooth" });
+                    }
+                  }}
+                  className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-primary-light rounded-lg border-2 border-primary-light hover:bg-primary-light hover:text-primary-main transition-colors duration-300 flex items-center justify-center gap-2"
+                >
+                  <IoInformationCircleOutline className="text-xl" />
+                  How to Play
+                </button>
+              </div>
             </div>
           </div>
-          <div className="absolute top-48 left-[50%] -translate-x-[50%] lg:relative lg:top-0 lg:left-0 lg:translate-x-0 mt-14 sm:mt-24 lg:mt-20 lg:shrink-0 lg:grow">
-            <FaMusic className="text-[220px] md:text-[250px] lg:text-[300px] xl:text-[350px] text-[#70E3C7] animate-customBounce" />
-          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Guess the song"
+      >
+        <GameSetupForm
+          onStart={handleStartGame}
+        />
+      </Modal>
     </div>
-  )
+  );
 }

@@ -29,6 +29,6 @@ export class LeaderboardController {
   @ApiResponse({ status: 200, description: 'Player rank successfully retrieved' })
   @ApiResponse({ status: 404, description: 'Player not found' })
   getPlayerRank() {
-    return this.leaderboardService.getPlayerRank();
+    return this.leaderboardService.getPlayerRank('player123');
   }
 }

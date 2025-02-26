@@ -113,3 +113,5 @@ const TrophySvg = () => (
     />
   </svg>
 );
+
+export default TrophySvg;

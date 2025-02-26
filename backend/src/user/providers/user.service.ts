@@ -69,8 +69,14 @@ export class UserService {
   }
 
   public FindOneById(id: string): Promise<User | null> {
-    return this.userRepository.findOneBy({ id });
-  }
+    return this.userRepository.findOneBy({id});
+}
+//update password
+
+public async updateUserPassword(userId: string, hashedPassword: string): Promise<void> {
+  await this.userRepository.update(userId, { password: hashedPassword });
+}
+
 
   // Placeholder for user-related business logic
   // Sign up a user.

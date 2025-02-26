@@ -10,6 +10,14 @@ pub struct Card {
     pub lyrics: ByteArray,
 }
 
+#[derive(Drop, Serde, starknet::Store)]
+pub struct PlayerStats {
+    pub total_rounds: u64,
+    pub rounds_won: u64,
+    pub current_streak: u64,
+    pub max_streak: u64,
+}
+
 #[derive(Drop, Copy, Serde, PartialEq, starknet::Store)]
 pub enum Genre {
     HipHop,
@@ -32,7 +40,7 @@ pub struct Entropy {
     pub seed: u64,
     pub block_number: u64,
     pub timestamp: u64,
-    pub index: u64
+    pub index: u64,
 }
 
 impl GenreIntoFelt252 of Into<Genre, felt252> {
@@ -95,6 +103,13 @@ impl Felt252TryIntoGenre of TryInto<felt252, Genre> {
 // }
 
 #[derive(Drop, Copy, Serde, starknet::Store)]
+pub enum Difficulty {
+    Easy,
+    Medium,
+    Hard,
+}
+
+#[derive(Drop, Copy, Serde, starknet::Store)]
 pub struct Round {
     pub round_id: u64,
     pub admin: ContractAddress,
@@ -106,4 +121,22 @@ pub struct Round {
     pub is_completed: bool,
     pub end_time: u64,
     pub next_card_index: u8,
+}
+
+#[derive(Drop, Clone, Serde)]
+pub struct QuestionCard<T> {
+    pub lyric: ByteArray,
+    pub timestamp: u64,
+    pub option_one: T,
+    pub option_two: T,
+    pub option_three: T,
+    pub option_four: T,
+}
+
+
+#[derive(Drop, Serde, starknet::Store)]
+pub enum Answer {
+    Artist: felt252,
+    Year: u64,
+    Title: ByteArray,
 }

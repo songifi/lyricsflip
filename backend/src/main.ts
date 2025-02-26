@@ -2,6 +2,9 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './utility/Swagger';
+import { SocketIOAdapter } from './config/socket-io.config';
+import { CustomThrottlerGuard } from './guards/throttler.guard';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Logger } from '@nestjs/common';
 import { CustomLoggerService } from './logger/custom-logger.service';
 import { UserService } from '../../backend/src/user/providers/user.service';
@@ -13,6 +16,9 @@ async function bootstrap() {
     
     
   });
+  app.useGlobalGuards(new CustomThrottlerGuard());
+
+  app.useWebSocketAdapter(new SocketIOAdapter(app));
 
   // const config = new DocumentBuilder()
   //   .setTitle('Songify LyricFlip API')

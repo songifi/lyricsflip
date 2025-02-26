@@ -6,8 +6,10 @@ import rankThree from "../public/leaderboard-img/rankThree.svg"
 import avatar from "../public/leaderboard-img/avatar.svg";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { IoMdArrowDropdown } from "react-icons/io";
-import HomeButton from "./ui/HomeButton";
-import PlayAgainButton from "./ui/PlayAgainButton"
+import { Modal } from "./ui/modal";
+import { GameSetupForm } from "./modal/GameSetupForm";
+import { useState } from "react";
+import { useGameStore } from "@/store/gameStore";
 
 
 const leaderboardData = [
@@ -22,6 +24,67 @@ const leaderboardData = [
 ];
 
 export default function Leaderboard() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { initializeGame, selectedDifficulty, username, setQuestions } =
+    useGameStore();
+
+  const handleStartGame = async () => {
+    if (!selectedDifficulty || !username) return;
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const geniusService = GeniusService.getInstance();
+      const snippets = await geniusService.getRandomLyricSnippets("", 20);
+      const filtered = snippets.filter(
+        (s) => s.difficulty === selectedDifficulty
+      );
+
+      if (filtered.length === 0) {
+        throw new Error("No questions available for selected difficulty");
+      }
+
+      const formatted = filtered.map((snippet) => {
+        const correctOption = `${snippet.songTitle} - ${snippet.artist}`;
+        const otherSongChoices = filtered
+          .filter((s) => s.songTitle !== snippet.songTitle)
+          .map((s) => `${s.songTitle} - ${s.artist}`);
+
+        const additionalOptions = [];
+        while (additionalOptions.length < 3 && otherSongChoices.length > 0) {
+          const randomIndex = Math.floor(
+            Math.random() * otherSongChoices.length
+          );
+          const randomChoice = otherSongChoices.splice(randomIndex, 1)[0];
+          additionalOptions.push(randomChoice);
+        }
+
+        const options = [correctOption, ...additionalOptions];
+        const shuffledOptions = options.sort(() => 0.5 - Math.random());
+
+        return {
+          lyricsSnippet: snippet.lyricsSnippet,
+          correctAnswer: correctOption,
+          difficulty: snippet.difficulty,
+          options: selectedDifficulty === "Beginner" ? shuffledOptions : [],
+        };
+      });
+
+      console.log("Formatted Questions:", formatted);
+      setQuestions(formatted);
+      initializeGame();
+    } catch (err) {
+      console.error("Game initialization failed:", err);
+      setError(err.message || "Failed to start game. Please try again.");
+    } finally {
+      setIsLoading(false);
+      setIsModalOpen(false);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8">
       {/*LeaderBoard header  */}
@@ -46,7 +109,6 @@ export default function Leaderboard() {
           </button>
         </div>
       </div>
-        
 
       {/* Leader board table */}
       <div className="max-w-5xl mx-auto p-4 md:p-8 bg-white rounded-2xl shadow-sm border overflow-auto">
@@ -70,10 +132,9 @@ export default function Leaderboard() {
               key={entry.rank}
               className={`
                 px-6 py-4
-                ${
-                  index >= 0
-                    ? "hover:bg-[#70E3C7] transition-colors ease-out-in"
-                    : ""
+                ${index == 0
+                  ? "bg-[#70E3C7] transition-colors ease-out-in"
+                  : ""
                 }
               `}
             >
@@ -135,7 +196,7 @@ export default function Leaderboard() {
                       {entry.username}
                     </div>
                     <div className="md:hidden text-xs md:text-sm ">
-                      <span className="text-[#490878] font-semibold">
+                      <span className="text-primary-main font-semibold">
                         {entry.points} Points
                       </span>
                       <span className="text-gray-500 w-full">
@@ -149,7 +210,7 @@ export default function Leaderboard() {
                 <div className="hidden md:flex flex-[0.45] col-span-3 font-bold text-black">
                   {entry.challenges}
                 </div>
-                <div className="hidden md:block col-span-3 text-[#490878]">
+                <div className="hidden md:block col-span-3 text-primary-main">
                   <span className=" font-semibold">
                     {entry.points.toLocaleString()}
                   </span>
@@ -167,7 +228,7 @@ export default function Leaderboard() {
             <button
               className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
               disabled
-              >
+            >
               <FaChevronLeft className="w-5 h-5" />
             </button>
             <button className="px-2 py-1 rounded bg-gray-100">1</button>
@@ -183,11 +244,14 @@ export default function Leaderboard() {
         </div>
       </div>
 
-      <div className="flex justify-center items-center gap-7 mt-5">
-      <HomeButton />
-         <PlayAgainButton />
-    </div>
 
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Guess the song"
+      >
+        <GameSetupForm onStart={handleStartGame} />
+      </Modal>
     </div>
   );
 }

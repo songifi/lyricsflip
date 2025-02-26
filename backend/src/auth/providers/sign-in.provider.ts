@@ -32,7 +32,9 @@ export class SignInProvider {
   public async SignIn(signInDto: SignInDto) {
     // check if user exist in db
     // throw error if user doesnt exist
-    let user = await this.userService.findUserByEmail(signInDto.email);
+    const user = await this.userService.findUserByEmail(signInDto.email);
+    if (!user) throw new UnauthorizedException('Invalid credentials');
+
 
     // conpare password
     let isCheckedPassword: boolean = false;
