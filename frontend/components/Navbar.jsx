@@ -12,10 +12,11 @@ import GeniusService from "@/services/geniusService";
 import { useGameStore } from "@/store/gameStore";
 import { useUIStore } from "../store/uiStore";
 
+  
 const navigation = [
   { name: "Play Game", href: "#", isScroll: false, isModal: true },
   { name: "How to Play", href: "#howItWorks", isScroll: true },
-  { name: "Categories", href: "#", isScroll: false },
+  { name: "Contributors", href: "/contributors/total", isScroll: false },
   { name: "Leaderboard", href: "leaderboard", isScroll: false },
   { name: "Notification", href: "#", isScroll: false },
 ];
@@ -39,9 +40,19 @@ const Navbar = () => {
 
   const handleScroll = useCallback(
     (e, item) => {
-      e.preventDefault();
       if (item.isModal) {
+        e.preventDefault();
         setIsModalOpen(true);
+        setMobileMenuOpen(false);
+      } else if (item.isScroll) {
+        const sectionId = item.href.replace("#", "");
+        const section = document.getElementById(sectionId);
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth" });
+        } else {
+          // In case the section isn't loaded yet
+          window.location.href = item.href;
+        }
         setMobileMenuOpen(false);
       }
     },
