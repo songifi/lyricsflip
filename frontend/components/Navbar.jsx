@@ -3,6 +3,7 @@
 import { useState, Fragment, useEffect, useCallback } from "react";
 import { Dialog, DialogPanel, Transition } from "@headlessui/react";
 import Link from "next/link";
+import { NotificationModal } from "./NotificationModal";
 import { MdOutlineMenu } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
 import { GameSetupForm } from "./modal/GameSetupForm";
@@ -12,7 +13,6 @@ import GeniusService from "@/services/geniusService";
 import { useGameStore } from "@/store/gameStore";
 import { useUIStore } from "../store/uiStore";
 
-  
 const navigation = [
   { name: "Play Game", href: "#", isScroll: false, isModal: true },
   { name: "How to Play", href: "#howItWorks", isScroll: true },
@@ -26,10 +26,7 @@ const Navbar = () => {
 
   const { handleStartGame, isModalOpen, setIsModalOpen } = useGameStore();
 
-  const {
-    mobileMenuOpen,
-    setMobileMenuOpen,
-  } = useUIStore();
+  const { mobileMenuOpen, setMobileMenuOpen } = useUIStore();
   // Remove these duplicate state declarations
   // const [isModalOpen, setIsModalOpen] = useState(false);
   // const [isLoading, setIsLoading] = useState(false);
@@ -59,8 +56,6 @@ const Navbar = () => {
     [setIsModalOpen, setMobileMenuOpen]
   );
 
-  
-
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -70,9 +65,10 @@ const Navbar = () => {
       <div className="flex-none">
         <Link href="/" className="-m-1.5 p-1.5">
           <span className="sr-only">LyricsFlip</span>
-          <img src="/assets/LyricsFlipLogo.svg"
-           alt="LyricFlip Logo"
-          width="65"
+          <img
+            src="/assets/LyricsFlipLogo.svg"
+            alt="LyricFlip Logo"
+            width="65"
           />
         </Link>
       </div>
@@ -113,10 +109,11 @@ const Navbar = () => {
           <Dialog.Panel className="fixed inset-y-0 right-0 z-50 w-full max-w-xs overflow-y-auto bg-[#040311] px-6 py-6">
             <div className="flex items-center justify-between">
               <span className="text-2xl font-bold text-white">
-              <img src="/assets/LyricsFlipLogo.svg"
-                alt="LyricFlip Logo"
-                width="30"
-              />
+                <img
+                  src="/assets/LyricsFlipLogo.svg"
+                  alt="LyricFlip Logo"
+                  width="30"
+                />
               </span>
               <button
                 type="button"
