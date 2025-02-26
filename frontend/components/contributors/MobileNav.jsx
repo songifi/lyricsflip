@@ -36,8 +36,8 @@ const MobileNav = () => {
   };
 
   return (
-    <div className="flex items-center justify-between px-8  bg-gray-100">
-      <button className="px-4 py-2 rounded-full bg-[#490878] text-white text-xs">
+    <div className="flex items-center justify-between px-8 bg-gray-100">
+      <button className="px-4 py-2 rounded-full bg-purple-800 text-white text-xs">
         {selected.label}
       </button>
 
@@ -46,7 +46,7 @@ const MobileNav = () => {
           <Listbox.Button className="flex items-center px-4 py-2 rounded-full bg-gray-100 text-xs border border-gray-300 text-black">
             See More <IoIosArrowDown className="ml-2 text-xs" />
           </Listbox.Button>
-          <Listbox.Options className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md border border-gray-200 z-50 ">
+          <Listbox.Options className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md border border-gray-200 z-50">
             {navItems.map((item) => (
               <Listbox.Option key={item.href} value={item} as={React.Fragment}>
                 {({ active }) => (
@@ -54,11 +54,11 @@ const MobileNav = () => {
                     href={item.href}
                     className={`block cursor-pointer px-4 py-2 text-sm transition duration-200 ${
                       active
-                        ? "bg-[#490878] text-white hover:bg-[#490878]"
-                        : "text-black hover:bg-[#490878] hover:text-white"
+                        ? "bg-purple-800 text-white"
+                        : "text-black hover:bg-purple-800 hover:text-white"
                     }`}
                   >
-                    <div className="flex justify-center ">
+                    <div className="flex justify-center">
                       <span>{item.label}</span>
                     </div>
                   </Link>
