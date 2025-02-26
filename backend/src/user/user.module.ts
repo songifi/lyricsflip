@@ -10,6 +10,7 @@ import { User } from './user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import jwtConfig from 'src/auth/authConfig/jwt.config';
+import { LoggerModule } from 'src/logger/logger.module';
 
 @Module({
   controllers: [UserController],
@@ -24,6 +25,7 @@ import jwtConfig from 'src/auth/authConfig/jwt.config';
     forwardRef(() => AuthModule),
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
+    LoggerModule,
   ],
   exports: [UserService, FindOneUserByEmailProvider],
 })

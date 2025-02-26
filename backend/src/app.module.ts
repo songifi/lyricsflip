@@ -17,6 +17,7 @@ import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
+import { LoggerModule } from './logger/logger.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
     NotificationModule,
     AdminModule,
     PlayerModule,
+    LoggerModule,
     ConfigModule,
     TypeOrmModule.forRoot({
       type: 'postgres',

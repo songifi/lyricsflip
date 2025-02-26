@@ -1,8 +1,9 @@
-import { Controller, Post, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Put, Body, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { UserService } from './providers/user.service';
 import { UserDTO } from './dtos/create-user.dto';
 import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard';
+import { LoggingInterceptor } from 'src/interceptors/logging.interceptor';
 //import { SignInDTO } from './dtos/sign-in.dto';
 //import { UpdateProfileDTO } from './dtos/update-profile.dto';
 //import { RefreshTokenDTO } from './dtos/refresh-token.dto';
@@ -10,6 +11,7 @@ import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard
 // Controller for managing user operations.
 @ApiTags('user')
 @Controller('user')
+@UseInterceptors(LoggingInterceptor)
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
