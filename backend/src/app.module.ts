@@ -24,6 +24,7 @@ import { TournamentModule } from './tournament/tournament.module';
 import { GameGateway } from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
 import { AchievementModule } from './achievement/achievement.module';
+import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
 import { SocialModule } from './social/social.module';
 import { AchievementModule } from './achievement/achievement.module';
 
@@ -52,6 +53,7 @@ import { AchievementModule } from './achievement/achievement.module';
     TournamentModule,
     AchievementModule,
     SocialModule,
+    MusicTheoryLessonModule,
   ],
   controllers: [AppController],
   providers: [
