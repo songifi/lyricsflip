@@ -112,7 +112,6 @@ export class SongsService {
       query.andWhere('song.difficultyId = :difficultyId', { difficultyId: filters.difficultyId })
       .getMany();
     }
-  
     
     // Integrated search
     if (searchQuery) {
