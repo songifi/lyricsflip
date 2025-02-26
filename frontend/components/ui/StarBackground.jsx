@@ -9,7 +9,7 @@ export function StarBackground() {
     if (!container) return;
 
     const createStars = () => {
-      const starCount = 600; // Number of stars
+      const starCount = 200; // Number of stars
       const stars = [];
       const colors = [
         "rgba(112, 226, 199, 0.8)", // Primary accent

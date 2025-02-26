@@ -21,7 +21,7 @@ const VisionSection = () => {
             transition={{ duration: 0.8 }}
             className="space-y-6"
           >
-            <h2 className="text-4xl font-bold text-[#490878]">Our Vision</h2>
+            <h2 className="text-4xl font-bold text-primary-main">Our Vision</h2>
             <p className="text-lg text-gray-700 leading-relaxed">
               We envision a world where music lovers can seamlessly blend their passion 
               for songs with interactive challenges, fostering a deeper appreciation for 
@@ -30,7 +30,7 @@ const VisionSection = () => {
             <div className="space-y-4">
               {visionPoints.map((item, index) => (
                 <div key={index} className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#70E3C7]" />
+                  <div className="w-2 h-2 rounded-full bg-primary-light" />
                   <span className="text-gray-700">{item}</span>
                 </div>
               ))}

@@ -3,9 +3,12 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { swaggerConfig, swaggerCustomOptions } from './utility/Swagger';
 import { SocketIOAdapter } from './config/socket-io.config';
+import { CustomThrottlerGuard } from './guards/throttler.guard';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useGlobalGuards(new CustomThrottlerGuard());
 
   app.useWebSocketAdapter(new SocketIOAdapter(app));
 
