@@ -10,22 +10,30 @@ import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
 import { StarBackground } from "./ui/StarBackground";
 import GeniusService from "@/services/geniusService";
-import { useState } from "react";
+import { useEffect } from "react";
+
+import { useGameSounds } from "@/hooks/useGameSound";
+import WelcomeModal from "./modal/welcomeModal";
 
 export default function HeroSection() {
-  // Remove the GameSection prop
   const { handleStartGame, isModalOpen, setIsModalOpen } = useGameStore();
-  const { showGame,  } = useUIStore();
+  const { playClick, playBackground, stopBackground } = useGameSounds();
+  const { showGame } = useUIStore();
 
+  useEffect(() => {
+    return () => {
+      stopBackground();
+    };
+  }, []);
 
   if (showGame) {
-    return <GameSection />; // Use the imported GameSection component
+    return <GameSection />;
   }
 
   return (
     <div className="relative min-h-[800px] w-full overflow-hidden">
       <StarBackground />
-
+      <WelcomeModal />
       <section className="relative z-10 min-h-[800px] flex items-start pt-[200px]">
         <div className="container mx-auto px-4 w-full">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-start">
@@ -40,7 +48,10 @@ export default function HeroSection() {
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={() => {
+                    playClick();
+                    setIsModalOpen(true);
+                  }}
                   className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-primary-main rounded-lg bg-primary-light hover:bg-[#5fcfb5] transition-colors duration-300 flex items-center justify-center gap-2"
                 >
                   <FaPlay className="text-lg" />
@@ -65,15 +76,12 @@ export default function HeroSection() {
           </div>
         </div>
       </section>
-
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Guess the song"
       >
-        <GameSetupForm
-          onStart={handleStartGame}
-        />
+        <GameSetupForm onStart={handleStartGame} />
       </Modal>
     </div>
   );
