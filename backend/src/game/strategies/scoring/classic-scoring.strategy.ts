@@ -1,0 +1,11 @@
+import { Injectable } from '@nestjs/common';
+import { ScoringStrategy } from '../strategies/scoring/scoring-strategy.interface';
+
+@Injectable()
+export class ClassicScoringStrategy implements ScoringStrategy {
+  calculateScore(gameData: any, playerId: string): number {
+    // Implementation based on classic mode rules
+    // Points for completed objectives, bonuses, etc.
+    return gameData.playerStats[playerId].points;
+  }
+}
