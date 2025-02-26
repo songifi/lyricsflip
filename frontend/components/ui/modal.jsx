@@ -1,119 +1,126 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Modal({ isOpen, onClose, title, children, className }) {
   const modalRef = useRef(null);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+  const handleEscape = useCallback((event) => {
+    if (event.key === "Escape") setShowConfirmClose(true);
+  }, []);
 
   useEffect(() => {
-    const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
-    }
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
+    } else {
       document.body.style.overflow = "unset";
-    };
-  }, [isOpen, onClose]);
+    }
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isOpen, handleEscape]);
 
   if (!isOpen) return null;
 
   const handleBackdropClick = (event) => {
-    if (
-      event.target === event.currentTarget ||
-      !modalRef.current?.contains(event.target)
-    ) {
-      onClose();
+    if (!modalRef.current?.contains(event.target)) {
+      setShowConfirmClose(true);
     }
   };
 
+  const confirmClose = () => {
+    setShowConfirmClose(false);
+    onClose();
+  };
+
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
-        >
+        <>
+          {/* Main Modal - Always present but conditionally hidden */}
           <motion.div
-            initial={{ 
-              opacity: 0,
-              y: -40,
-              scale: 0.8,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              transition: {
-                type: "spring",
-                stiffness: 400,
-                damping: 25,
-                mass: 0.5,
-                restDelta: 0.001
-              }
-            }}
-            exit={{
-              opacity: 0,
-              y: 20,
-              transition: { duration: 0.15 }
-            }}
+            key="main-modal"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             className={cn(
-              "relative w-full max-w-2xl rounded-[13px] bg-white shadow-lg",
-              className
+              "fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4",
+              showConfirmClose ? "pointer-events-none opacity-50" : ""
             )}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modal-title"
+            onClick={handleBackdropClick}
           >
-            <div className="flex items-center justify-between py-5 px-10 bg-background-paper text-text-primary rounded-t-[13px] border-b-[2px] sticky top-0 z-10">
-              <h2 id="modal-title" className="text-xl font-bold">
-                {title}
-              </h2>
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 p-1 group"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-7 w-7 text-primary-main transition-transform duration-300 hover:rotate-90"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
+            <motion.div
+              ref={modalRef}
+              initial={{ opacity: 0, y: -40, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, transition: { duration: 0.15 } }}
+              className={cn(
+                "relative w-full max-w-2xl rounded-lg bg-white shadow-lg",
+                className
+              )}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="modal-title"
+            >
+              <div className="flex items-center justify-between py-5 px-10 bg-background-paper text-text-primary rounded-t-lg border-b-2">
+                <h2 id="modal-title" className="text-xl font-bold">
+                  {title}
+                </h2>
+                <button
+                  onClick={() => setShowConfirmClose(true)}
+                  className="absolute top-4 right-4 p-1"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M6 18L18 6M6 6l12 12"
-                    className="origin-center transition-all duration-500 group-hover:opacity-0"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 10.586l4.95-4.95 1.414 1.414-4.95 4.95 4.95 4.95-1.414 1.414-4.95-4.95-4.95 4.95-1.414-1.414 4.95-4.95-4.95-4.95 1.414-1.414 4.95 4.95z"
-                    className="opacity-0 absolute inset-0 transition-all duration-500 group-hover:opacity-100"
-                  />
-                </svg>
-              </button>
-            </div>
-            <div className="py-6 px-10 max-h-[70vh] overflow-y-auto">
-              {children}
-            </div>
+                  <X className="h-7 w-7 text-primary-main transition-transform duration-300 hover:rotate-90" />
+                </button>
+              </div>
+              <div className="py-6 px-10 max-h-[70vh] overflow-y-auto">
+                {children}
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
+
+          {/* Confirmation Modal */}
+          {showConfirmClose && (
+            <motion.div
+              key="confirm-modal"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: -20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="w-full max-w-sm rounded-lg bg-white shadow-lg p-6 text-center"
+              >
+                <h3 className="text-lg font-semibold mb-4">Are you sure?</h3>
+                <p className="text-gray-600 mb-6">
+                  Do you really want to close the modal?
+                </p>
+                <div className="flex justify-center gap-4">
+                  <button
+                    className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600"
+                    onClick={confirmClose}
+                  >
+                    Yes, Close
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400"
+                    onClick={() => setShowConfirmClose(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </>
       )}
     </AnimatePresence>
   );

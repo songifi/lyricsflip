@@ -121,7 +121,7 @@ const Game = () => {
       {/* Game Overlay */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         {gameStatus !== "idle" && (
-          <div className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] flex flex-col">
+          <div className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] w-full  max-w-4xl mx-auto flex flex-col ">
             {/* Game Header */}
             <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
               <div className="flex flex-col items-start gap-2">
