@@ -1,12 +1,13 @@
 import {
-  Controller, 
-  Post, 
-  Put, 
-  Body, 
-  Get,  
-  Param, 
+  Controller,
+  Post,
+  Put,
+  Body,
+  Get,
+  Param,
   Delete,
-  UseGuards 
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { UserService } from './providers/user.service';
@@ -15,6 +16,7 @@ import { AccessTokenGuard } from 'src/auth/guard/access-token/access-token.guard
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/role.enum';
+import { LoggingInterceptor } from 'src/interceptors/logging.interceptor';
 //import { SignInDTO } from './dtos/sign-in.dto';
 //import { UpdateProfileDTO } from './dtos/update-profile.dto';
 //import { RefreshTokenDTO } from './dtos/refresh-token.dto';
@@ -24,6 +26,7 @@ import { UserRole } from 'src/common/enums/role.enum';
 @Controller('user')
 @UseGuards(RolesGuard) // guards to restrict specific User access to some routes
 
+@UseInterceptors(LoggingInterceptor)
 export class UserController {
  constructor(
    private readonly userService: UserService //dependency injection of userService
