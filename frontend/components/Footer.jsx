@@ -77,7 +77,8 @@ const Footer = () => {
                 <Link
                   key={index}
                   href="#"
-                  className="bg-primary-light hover:bg-primary-hover transition-colors p-2 rounded-full"
+                  className="bg-[#70E3C7] hover:bg-[#3CC8B9] transition-colors p-2 rounded-full"
+                  aria-label={`Follow us on ${label}`}
                 >
                   <Icon className="h-5 w-5 text-white" />
                 </Link>

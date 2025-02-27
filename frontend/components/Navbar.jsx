@@ -73,17 +73,16 @@ const Navbar = () => {
         </Link>
       </div>
 
-  <div className="flex lg:hidden flex-none">
-    <button
-      type="button"
-      onClick={handleMobileMenuToggle}
-      className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700 h-12 w-12"
-      aria-label="Open main menu"
-    >
-      <span className="sr-only">Open main menu</span>
-      <MdOutlineMenu aria-hidden="true" className="size-6 text-[#70E3C7]" />
-    </button>
-  </div>
+      <div className="flex lg:hidden flex-none">
+        <button
+          type="button"
+          onClick={handleMobileMenuToggle}
+          className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700 h-12 w-12"
+        >
+          <span className="sr-only">Open main menu</span>
+          <MdOutlineMenu aria-hidden="true" className="size-6 text-[#70E3C7]" />
+        </button>
+      </div>
 
   <div className="hidden flex-1 justify-end items-center lg:flex lg:gap-x-12 h-full ml-auto">
     {navigation.map((item) => (
@@ -152,18 +151,16 @@ const Navbar = () => {
         </Dialog>
       )}
 
-  {isModalOpen && (
-    <Modal
-      isOpen={true}
-      onClose={() => setIsModalOpen(false)}
-      title="Guess the song"
-      aria-labelledby="modal-title"
-    >
-      <GameSetupForm onStart={handleStartGame} />
-    </Modal>
-  )}
-</div>
-
+      {isModalOpen && (
+        <Modal
+          isOpen={true}
+          onClose={() => setIsModalOpen(false)}
+          title="Guess the song"
+        >
+          <GameSetupForm onStart={handleStartGame} />
+        </Modal>
+      )}
+    </div>
   );
 
   return (
