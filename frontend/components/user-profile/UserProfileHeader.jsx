@@ -20,7 +20,7 @@ const UserProfileHeader = () => {
           <button className="md:flex items-center hidden  justify-center gap-3 px-6 py-4 border border-[#DBE2E8] rounded-lg text-[#71E3C7] text-center text-base font-[160] leading-6">
             Edit Profile
           </button>
-          <div className="flex items-center justify-center gap-3 md:px-6 md:py-4 p-3 rounded-lg bg-[#71E3C7]">
+          <div className="flex items-center justify-center gap-3 md:px-6 font-primary md:py-4 p-3 rounded-lg bg-[#71E3C7]">
             <span>
               <Image
                 src="/userprofile-img/layer.svg"
@@ -33,7 +33,7 @@ const UserProfileHeader = () => {
           </div>
         </div>
       </div>
-      <span className="mt-2 font-medium">thetimileyin</span>
+      <span className="mt-2 font-medium font-primary">thetimileyin</span>
     </div>
   );
 };
