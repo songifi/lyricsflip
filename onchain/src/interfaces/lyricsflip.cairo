@@ -1,4 +1,5 @@
-use lyricsflip::utils::types::{Card, Genre, Round, Answer};
+use lyricsflip::utils::types::{Card, Genre, Round, Answer, PlayerStats};
+
 use starknet::ContractAddress;
 
 #[starknet::interface]
@@ -22,9 +23,8 @@ pub trait ILyricsFlip<TContractState> {
     fn set_cards_per_round(ref self: TContractState, value: u8);
     fn add_card(ref self: TContractState, card: Card);
     fn set_role(
-        ref self: TContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+        ref self: TContractState, recipient: ContractAddress, role: felt252, is_enable: bool,
     );
-
-    //TODO
-    fn submit_answer(self: @TContractState, answer: Answer) -> bool;
+    fn get_player_stat(self: @TContractState, player: ContractAddress) -> PlayerStats;
+    fn submit_answer(ref self: TContractState, round_id: u64, answer: Answer) -> bool;
 }

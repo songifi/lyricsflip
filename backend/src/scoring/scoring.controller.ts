@@ -7,28 +7,30 @@ import { UpdateScoringDto } from './dto/update-scoring.dto';
 export class ScoringController {
   constructor(private readonly scoringService: ScoringService) {}
 
-  @Post()
-  create(@Body() createScoringDto: CreateScoringDto) {
-    return this.scoringService.create(createScoringDto);
+  @Post('record')
+  async recordScore(@Body() createScoringDto: CreateScoringDto) {
+    return await this.scoringService.recordScore(createScoringDto.userId, createScoringDto.score);
   }
 
-  @Get()
-  findAll() {
-    return this.scoringService.findAll();
+
+  @Get('rankings')
+  async calculateRankings() {
+    return await this.scoringService.calculateRankings();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.scoringService.findOne(+id);
+  @Get('user/:userId')
+  async getUserStatistics(@Param('userId') userId: string) {
+    return await this.scoringService.getUserStatistics(userId);
+  }
+
+  @Get('leaderboard')
+  async getLeaderboard() {
+    return await this.scoringService.getLeaderboard();
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateScoringDto: UpdateScoringDto) {
-    return this.scoringService.update(+id, updateScoringDto);
+  async updateScore(@Param('id') id: number, @Body() updateScoringDto: UpdateScoringDto) {
+    return await this.scoringService.updateScore(id, updateScoringDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.scoringService.remove(+id);
-  }
 }

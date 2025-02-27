@@ -1,25 +1,40 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-<<<<<<< HEAD
-import { Redirect, router } from 'expo-router'
+import React, { useEffect, useState } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Redirect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import OnboardingScreen from "./screens/onboarding/OnboardingScreen";
+import SplashScreen from "./components/SplashScreen";
 
-export default function () {
+export default function Index() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOnboardingStatus = async () => {
+      try {
+        const hasSeenOnboarding = await AsyncStorage.getItem(
+          "hasSeenOnboarding"
+        );
+        setShowOnboarding(hasSeenOnboarding !== "true");
+      } catch (error) {
+        console.error("Error reading AsyncStorage:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOnboardingStatus();
+  }, []);
+
+  if (loading) return <SplashScreen />;
+
   return (
-    // <View style={{margin: 50, backgroundColor: '#ccc', padding: 20}}>
-    //   <Text onPress={() => router.push("/(tabs)")}>TABS</Text>
-    // </View>
-
-    <Redirect href='/(drawer)/(tabs)' />
-=======
-import OnboardingScreen from "./screens/onboarding/onboarding.screen";
-
-export default function index() {
-  return (
-    <View>
- <OnboardingScreen />
-    </View>
->>>>>>> 4b52bc85332eecc28d69d39ab2f4c88bc262745a
-  )
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      {showOnboarding ? (
+        <OnboardingScreen />
+      ) : (
+        <Redirect href="/(drawer)/(tabs)" />
+      )}
+    </GestureHandlerRootView>
+  );
 }
-
-const styles = StyleSheet.create({})

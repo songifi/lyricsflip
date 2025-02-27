@@ -4,7 +4,8 @@ pub mod LyricsFlip {
     use core::poseidon::PoseidonTrait;
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
-    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer};
+
+    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer, PlayerStats};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin_access::accesscontrol::{AccessControlComponent};
     use openzeppelin_access::ownable::OwnableComponent;
@@ -47,6 +48,11 @@ pub mod LyricsFlip {
         >, // round_id -> player_index -> player_address
         round_players_count: Map<u64, u256>,
         round_cards: Map<u64, Vec<u64>>, // round_id -> vec<card_ids>
+        player_stats: Map<ContractAddress, PlayerStats>, // player_address -> PlayerStats
+        round_ready_players: Map<
+            u64, Map<ContractAddress, bool>
+        >, // round_id -> player_address -> is_ready
+        round_ready_count: Map<u64, u256>,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
         #[substorage(v0)]
@@ -63,6 +69,7 @@ pub mod LyricsFlip {
         RoundStarted: RoundStarted,
         RoundJoined: RoundJoined,
         SetCardPerRound: SetCardPerRound,
+        PlayerReady: PlayerReady,
         #[flat]
         OwnableEvent: OwnableComponent::Event,
         #[flat]
@@ -103,6 +110,15 @@ pub mod LyricsFlip {
         #[key]
         pub old_value: u8,
         pub new_value: u8,
+    }
+
+    #[derive(Drop, starknet::Event)]
+    pub struct PlayerReady {
+        #[key]
+        pub round_id: u64,
+        #[key]
+        pub player: ContractAddress,
+        pub ready_time: u64,
     }
 
     const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
@@ -197,23 +213,75 @@ pub mod LyricsFlip {
             let caller_address = get_caller_address();
             let round = self.rounds.entry(round_id);
 
-            //TODO: check if caller is an admin or round participant
-            assert(round.admin.read() == caller_address, Errors::NOT_ROUND_ADMIN);
+            //check if caller is a participant
+            assert(self._is_round_player(round_id, caller_address), Errors::NOT_A_PARTICIPANT);
 
-            let start_time = get_block_timestamp();
-            round.start_time.write(start_time);
-            round.is_started.write(true);
+            //check if caller has already signaled readiness
+            let is_ready = self.round_ready_players.entry(round_id).entry(caller_address).read();
+            assert(!is_ready, Errors::ALREADY_READY);
+
+            let round_players_count = self.round_players_count.entry(round_id).read();
+            let mut round_players = array![];
+            let mut idx = 0;
+            while (idx < round_players_count) {
+                round_players.append(self.round_players.entry(round_id).entry(idx).read());
+                idx += 1;
+            };
+
+            let mut index = 0_u32;
+            let mut i = 0_u256;
+            while (i < round_players_count) {
+                let curr_player: ContractAddress = *round_players.at(index);
+                let curr_player_stat = self.player_stats.entry(curr_player).read();
+                let new_total_rounds = curr_player_stat.total_rounds + 1;
+                let new_stats = PlayerStats {
+                    total_rounds: new_total_rounds,
+                    rounds_won: curr_player_stat.rounds_won,
+                    current_streak: curr_player_stat.current_streak,
+                    max_streak: curr_player_stat.max_streak
+                };
+
+                self.player_stats.entry(curr_player).write(new_stats);
+                index += 1;
+                i += 1;
+            };
 
             //TODO: call the next_card function to get the first QuestionCard
+            // mark player as ready
+            self.round_ready_players.entry(round_id).entry(caller_address).write(true);
 
+            // update ready players count
+            let ready_count = self.round_ready_count.entry(round_id).read() + 1;
+            self.round_ready_count.entry(round_id).write(ready_count);
+
+            // Emit player ready event
             self
                 .emit(
-                    Event::RoundStarted(
-                        RoundStarted {
-                            round_id, admin: round.admin.read(), start_time: start_time,
-                        },
-                    ),
+                    Event::PlayerReady(
+                        PlayerReady {
+                            round_id, player: caller_address, ready_time: get_block_timestamp(),
+                        }
+                    )
                 );
+
+            // check if all players are ready and start round
+            let total_players = self.round_players_count.entry(round_id).read();
+            if ready_count == total_players {
+                let start_time = get_block_timestamp();
+                round.start_time.write(start_time);
+                round.is_started.write(true);
+
+                self
+                    .emit(
+                        Event::RoundStarted(
+                            RoundStarted {
+                                round_id, admin: round.admin.read(), start_time: start_time,
+                            },
+                        ),
+                    );
+            }
+            //TODO: call the next_card function to get the first QuestionCard
+
         }
 
         fn join_round(ref self: ContractState, round_id: u64) {
@@ -312,7 +380,7 @@ pub mod LyricsFlip {
         }
 
         fn set_role(
-            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool,
         ) {
             self._set_role(recipient, role, is_enable);
         }
@@ -334,9 +402,38 @@ pub mod LyricsFlip {
             cards.span()
         }
 
-        // TODO
-        fn submit_answer(self: @ContractState, answer: Answer) -> bool {
-            false
+        fn submit_answer(ref self: ContractState, round_id: u64, answer: Answer) -> bool {
+            // Verify round exists
+            assert(self.rounds.entry(round_id).round_id.read() != 0, Errors::NON_EXISTING_ROUND);
+
+            let caller_address = get_caller_address();
+
+            // Verify caller is a participant
+            assert(self._is_round_player(round_id, caller_address), Errors::NOT_A_PARTICIPANT);
+
+            let round = self.rounds.entry(round_id).read();
+
+            // Verify round has started and not completed
+            assert(round.is_started, Errors::ROUND_NOT_STARTED);
+            assert(!round.is_completed, Errors::ROUND_COMPLETED);
+
+            // Get current card index and card
+            let current_index = round.next_card_index - 1;
+
+            let round_cards = self.round_cards.entry(round_id);
+            let current_card_id = round_cards.at((current_index).into()).read();
+            let current_card = self.cards.entry(current_card_id).read();
+
+            // Compare answer with card data
+            match answer {
+                Answer::Artist(value) => { value == current_card.artist },
+                Answer::Year(value) => { value == current_card.year },
+                Answer::Title(value) => { value == current_card.title }
+            }
+        }
+
+        fn get_player_stat(self: @ContractState, player: ContractAddress) -> PlayerStats {
+            self.player_stats.entry(player).read()
         }
     }
 
@@ -429,7 +526,7 @@ pub mod LyricsFlip {
         }
 
         fn _set_role(
-            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool
+            ref self: ContractState, recipient: ContractAddress, role: felt252, is_enable: bool,
         ) {
             self.ownable.assert_only_owner();
             self.accesscontrol.assert_only_role(ADMIN_ROLE);

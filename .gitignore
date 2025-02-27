@@ -4,3 +4,5 @@
 
 /backend/.env
 node_modules
+backend/dist/
+backend/dist/

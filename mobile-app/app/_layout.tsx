@@ -1,41 +1,49 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import "../global.css";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
+import "react-native-reanimated";
+import SplashScreenUI from "./components/SplashScreen";
 
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { useColorScheme } from "@/hooks/useColorScheme";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [splashVisible, setSplashVisible] = useState(true);
+
   const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    Bricolage: require("../assets/fonts/Bricolage.ttf"),
+    Inter: require("../assets/fonts/Inter.ttf"),
   });
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    SplashScreen.hideAsync();
+    setTimeout(() => {
+      setSplashVisible(false);
+    }, 5000);
+  }, []);
 
-  if (!loaded) {
-    return null;
+  if (splashVisible && !loaded) {
+    return (
+     <SplashScreenUI />
+    );
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-<<<<<<< HEAD
-      <Stack screenOptions={{headerShown: false}}>
-        <Stack.Screen name='index' options={{headerShown: false}} />
-=======
+    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
->>>>>>> 4b52bc85332eecc28d69d39ab2f4c88bc262745a
+        <Stack.Screen name="screens/auth" options={{ title: "Auth" }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

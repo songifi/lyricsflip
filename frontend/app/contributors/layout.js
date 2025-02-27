@@ -4,7 +4,7 @@ import Head from "@/components/contributors/Head";
 export default function DashboardLayout({ children }) {
   return (
     <div className="flex overflow-y-auto">
-      <div className="hidden md:block md:w-[384px] bg-[#490878]">
+      <div className="hidden md:block md:w-[384px] bg-primary-main">
         <Sidebar />
       </div>
 
