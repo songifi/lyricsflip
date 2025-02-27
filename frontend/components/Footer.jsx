@@ -27,58 +27,52 @@ const Footer = () => {
           {/* Navigation and Social Links */}
           <div className="flex flex-col md:flex-col gap-5 items-center md:items-end space-y-3 md:space-y-0">
             {/* Navigation Links */}
-            <nav className="flex flex-wrap gap-4 text-xs font-[geist]" aria-label="Footer navigation">
+            <nav className="flex flex-wrap gap-4 text-xs font-[geist]">
               <Link
                 href="/play"
                 className="hover:text-gray-300 transition-colors"
-                aria-label="Play the game"
               >
                 Play Game
               </Link>
               <Link
                 href="/about"
                 className="hover:text-gray-300 transition-colors"
-                aria-label="About the game"
               >
                 About Us
               </Link>
               <Link
                 href="/contact"
                 className="hover:text-gray-300 transition-colors"
-                aria-label="Contact us"
               >
                 Contact Us
               </Link>
               <Link
                 href="/privacy"
                 className="hover:text-gray-300 transition-colors"
-                aria-label="Privacy policy"
               >
                 Privacy Policy
               </Link>
               <Link
                 href="/terms"
                 className="hover:text-gray-300 transition-colors"
-                aria-label="Terms of service"
               >
                 Terms of Service
               </Link>
             </nav>
 
             {/* Social Media Icons */}
-            <div className="flex gap-14 md:gap-8" aria-label="Social media links">
+            <div className="flex gap-14 md:gap-8">
               {[
-                { Icon: BsEnvelope, label: "Email" },
-                { Icon: FaInstagram, label: "Instagram" },
-                { Icon: CiFacebook, label: "Facebook" },
-                { Icon: FaXTwitter, label: "Twitter" },
-                { Icon: PiDiscordLogo, label: "Discord" },
-              ].map(({ Icon, label }, index) => (
+                BsEnvelope,
+                FaInstagram,
+                CiFacebook,
+                FaXTwitter,
+                PiDiscordLogo,
+              ].map((Icon, index) => (
                 <Link
                   key={index}
                   href="#"
-                  className="bg-[#70E3C7] hover:bg-[#3CC8B9] transition-colors p-2 rounded-full"
-                  aria-label={`Follow us on ${label}`}
+                  className="bg-primary-light hover:bg-primary-hover transition-colors p-2 rounded-full"
                 >
                   <Icon className="h-5 w-5 text-white" />
                 </Link>
