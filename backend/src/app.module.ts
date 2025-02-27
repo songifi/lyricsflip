@@ -19,6 +19,7 @@ import { LoggerModule } from './logger/logger.module';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
+import { QuestionsModule } from './questions/questions.module';
 import { PowerUpModule } from './power-ups/power-up.module';
 import { TournamentService } from './tournament/tournament.service';
 import { TournamentModule } from './tournament/tournament.module';
@@ -63,6 +64,12 @@ import { ThrottlerModule } from '@nestjs/throttler';
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
     }),
+<<<<<<< HEAD
+    QuestionsModule,
+<<<<<<< HEAD
+    
+=======
+=======
     CacheModule.register({
       store: redisStore,
       socket: {
@@ -72,6 +79,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
       ttl: 3600, 
     }),
     SongsModule,
+>>>>>>> aa333f7f48426058a0826a4038e906a9f86a3915
     ChatRoomModule,
     ScoringModule,
     PowerUpModule,
