@@ -12,12 +12,30 @@ export class GameSession {
   @Column({ type: "timestamp", nullable: true })
   endTime: Date;
 
+  @Column({ type: "enum", enum: ["active", "completed", "canceled"], default: "active" })
+  status: string;
+
+  @Column({ type: "int", default: 4 })
+  maxPlayers: number;
+
+  @Column({ type: "decimal", nullable: true })
+  score: number;
+
+  @Column({ type: "varchar", nullable: true })
+  location: string;
+
+  @Column({ type: "json", nullable: true })
+  metadata: Record<string, any>;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToMany(() => Player, player => player.gameSessions)
+  @Column()
+  description: string;
+
+  @ManyToMany(() => Player, player => player.gameSessions, { cascade: true })
   players: Player[];
 }
