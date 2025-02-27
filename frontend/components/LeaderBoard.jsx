@@ -6,8 +6,6 @@ import rankThree from "../public/leaderboard-img/rankThree.svg"
 import avatar from "../public/leaderboard-img/avatar.svg";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { IoMdArrowDropdown } from "react-icons/io";
-import HomeButton from "./ui/HomeButton"; 
-import PlayAgainButton from "./ui/PlayAgainButton"
 import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
 import { useState } from "react";
@@ -198,7 +196,7 @@ export default function Leaderboard() {
                       {entry.username}
                     </div>
                     <div className="md:hidden text-xs md:text-sm ">
-                      <span className="text-[#490878] font-semibold">
+                      <span className="text-primary-main font-semibold">
                         {entry.points} Points
                       </span>
                       <span className="text-gray-500 w-full">
@@ -212,7 +210,7 @@ export default function Leaderboard() {
                 <div className="hidden md:flex flex-[0.45] col-span-3 font-bold text-black">
                   {entry.challenges}
                 </div>
-                <div className="hidden md:block col-span-3 text-[#490878]">
+                <div className="hidden md:block col-span-3 text-primary-main">
                   <span className=" font-semibold">
                     {entry.points.toLocaleString()}
                   </span>
@@ -246,10 +244,6 @@ export default function Leaderboard() {
         </div>
       </div>
 
-      <div className="flex justify-center items-center gap-7 mt-5">
-        <HomeButton />
-        <PlayAgainButton  />
-      </div>
 
       <Modal
         isOpen={isModalOpen}

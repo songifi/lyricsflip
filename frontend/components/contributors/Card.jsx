@@ -3,7 +3,7 @@ import Image from "next/image";
 
 const Card = ({ contributor, index }) => {
   return (
-    <div className="flex flex-col items-center w-[105px]  h-[135px]  sm:w-[305px]  sm:h-[367px] p-4 border rounded-2xl shadow-lg bg-white relative hover:bg-[#70E3C7]">
+    <div className="flex flex-col items-center w-[105px]  h-[135px]  sm:w-[305px]  sm:h-[367px] p-4 border rounded-2xl shadow-lg bg-white relative hover:bg-primary-light">
       <div className="relative sm:mt-8">
         <Image
           src={contributor.img2}

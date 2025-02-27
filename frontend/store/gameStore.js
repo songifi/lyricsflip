@@ -1,4 +1,5 @@
 // gameStore.js
+import GeniusService from "@/services/geniusService";
 import { create } from "zustand";
 
 const POINTS_PER_CORRECT = 10;
@@ -160,4 +161,61 @@ export const useGameStore = create((set, get) => ({
       points: 0,
       questions: [],
     }),
+
+  setIsModalOpen: (isOpen) => set({ isModalOpen: isOpen }),
+  
+  handleStartGame: async () => {
+    const { selectedDifficulty, username, setQuestions, initializeGame } = get();
+    
+    if (!selectedDifficulty || !username) return;
+
+    set({ isLoading: true, error: null });
+
+    try {
+      const geniusService = GeniusService.getInstance();
+      const snippets = await geniusService.getRandomLyricSnippets("", 20);
+      const filtered = snippets.filter(
+        (s) => s.difficulty === selectedDifficulty
+      );
+
+      if (filtered.length === 0) {
+        throw new Error("No questions available for selected difficulty");
+      }
+
+      const formatted = filtered.map((snippet) => {
+        const correctOption = `${snippet.songTitle} - ${snippet.artist}`;
+        const otherSongChoices = filtered
+          .filter((s) => s.songTitle !== snippet.songTitle)
+          .map((s) => `${s.songTitle} - ${s.artist}`);
+
+        const additionalOptions = [];
+        while (additionalOptions.length < 3 && otherSongChoices.length > 0) {
+          const randomIndex = Math.floor(Math.random() * otherSongChoices.length);
+          const randomChoice = otherSongChoices.splice(randomIndex, 1)[0];
+          additionalOptions.push(randomChoice);
+        }
+
+        const options = [correctOption, ...additionalOptions];
+        const shuffledOptions = options.sort(() => 0.5 - Math.random());
+
+        return {
+          lyricsSnippet: snippet.lyricsSnippet,
+          correctAnswer: correctOption,
+          songTitle: snippet.songTitle, 
+          artist: snippet.artist, 
+          difficulty: snippet.difficulty,
+          options: selectedDifficulty === "Beginner" ? shuffledOptions : [],
+        };
+      });
+
+      setQuestions(formatted);
+      initializeGame();
+    } catch (err) {
+      console.error("Game initialization failed:", err);
+      set({ error: err.message || "Failed to start game. Please try again." });
+    } finally {
+      set({ isLoading: false, isModalOpen: false });
+    }
+  },
+
 }));
