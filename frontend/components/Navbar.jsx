@@ -3,6 +3,7 @@
 import { useState, Fragment, useEffect, useCallback } from "react";
 import { Dialog, DialogPanel, Transition } from "@headlessui/react";
 import Link from "next/link";
+import { NotificationModal } from "./NotificationModal";
 import { MdOutlineMenu } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
 import { GameSetupForm } from "./modal/GameSetupForm";
@@ -15,7 +16,7 @@ import { useUIStore } from "../store/uiStore";
 const navigation = [
   { name: "Play Game", href: "#", isScroll: false, isModal: true },
   { name: "How to Play", href: "#howItWorks", isScroll: true },
-  { name: "Categories", href: "#", isScroll: false },
+  { name: "Contributors", href: "/contributors/total", isScroll: false },
   { name: "Leaderboard", href: "leaderboard", isScroll: false },
   { name: "Notification", href: "#", isScroll: false },
 ];
@@ -25,10 +26,7 @@ const Navbar = () => {
 
   const { handleStartGame, isModalOpen, setIsModalOpen } = useGameStore();
 
-  const {
-    mobileMenuOpen,
-    setMobileMenuOpen,
-  } = useUIStore();
+  const { mobileMenuOpen, setMobileMenuOpen } = useUIStore();
   // Remove these duplicate state declarations
   // const [isModalOpen, setIsModalOpen] = useState(false);
   // const [isLoading, setIsLoading] = useState(false);
@@ -39,16 +37,24 @@ const Navbar = () => {
 
   const handleScroll = useCallback(
     (e, item) => {
-      e.preventDefault();
       if (item.isModal) {
+        e.preventDefault();
         setIsModalOpen(true);
+        setMobileMenuOpen(false);
+      } else if (item.isScroll) {
+        const sectionId = item.href.replace("#", "");
+        const section = document.getElementById(sectionId);
+        if (section) {
+          section.scrollIntoView({ behavior: "smooth" });
+        } else {
+          // In case the section isn't loaded yet
+          window.location.href = item.href;
+        }
         setMobileMenuOpen(false);
       }
     },
     [setIsModalOpen, setMobileMenuOpen]
   );
-
-  
 
   useEffect(() => {
     setIsMounted(true);
@@ -59,9 +65,10 @@ const Navbar = () => {
       <div className="flex-none">
         <Link href="/" className="-m-1.5 p-1.5">
           <span className="sr-only">LyricsFlip</span>
-          <img src="/assets/LyricsFlipLogo.svg"
-           alt="LyricFlip Logo"
-          width="65"
+          <img
+            src="/assets/LyricsFlipLogo.svg"
+            alt="LyricFlip Logo"
+            width="65"
           />
         </Link>
       </div>
@@ -102,10 +109,11 @@ const Navbar = () => {
           <Dialog.Panel className="fixed inset-y-0 right-0 z-50 w-full max-w-xs overflow-y-auto bg-[#040311] px-6 py-6">
             <div className="flex items-center justify-between">
               <span className="text-2xl font-bold text-white">
-              <img src="/assets/LyricsFlipLogo.svg"
-                alt="LyricFlip Logo"
-                width="30"
-              />
+                <img
+                  src="/assets/LyricsFlipLogo.svg"
+                  alt="LyricFlip Logo"
+                  width="30"
+                />
               </span>
               <button
                 type="button"
@@ -127,7 +135,7 @@ const Navbar = () => {
                         handleScroll(e, item);
                         setMobileMenuOpen(false);
                       }}
-                      className="block px-3 py-2 text-base font-semibold text-white hover:bg-[#70E3C7]/20"
+                      className="block px-3 py-2 text-base font-semibold text-white hover:bg-primary-light/20"
                     >
                       {item.name}
                     </Link>

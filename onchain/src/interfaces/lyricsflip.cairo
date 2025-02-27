@@ -25,9 +25,6 @@ pub trait ILyricsFlip<TContractState> {
     fn set_role(
         ref self: TContractState, recipient: ContractAddress, role: felt252, is_enable: bool,
     );
-
     fn get_player_stat(self: @TContractState, player: ContractAddress) -> PlayerStats;
-
-    //TODO
-    fn submit_answer(self: @TContractState, answer: Answer) -> bool;
+    fn submit_answer(ref self: TContractState, round_id: u64, answer: Answer) -> bool;
 }

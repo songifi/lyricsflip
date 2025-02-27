@@ -40,7 +40,7 @@ export function GameSetupForm({ onStart }) {
         <div className="space-y-2 flex flex-col items-start">
           <label
             htmlFor="username"
-            className="text-sm font-medium text-[#212121]"
+            className="text-sm font-medium text-text-primary"
           >
             Username
           </label>
@@ -48,20 +48,20 @@ export function GameSetupForm({ onStart }) {
             id="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="h-10 !border-2 !border-[#70E3C7]/30 hover:!border-[#70E3C7]/50 focus:!border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90"
+            className="h-10 !border-2 !border-primary-light/30 hover:!border-primary-light/50 focus:!border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90"
           />
         </div>
 
         <div className="space-y-2 flex flex-col items-start">
-          <label htmlFor="genre" className="text-sm font-medium text-[#212121]">
+          <label htmlFor="genre" className="text-sm font-medium text-text-primary">
             Genre
           </label>
           <div className="h-10 w-full">
             <Select>
-              <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+              <SelectTrigger className="h-10 border-2 border-primary-light/30 hover:border-primary-light/50 focus:border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
                 <SelectValue placeholder="Select genre" />
               </SelectTrigger>
-              <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
+              <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
                 <SelectItem 
                   value="pop"
                   className="rounded-[6px] transition-colors duration-200 hover:bg-transparent"
@@ -79,7 +79,7 @@ export function GameSetupForm({ onStart }) {
         <div className="space-y-2 flex flex-col items-start">
           <label
             htmlFor="difficulty"
-            className="text-sm font-medium text-[#212121]"
+            className="text-sm font-medium text-text-primary"
           >
             Difficulty Level
           </label>
@@ -90,16 +90,16 @@ export function GameSetupForm({ onStart }) {
         <div className="space-y-2 flex flex-col items-start">
           <label
             htmlFor="duration"
-            className="text-sm font-medium text-[#212121]"
+            className="text-sm font-medium text-text-primary"
           >
             Duration
           </label>
           <div className="h-10 w-full">
             <Select>
-              <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+              <SelectTrigger className="h-10 border-2 border-primary-light/30 hover:border-primary-light/50 focus:border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
                 <SelectValue placeholder="" />
               </SelectTrigger>
-              <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
+              <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
                 <SelectItem value="5">5 minutes</SelectItem>
                 <SelectItem value="10">10 minutes</SelectItem>
                 <SelectItem value="15">15 minutes</SelectItem>
@@ -108,15 +108,15 @@ export function GameSetupForm({ onStart }) {
           </div>
         </div>
         <div className="space-y-2 flex flex-col items-start">
-          <label htmlFor="mode" className="text-sm font-medium text-[#212121]">
+          <label htmlFor="mode" className="text-sm font-medium text-text-primary">
             Game Mode
           </label>
           <div className="h-10 w-full">
             <Select>
-              <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+              <SelectTrigger className="h-10 border-2 border-primary-light/30 hover:border-primary-light/50 focus:border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
                 <SelectValue placeholder="" />
               </SelectTrigger>
-              <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
+              <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
                 <SelectItem value="single">Single Player</SelectItem>
                 <SelectItem value="multi">Multiplayer</SelectItem>
               </SelectContent>
@@ -126,16 +126,16 @@ export function GameSetupForm({ onStart }) {
         <div className="space-y-2 flex flex-col items-start">
           <label
             htmlFor="players"
-            className="text-sm font-medium text-[#212121]"
+            className="text-sm font-medium text-text-primary"
           >
             Players
           </label>
           <div className="h-10 w-full">
             <Select>
-              <SelectTrigger className="h-10 border-2 border-[#70E3C7]/30 hover:border-[#70E3C7]/50 focus:border-[#70E3C7] rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
+              <SelectTrigger className="h-10 border-2 border-primary-light/30 hover:border-primary-light/50 focus:border-primary-light rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
                 <SelectValue placeholder="" />
               </SelectTrigger>
-              <SelectContent className="border-2 border-[#70E3C7]/20 rounded-lg bg-white/95 backdrop-blur-sm">
+              <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
                 <SelectItem value="2">2 Players</SelectItem>
                 <SelectItem value="3">3 Players</SelectItem>
                 <SelectItem value="4">4 Players</SelectItem>
@@ -149,7 +149,7 @@ export function GameSetupForm({ onStart }) {
         <Button
           onClick={onStart}
           disabled={!username || !selectedDifficulty}
-          className="w-full bg-[#70E3C7] py-7 text-md font-bold text-black hover:bg-[#70E3C7]/90 rounded-full disabled:opacity-50"
+          className="w-full bg-primary-light py-7 text-md font-bold text-black hover:bg-primary-light/90 rounded-full disabled:opacity-50"
         >
           Start Game
         </Button>

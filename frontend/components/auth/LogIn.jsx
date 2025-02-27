@@ -65,8 +65,8 @@ const LogIn = () => {
       <div className='relative flex flex-col justify-center p-8  '>
         {/* LyricFlip logo  at the top left*/}
         <div className='absolute top-4 left-4 flex items-center gap-2'>
-          <Music className='w-5 h-5 bg-[#70E3C7] rounded-md p-1' />
-          <span className='  text-[#490878] text-[10px]'>LyricFlip.</span>
+          <Music className='w-5 h-5 bg-primary-light rounded-md p-1' />
+          <span className='  text-primary-main text-[10px]'>LyricFlip.</span>
         </div>
 
         {/* Help icon at the top right  */}
@@ -99,7 +99,7 @@ const LogIn = () => {
               {/* email field  */}
               <div className='space-y-2 mb-5 flex flex-col '>
                 <Label htmlFor='email'>
-                  <p className='font-semibold text-[#A09D9D]'>Email</p>
+                  <p className='font-semibold text-gray-400'>Email</p>
                 </Label>
                 <div className=' rounded-sm bg-slate-100'>
                   <Field
@@ -120,7 +120,7 @@ const LogIn = () => {
               {/* password field  */}
               <div className='space-y-2 mb-5'>
                 <Label htmlFor='password'>
-                  <p className=' font-semibold text-[#A09D9D]'>Password</p>
+                  <p className=' font-semibold text-gray-400'>Password</p>
                 </Label>
                 <div>
                   <div className=' bg-slate-100 flex items-center justify-between'>
@@ -172,7 +172,7 @@ const LogIn = () => {
               <div className=''>
                 <Button
                   type='submit'
-                  className='w-full rounded-3xl bg-[#D9D9D9] text-[#8C8282]'
+                  className='w-full rounded-3xl bg-gray-300 text-gray-500'
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Signing In........ " : "Sign In"}
@@ -183,7 +183,7 @@ const LogIn = () => {
         </Formik>
 
         <p className='mt-14 text-center text-sm'>
-          Don't have an account? <a className='text-[#70E3C7]'>Sign Up</a>
+          Don't have an account? <a className='text-primary-libg-primary-light'>Sign Up</a>
         </p>
       </div>
     </div>
