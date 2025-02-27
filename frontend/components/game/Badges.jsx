@@ -53,15 +53,15 @@ const BadgesModal = ({ isOpen, onClose }) => {
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 p-1.5 hover:bg-gray-100 rounded-full border-gray-200 border-[1px]"
+          className="absolute right-4 top-4 p-1.5 hover:bg-gray-100 rounded-full border-gray-200 border"
         >
           <X className="h-4 w-4 text-gray-800" />
         </button>
 
         {/* Header */}
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-text-primary">Your Badges</h2>
-          <p className="text-gray-600 mt-[2px] text-[14px]">
+          <h2 className="text-xl font-bold text-gray-900">Your Badges</h2>
+          <p className="text-gray-500 mt-[2px] text-sm">
             <span className="text-black font-bold">6</span>/48 of badges
             unlocked
           </p>
@@ -82,12 +82,12 @@ const BadgesModal = ({ isOpen, onClose }) => {
                         height={80}
                       />
                     </div>
-                    <div className="border-[#6363636c] border-[1px] absolute -bottom-1 -right-1 bg-white text-black text-[10px] rounded-full px-2 py-[2px]">
+                    <div className="border-gray-400 border absolute -bottom-1 -right-1 bg-white text-black text-xs rounded-full px-2 py-[2px]">
                       {badge.count}
                     </div>
                   </>
                 ) : (
-                  <div className="w-18 h-18 bg-gray-100 rounded-full flex items-center justify-center p-6 border-[#6363636c] border-[1px]">
+                  <div className="w-18 h-18 bg-gray-100 rounded-full flex items-center justify-center p-6 border-gray-400 border">
                     <Image
                       src="/padLockIcon.svg"
                       alt="padlock icon"
@@ -97,7 +97,7 @@ const BadgesModal = ({ isOpen, onClose }) => {
                   </div>
                 )}
               </div>
-              <span className="mt-2 text-xs text-center italic text-text-primary">
+              <span className="mt-2 text-xs text-center italic text-gray-900">
                 Music Connoisseur
               </span>
             </div>

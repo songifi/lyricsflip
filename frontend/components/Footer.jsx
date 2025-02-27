@@ -9,13 +9,13 @@ const Footer = () => {
   const getCurrentYear = () => new Date().getFullYear();
 
   return (
-    <footer className="bg-primary-main text-white px-10 py-10">
+    <footer className="bg-[#490878] text-white px-10 py-10">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex flex-col gap-10 md:flex-row justify-between">
           {/* Logo and Description Section */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold">
-              Lyric<span className="text-primary-light">Flip</span>
+              Lyric<span className="text-[#70E3C7]">Flip</span>
             </h2>
             <p className="text-gray-300 max-w-2xl">
               Test your lyrical knowledge, flip the cards, and guess the song!
@@ -72,7 +72,7 @@ const Footer = () => {
                 <Link
                   key={index}
                   href="#"
-                  className="bg-primary-light hover:bg-primary-hover transition-colors p-2 rounded-full"
+                  className="bg-[#70E3C7] hover:bg-[#3CC8B9] transition-colors p-2 rounded-full"
                 >
                   <Icon className="h-5 w-5 text-white" />
                 </Link>
@@ -81,7 +81,7 @@ const Footer = () => {
           </div>
         </div>
         {/* Copyright */}
-        <div className="text-center text-sm text-background-default pt-7 border-t border-background-default">
+        <div className="text-center text-sm text-[#FFFFFF] pt-7 border-t border-[#FFFFFF]">
           &copy; {getCurrentYear()} LyricFlip. All rights reserved
         </div>
       </div>

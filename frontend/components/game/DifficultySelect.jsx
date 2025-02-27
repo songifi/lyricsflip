@@ -11,32 +11,28 @@ import {
 
 const DifficultySelect = () => {
   const { selectedDifficulty, setDifficulty } = useGameStore();
-  const handleValueChange = (value) => {
-    // Prevent event propagation
-    setDifficulty(value);
-  };
 
   return (
-    <Select value={selectedDifficulty} onValueChange={handleValueChange}>
+    <Select value={selectedDifficulty} onValueChange={setDifficulty}>
       <SelectTrigger className="h-10 w-full rounded-lg transition-colors duration-300 focus:ring-0 bg-white/90">
         <SelectValue placeholder="Select Difficulty" />
       </SelectTrigger>
-      <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
-        <SelectItem 
+      <SelectContent className="border-2 border-teal-300/20 rounded-lg bg-white/90 backdrop-blur-sm">
+        <SelectItem
           value="Beginner"
-          className="hover:bg-primary-light/10 rounded-[6px] transition-colors"
+          className="hover:bg-teal-100 rounded-md transition-colors"
         >
           Beginner
         </SelectItem>
-        <SelectItem 
+        <SelectItem
           value="Intermediate"
-          className="hover:bg-primary-light/10 rounded-[6px] transition-colors"
+          className="hover:bg-teal-100 rounded-md transition-colors"
         >
           Intermediate
         </SelectItem>
-        <SelectItem 
+        <SelectItem
           value="Advanced"
-          className="hover:bg-primary-light/10 rounded-[6px] transition-colors"
+          className="hover:bg-teal-100 rounded-md transition-colors"
         >
           Advanced
         </SelectItem>
