@@ -3,10 +3,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   FlatList,
-  Dimensions,
 } from "react-native";
 import { Image } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -14,7 +12,6 @@ import { ScrollView } from "react-native-gesture-handler";
 import index from "./(tabs)";
 const argent = require("@/assets/images/argent.png");
 const musicBadge = require("@/assets/images/musicBadge.png");
-import { LineChart } from "react-native-chart-kit";
 import EarningsChart from "@/components/EarningsChart";
 
 export default function profile() {
@@ -167,7 +164,6 @@ export default function profile() {
           </View>
 
           <EarningsChart />
-          <View style={styles.container}></View>
         </View>
       </View>
     </ScrollView>
@@ -186,7 +182,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 28,
   },
   headerTitle: {
     fontSize: 16,
@@ -194,7 +189,7 @@ const styles = StyleSheet.create({
   },
   avatarAndWalletContainer: {
     alignItems: "center",
-    paddingVertical: 24,
+    paddingVertical: 20,
     borderColor: "#DBE1E7",
   },
   imageAvatar: {
@@ -257,7 +252,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#DBE2E8",
     borderRadius: 8,
-    // paddingVertical: 2,
+    paddingVertical: 6,
     marginTop: 12,
   },
   statItem: {
@@ -288,7 +283,7 @@ const styles = StyleSheet.create({
     borderColor: "#DBE2E8",
     borderRadius: 8,
     marginTop: 12,
-    marginBottom: 10,
+    marginBottom: 50,
     padding: 16,
   },
   earningsLabel: {
