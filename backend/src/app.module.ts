@@ -19,9 +19,6 @@ import { LoggerModule } from './logger/logger.module';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
-<<<<<<< HEAD
-import { GameResultsModule } from './game-results/game-results.module';
-=======
 import { QuestionsModule } from './questions/questions.module';
 import { PowerUpModule } from './power-ups/power-up.module';
 import { TournamentService } from './tournament/tournament.service';
@@ -41,7 +38,6 @@ import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
->>>>>>> ce6a694f98c6bc94b0eb412b497295e662976e5b
 
 @Module({
   imports: [
@@ -86,10 +82,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
 >>>>>>> aa333f7f48426058a0826a4038e906a9f86a3915
     ChatRoomModule,
     ScoringModule,
-<<<<<<< HEAD
-    GameResultsModule,
-
-=======
     PowerUpModule,
     TournamentModule,
     AchievementModule,
@@ -97,7 +89,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
     MusicTheoryLessonModule,
     GameModeModule,
     SongGenreModule,
->>>>>>> ce6a694f98c6bc94b0eb412b497295e662976e5b
   ],
   controllers: [AppController],
   providers: [
