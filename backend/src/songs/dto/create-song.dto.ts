@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsNumber, IsArray, Min, Max, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsArray, Min, Max, IsOptional, IsUUID } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateSongDto {
@@ -23,10 +23,9 @@ export class CreateSongDto {
   genre: string;
 
   @ApiProperty()
-  @IsNumber()
-  @Min(1)
-  @Max(10)
-  difficulty: number;
+  @IsNotEmpty()
+  @IsUUID()
+  difficultyId: string;
 
   @ApiProperty()
   @IsNumber()

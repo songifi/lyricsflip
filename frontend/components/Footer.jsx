@@ -1,4 +1,3 @@
-
 import Link from "next/link";
 import { BsEnvelope } from "react-icons/bs";
 import { FaInstagram } from "react-icons/fa";
@@ -36,7 +35,7 @@ const Footer = () => {
                 Play Game
               </Link>
               <Link
-                 href="/about"
+                href="/about"
                 className="hover:text-gray-300 transition-colors"
               >
                 About Us

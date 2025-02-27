@@ -15,6 +15,7 @@ import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from './config/config.module';
 import { GlobalInterceptor } from './interceptors/global.interceptor';
+import { LoggerModule } from './logger/logger.module';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
@@ -24,6 +25,8 @@ import { TournamentModule } from './tournament/tournament.module';
 import { GameGateway } from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
 import { AchievementModule } from './achievement/achievement.module';
+
+import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
 
 import { GameModeModule } from './game-mode/game-mode.module';
 
@@ -45,6 +48,9 @@ import { ThrottlerModule } from '@nestjs/throttler';
     RewardModule,
     LeaderboardModule,
     NotificationModule,
+    AdminModule,
+    PlayerModule,
+    LoggerModule,
     ConfigModule,
     GameModule,
     ThrottlerModule.forRoot({
@@ -72,11 +78,9 @@ import { ThrottlerModule } from '@nestjs/throttler';
     TournamentModule,
     AchievementModule,
     SocialModule,
-
+    MusicTheoryLessonModule,
     GameModeModule,
-
     SongGenreModule,
-
   ],
   controllers: [AppController],
   providers: [
