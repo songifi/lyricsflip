@@ -182,7 +182,7 @@ export default function Leaderboard() {
                   <div>
                     <div className="font-semibold text-black">{entry.username}</div>
                     <div className="md:hidden text-xs md:text-sm ">
-                      <span className="text-[#490878] font-semibold">
+                      <span className="text-primary-main font-semibold">
                         {entry.points} Points
                       </span>
                       <span className="text-gray-500 w-full">• {entry.challenges} Challenges</span>
@@ -194,8 +194,10 @@ export default function Leaderboard() {
                 <div className="hidden md:flex flex-[0.45] col-span-3 font-bold text-black">
                   {entry.challenges}
                 </div>
-                <div className="hidden md:block col-span-3 text-[#490878]" role="cell">
-                  <span className="font-semibold">{entry.points.toLocaleString()}</span>
+                <div className="hidden md:block col-span-3 text-primary-main">
+                  <span className=" font-semibold">
+                    {entry.points.toLocaleString()}
+                  </span>
                   <span className="text-sm ml-1">pts</span>
                 </div>
               </div>

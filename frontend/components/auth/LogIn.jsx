@@ -57,12 +57,13 @@ const LogIn = () => {
         <div className="spanB z-40 absolute bottom-0 right-0 bg-blend-color-dodge rounded-full bg-gradient-to-br from-black via-teal-800 to-white p-32 filter blur-xl"></div>
       </div>
 
-      {/* Right Side: Form Section */}
-      <div className="relative flex flex-col justify-center p-8">
-        {/* LyricFlip logo */}
-        <div className="absolute top-4 left-4 flex items-center gap-2">
-          <Music className="w-5 h-5 bg-[#70E3C7] rounded-md p-1" />
-          <span className="text-[#490878] text-[10px]">LyricFlip.</span>
+      {/*Form container section {Right Side} */}
+
+      <div className='relative flex flex-col justify-center p-8  '>
+        {/* LyricFlip logo  at the top left*/}
+        <div className='absolute top-4 left-4 flex items-center gap-2'>
+          <Music className='w-5 h-5 bg-primary-light rounded-md p-1' />
+          <span className='  text-primary-main text-[10px]'>LyricFlip.</span>
         </div>
 
         {/* Help icon */}
@@ -91,11 +92,11 @@ const LogIn = () => {
           onSubmit={handleSubmit}
         >
           {({ isSubmitting }) => (
-            <Form className="space-y-8 w-full md:px-8">
-              {/* Email Field */}
-              <div className="space-y-2 mb-5 flex flex-col">
-                <Label htmlFor="email">
-                  <p className="font-semibold text-[#A09D9D]">Email</p>
+            <Form className='space-y-8 w-full md:px-8 '>
+              {/* email field  */}
+              <div className='space-y-2 mb-5 flex flex-col '>
+                <Label htmlFor='email'>
+                  <p className='font-semibold text-gray-400'>Email</p>
                 </Label>
                 <div className="rounded-sm bg-slate-100">
                   <Field
@@ -115,10 +116,10 @@ const LogIn = () => {
                 />
               </div>
 
-              {/* Password Field */}
-              <div className="space-y-2 mb-5">
-                <Label htmlFor="password">
-                  <p className="font-semibold text-[#A09D9D]">Password</p>
+              {/* password field  */}
+              <div className='space-y-2 mb-5'>
+                <Label htmlFor='password'>
+                  <p className=' font-semibold text-gray-400'>Password</p>
                 </Label>
                 <div>
                   <div className="bg-slate-100 flex items-center justify-between">
@@ -174,8 +175,8 @@ const LogIn = () => {
               {/* Submit Button */}
               <div>
                 <Button
-                  type="submit"
-                  className="w-full rounded-3xl bg-[#D9D9D9] text-[#8C8282]"
+                  type='submit'
+                  className='w-full rounded-3xl bg-gray-300 text-gray-500'
                   disabled={isSubmitting}
                   aria-live="assertive"
                 >
@@ -186,9 +187,8 @@ const LogIn = () => {
           )}
         </Formik>
 
-        {/* Sign up link */}
-        <p className="mt-14 text-center text-sm">
-          Don't have an account? <a href="#" className="text-[#70E3C7]" aria-label="Sign Up">Sign Up</a>
+        <p className='mt-14 text-center text-sm'>
+          Don't have an account? <a className='text-primary-libg-primary-light'>Sign Up</a>
         </p>
       </div>
     </div>

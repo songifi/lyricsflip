@@ -80,7 +80,7 @@ function PlayAgainButton({ onClick }) {
   return (
     <>
       <button
-        className=" text-center rounded-lg border-2 border-[#70E3C7] hover:bg-[#70E3C7] hover:text-[#490878] transition-colors duration-300 bottom-4 right-4 shadow-lg flex items-center gap-2 px-4 py-2"
+        className=" text-center rounded-lg border-2 border-primary-light hover:bg-primary-border-primary-light hover:text-primary-main transition-colors duration-300 bottom-4 right-4 shadow-lg flex items-center gap-2 px-4 py-2"
         onClick={() => setIsModalOpen(true)}
         >
         <IoGameController className="text-2xl" />

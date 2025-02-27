@@ -92,13 +92,13 @@ const Game = () => {
   const getDifficultyColor = () => {
     switch (selectedDifficulty) {
       case "Beginner":
-        return "text-[#2EAE4E]"; // Green
+        return "text-status-success"; // Green
       case "Intermediate":
         return "text-[#F4A261]"; // Orange
       case "Expert":
         return "text-[#E63946]"; // Red
       default:
-        return "text-[#666666]";
+        return "text-text-secondary";
     }
   };
 
@@ -161,11 +161,7 @@ const Game = () => {
                   </div>
 
                   <div>
-                    <h1
-                      className="text-[14px] font-bold text-[#090909]"
-                      id="username"
-                      aria-label={`Username: ${username || "Player"}`}
-                    >
+                    <h1 className="text-[14px] font-bold text-text-primary">
                       {username || "Player"}
                     </h1>
                   </div>
@@ -173,7 +169,7 @@ const Game = () => {
 
                 {/* Difficulty */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-[#666666]">Difficulty:</span>
+                  <span className="text-[14px] text-text-secondary">Difficulty:</span>
                   <span
                     className={`text-[14px] font-bold flex items-center gap-1 ${getDifficultyColor()}`}
                     aria-label={`Current difficulty: ${selectedDifficulty}`}
@@ -194,13 +190,8 @@ const Game = () => {
 
               {/* Timer */}
               <div className="p-3 flex items-center justify-center gap-2">
-                <div className="text-[16px] text-center text-[#666666]" aria-label="Timer">
-                  🕒
-                </div>
-                <div
-                  className="text-[16px] font-bold text-[#2EAE4E]"
-                  aria-label={`Time left: ${formatTime(timeLeft)}`}
-                >
+                <div className="text-[16px] text-center text-text-secondary">🕒</div>
+                <div className="text-[16px] font-bold text-status-success">
                   {formatTime(timeLeft)}
                 </div>
               </div>

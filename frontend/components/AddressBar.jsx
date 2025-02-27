@@ -10,7 +10,7 @@ const AddressBar = () => {
 
   return (
     <button
-      className="flex  w-[203px] items-center justify-center gap-x-3 rounded-[4px] bg-[#70E3C7] py-[12px] text-center text-base font-medium text-[#490878] disabled:cursor-not-allowed"
+      className="flex  w-[203px] items-center justify-center gap-x-3 rounded-[4px] bg-primary-light py-[12px] text-center text-base font-medium text-primary-main disabled:cursor-not-allowed"
       onMouseEnter={() => setDisplayAddress(false)}
       onMouseLeave={() => setDisplayAddress(true)}
       onClick={disconnect}
