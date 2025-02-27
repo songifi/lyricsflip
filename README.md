@@ -38,6 +38,6 @@ LyricFlip is an on-chain card-based music guessing game built on the Starknet ec
 
 1. Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/lyricflip.git
-   cd lyricflip
+   git clone https://github.com/your-username/lyricsflip.git
+   cd lyricsflip
 
