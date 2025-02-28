@@ -1,0 +1,36 @@
+# CHALLENGE API
+
+@baseUrl = http://localhost:3000
+
+# Challenge Endpoints
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/challenge
+
+### findOne (Template)
+GET {{baseUrl}}/challenge/:id
+
+### create (Template)
+POST {{baseUrl}}/challenge
+Content-Type: application/json
+
+{
+  "name": "challenge name",
+  "description": "challenge description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/challenge/:id
+Content-Type: application/json
+
+{
+  "name": "updated challenge name",
+  "description": "updated challenge description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/challenge/:id
+

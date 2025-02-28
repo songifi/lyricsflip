@@ -1,0 +1,55 @@
+# GAME-RESULTS API
+
+@baseUrl = http://localhost:3000
+
+# Game-result Endpoints
+
+### getLeaderboard
+GET {{baseUrl}}/game-results/leaderboard/:gameId
+
+### getUserBest
+GET {{baseUrl}}/game-results/user/:userId/game/:gameId/best
+
+### getUserResults
+GET {{baseUrl}}/game-results/user/:userId
+
+### createResult
+POST {{baseUrl}}/game-results
+Content-Type: application/json
+
+{
+  // Game-result data
+  "name": "game-result name",
+  "description": "game-result description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/game-results
+
+### findOne (Template)
+GET {{baseUrl}}/game-results/:id
+
+### create (Template)
+POST {{baseUrl}}/game-results
+Content-Type: application/json
+
+{
+  "name": "game-result name",
+  "description": "game-result description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/game-results/:id
+Content-Type: application/json
+
+{
+  "name": "updated game-result name",
+  "description": "updated game-result description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/game-results/:id
+

@@ -2,7 +2,6 @@ use core::array::ArrayTrait;
 use core::byte_array::ByteArray;
 use core::result::ResultTrait;
 use core::traits::Into;
-// use lyricsflip::contracts::lyricsflipNFT::LyricsFlipNFT;
 use lyricsflip::contracts::lyricsflipNFT::{
     ILyricsFlipNFTDispatcher as NFTDispatcher, ILyricsFlipNFTDispatcherTrait as NFTDispatcherTrait,
     LyricsFlipNFT
@@ -16,6 +15,15 @@ use snforge_std::{
     start_cheat_caller_address, stop_cheat_caller_address,
 };
 use starknet::{ContractAddress, contract_address_const};
+
+#[starknet::contract]
+mod DummyContract {
+    #[storage]
+    struct Storage {}
+
+    #[constructor]
+    fn constructor(ref self: ContractState) {}
+}
 
 const MINTER_ROLE: felt252 = selector!("MINTER_ROLE");
 
@@ -70,14 +78,42 @@ fn setup_nft_dispatcher(lyrics_flip_address: ContractAddress) -> (ContractAddres
 }
 
 #[test]
+#[should_panic]
+fn test_constructor_with_deployed_non_lyrics_flip_contract() {
+    // First deploy a dummy contract
+    let dummy_contract = declare("DummyContract").unwrap().contract_class();
+    let mut dummy_calldata = ArrayTrait::new();
+    let (dummy_address, _) = dummy_contract.deploy(@dummy_calldata).unwrap();
+
+    // Now try to deploy NFT contract with dummy contract as minter
+    let nft_contract = declare("LyricsFlipNFT").unwrap().contract_class();
+    let mut nft_calldata: Array<felt252> = ArrayTrait::new();
+
+    nft_calldata.append(owner().into());
+    nft_calldata.append(dummy_address.into());
+
+    let name: ByteArray = "TestNFT";
+    let symbol: ByteArray = "LYNFT";
+    let base_uri: ByteArray = "baseuri";
+
+    name.serialize(ref nft_calldata);
+    symbol.serialize(ref nft_calldata);
+    base_uri.serialize(ref nft_calldata);
+
+    // This should fail because dummy_address doesn't support ILyricsFlip interface
+    let (_, _) = nft_contract.deploy(@nft_calldata).unwrap();
+}
+
+#[test]
 #[should_panic(expected: ('Result::unwrap failed.',))]
 fn test_constructor_fails_with_zero_owner() {
+    let lyricsflip_contract = deploy_lyrics_flip();
     let contract = declare("LyricsFlipNFT").unwrap().contract_class();
     let mut calldata: Array<felt252> = ArrayTrait::new();
 
     // Set zero address as owner
     calldata.append(contract_address_const::<0>().into());
-    calldata.append(lyrics_flip().into());
+    calldata.append(lyricsflip_contract.into());
 
     let name: ByteArray = "TestNFT";
     let symbol: ByteArray = "LYNFT";
@@ -87,6 +123,7 @@ fn test_constructor_fails_with_zero_owner() {
     symbol.serialize(ref calldata);
     base_uri.serialize(ref calldata);
 
+    // This deployment will fail because owner is zero address
     let (_, _) = contract.deploy(@calldata).unwrap();
 }
 
@@ -108,6 +145,7 @@ fn test_constructor_fails_with_zero_minter() {
     symbol.serialize(ref calldata);
     base_uri.serialize(ref calldata);
 
+    // This deployment will fail because lyric flip  contract is zero address
     let (_, _) = contract.deploy(@calldata).unwrap();
 }
 

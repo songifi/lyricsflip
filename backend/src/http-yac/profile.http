@@ -1,0 +1,36 @@
+# PROFILE API
+
+@baseUrl = http://localhost:3000
+
+# Profile Endpoints
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/profile
+
+### findOne (Template)
+GET {{baseUrl}}/profile/:id
+
+### create (Template)
+POST {{baseUrl}}/profile
+Content-Type: application/json
+
+{
+  "name": "profile name",
+  "description": "profile description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/profile/:id
+Content-Type: application/json
+
+{
+  "name": "updated profile name",
+  "description": "updated profile description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/profile/:id
+

@@ -1,0 +1,65 @@
+# CHAT-ROOM API
+
+@baseUrl = http://localhost:3000
+
+# Chat-room Endpoints
+
+### unnamed0
+GET {{baseUrl}}/chat-room
+
+### unnamed1
+GET {{baseUrl}}/chat-room/:id
+
+### unnamed2
+POST {{baseUrl}}/chat-room
+Content-Type: application/json
+
+{
+  // Chat-room data
+  "name": "chat-room name",
+  "description": "chat-room description"
+}
+
+### unnamed3
+PATCH {{baseUrl}}/chat-room/:id
+Content-Type: application/json
+
+{
+  // Chat-room data
+  "id": "uuid-goes-here",
+  "name": "updated chat-room name"
+}
+
+### unnamed4
+DELETE {{baseUrl}}/chat-room/:id
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/chat-room
+
+### findOne (Template)
+GET {{baseUrl}}/chat-room/:id
+
+### create (Template)
+POST {{baseUrl}}/chat-room
+Content-Type: application/json
+
+{
+  "name": "chat-room name",
+  "description": "chat-room description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/chat-room/:id
+Content-Type: application/json
+
+{
+  "name": "updated chat-room name",
+  "description": "updated chat-room description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/chat-room/:id
+
