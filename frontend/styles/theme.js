@@ -7,6 +7,11 @@ export const theme = {
       hover: "#3CC8B9",
     },
     secondary: {},
+    gradient: {
+      to_1: "#1C0731",
+      via_1: "#2A0545",
+      from: "#6CCBBE",
+    },
     text: {
       primary: "#090909",
       secondary: "#666666",

@@ -134,7 +134,7 @@ const Game = () => {
           >
             {/* Game Header */}
             <div
-              className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md"
+              className="bg-background-paper mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md"
               aria-labelledby="gameHeader"
             >
               <div className="flex flex-col items-start gap-2">
@@ -169,7 +169,9 @@ const Game = () => {
 
                 {/* Difficulty */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-text-secondary">Difficulty:</span>
+                  <span className="text-[14px] text-text-secondary">
+                    Difficulty:
+                  </span>
                   <span
                     className={`text-[14px] font-bold flex items-center gap-1 ${getDifficultyColor()}`}
                     aria-label={`Current difficulty: ${selectedDifficulty}`}
@@ -177,7 +179,7 @@ const Game = () => {
                     {selectedDifficulty}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
+                      className="w-4 h-4"
                       fill="currentColor"
                       viewBox="0 0 24 24"
                       aria-hidden="true"
@@ -189,8 +191,10 @@ const Game = () => {
               </div>
 
               {/* Timer */}
-              <div className="p-3 flex items-center justify-center gap-2">
-                <div className="text-[16px] text-center text-text-secondary">🕒</div>
+              <div className="flex items-center justify-center gap-2 p-3">
+                <div className="text-[16px] text-center text-text-secondary">
+                  🕒
+                </div>
                 <div className="text-[16px] font-bold text-status-success">
                   {formatTime(timeLeft)}
                 </div>
