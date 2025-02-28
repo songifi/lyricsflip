@@ -13,7 +13,9 @@ const JoinSection = () => {
           transition={{ duration: 0.8 }}
           className="max-w-3xl mx-auto"
         >
-          <h2 className="text-4xl font-bold mb-6">Start Your Journey Today</h2>
+          <h2 id="join-section" className="text-4xl font-bold mb-6">
+            Start Your Journey Today
+          </h2>
           <p className="text-xl mb-8">
             Whether you're a casual listener or a die-hard music fan, LyricFlip offers 
             a unique and entertaining way to experience the world of lyrics.
