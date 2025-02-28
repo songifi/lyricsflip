@@ -1,18 +1,15 @@
-import Footer from '@/components/Footer'
-import Header from '@/components/Header'
-import GameRules from '@/components/terms-of-service/GameRules'
-import Hero from '@/components/terms-of-service/Hero'
-import IntroSection from '@/components/terms-of-service/IntroSection'
-import React from 'react'
+"use client";
+import React from "react";
+import Footer from "@/components/Footer";
+import Hero from "@/components/terms-of-service/Hero";
+import TermsOfService from "@/components/terms-of-service/Terms";
 
 export default function Page() {
   return (
-    <div className="bg-white">
-      <Header/>
-      <Hero/>
-      <IntroSection/>
-      <GameRules/>
-      <Footer/>
+    <div className='bg-white'>
+      <Hero />
+      <TermsOfService />
+      <Footer />
     </div>
-  )
+  );
 }
