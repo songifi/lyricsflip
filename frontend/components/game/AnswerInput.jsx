@@ -114,9 +114,13 @@ const AnswerInput = ({ onAnswer }) => {
             : "bg-gray-200"
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       />
+      <p id="answer-status" className="sr-only">
+        {isAnswerSubmitted ? (isAnswerCorrect ? "Correct" : "Incorrect") : ""}
+      </p>
       <button
         onClick={() => handleSubmitAnswer(userAnswer)}
         disabled={isAnswerSubmitted}
+        aria-label={isAnswerSubmitted ? (isAnswerCorrect ? "Correct answer" : "Incorrect answer") : "Submit answer"}
         className={`w-[70%] text-sm/6 font-semibold px-[32px] py-[24px] text-center text-[16px] rounded-[1000px] transition-colors ${
           isAnswerSubmitted
             ? isAnswerCorrect

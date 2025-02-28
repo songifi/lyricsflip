@@ -24,7 +24,7 @@ export default function HeroSection() {
 
   return (
     <div className="relative min-h-[800px] w-full overflow-hidden">
-      <StarBackground />
+  <StarBackground />
 
       <section className="relative z-10 min-h-[800px] flex items-center justify-center">
   <div className="container mx-auto px-4 w-full flex justify-center items-center">

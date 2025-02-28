@@ -84,19 +84,20 @@ const Navbar = () => {
         </button>
       </div>
 
-      <div className="hidden flex-1 justify-end items-center lg:flex lg:gap-x-12 h-full ml-auto">
-        {navigation.map((item) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            onClick={(e) => handleScroll(e, item)}
-            className="text-base/6 font-medium text-white hover:text-[#70E3C7] transition-colors py-4"
-          >
-            {item.name}
-          </Link>
-        ))}
-        <WalletBar />
-      </div>
+  <div className="hidden flex-1 justify-end items-center lg:flex lg:gap-x-12 h-full ml-auto">
+    {navigation.map((item) => (
+      <Link
+        key={item.name}
+        href={item.href}
+        onClick={(e) => handleScroll(e, item)}
+        className="text-base/6 font-medium text-white hover:text-[#70E3C7] transition-colors py-4"
+        aria-label={item.name}
+      >
+        {item.name}
+      </Link>
+    ))}
+    <WalletBar />
+  </div>
 
       {mobileMenuOpen && (
         <Dialog
