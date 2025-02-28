@@ -43,6 +43,7 @@ import { ReferralModule } from './referral/referral.module';
 =======
 import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
+import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 >>>>>>> 1254719ee782ca271ea231ebe706912a91061959
 
 @Module({
@@ -92,6 +93,7 @@ import { PaginationModule } from './common/pagination/pagination.module';
     SongGenreModule,
 <<<<<<< HEAD
     ReferralModule,
+StateRecoveryModule,
 =======
     GameInsightsModule,
 >>>>>>> 1254719ee782ca271ea231ebe706912a91061959
