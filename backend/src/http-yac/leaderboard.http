@@ -1,0 +1,42 @@
+# LEADERBOARD API
+
+@baseUrl = http://localhost:3000
+
+# Leaderboard Endpoints
+
+### unnamed0
+GET {{baseUrl}}/leaderboard
+
+### unnamed1
+GET {{baseUrl}}/leaderboard/rank/:playerId
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/leaderboard
+
+### findOne (Template)
+GET {{baseUrl}}/leaderboard/:id
+
+### create (Template)
+POST {{baseUrl}}/leaderboard
+Content-Type: application/json
+
+{
+  "name": "leaderboard name",
+  "description": "leaderboard description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/leaderboard/:id
+Content-Type: application/json
+
+{
+  "name": "updated leaderboard name",
+  "description": "updated leaderboard description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/leaderboard/:id
+

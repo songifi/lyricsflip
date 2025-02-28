@@ -1,0 +1,36 @@
+# NOTIFICATION API
+
+@baseUrl = http://localhost:3000
+
+# Notification Endpoints
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/notification
+
+### findOne (Template)
+GET {{baseUrl}}/notification/:id
+
+### create (Template)
+POST {{baseUrl}}/notification
+Content-Type: application/json
+
+{
+  "name": "notification name",
+  "description": "notification description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/notification/:id
+Content-Type: application/json
+
+{
+  "name": "updated notification name",
+  "description": "updated notification description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/notification/:id
+

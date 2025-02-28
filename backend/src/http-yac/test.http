@@ -1,0 +1,39 @@
+# TEST API
+
+@baseUrl = http://localhost:3000
+
+# Test Endpoints
+
+### unnamed0
+GET {{baseUrl}}/config-test
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/config-test
+
+### findOne (Template)
+GET {{baseUrl}}/config-test/:id
+
+### create (Template)
+POST {{baseUrl}}/config-test
+Content-Type: application/json
+
+{
+  "name": "test name",
+  "description": "test description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/config-test/:id
+Content-Type: application/json
+
+{
+  "name": "updated test name",
+  "description": "updated test description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/config-test/:id
+
