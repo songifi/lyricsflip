@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useGameStore } from "../../store/gameStore";
+import { theme } from "../../theme";
 
 const MCQOption = ({
   option,
@@ -12,15 +13,17 @@ const MCQOption = ({
   <button
     onClick={onSelect}
     disabled={disabled}
-    className={`min-w-full p-3 lg:w-[392px] lg:h-[70px] text-left text-[16px] text-text-primary rounded-lg transition-colors border disabled:cursor-not-allowed
+    className={`min-w-full p-3 lg:w-[392px] lg:h-[70px] text-left text-[16px] text-${
+      theme.colors.text.primary
+    } rounded-lg transition-colors border disabled:cursor-not-allowed
       ${
         isSelected && isCorrect
-          ? "bg-green-500 border-green-400"
+          ? `bg-${theme.colors.status.success} border-${theme.colors.status.success}`
           : isSelected && !isCorrect
-          ? "bg-red-600 border-red-400"
+          ? `bg-${theme.colors.status.error} border-${theme.colors.status.error}`
           : !isSelected && isCorrect && isAnswerSubmitted
-          ? "bg-[#70E3C7CC] border-green-200"
-          : "bg-[#EEFCF8CC] border-[#CBF6EA]"
+          ? `bg-${theme.colors.primary.light} border-${theme.colors.status.success}`
+          : `bg-${theme.colors.background.paper} border-${theme.colors.primary.light}`
       }
     `}
   >
@@ -52,7 +55,10 @@ const AnswerInput = ({ onAnswer }) => {
       return answer === currentQuestion.correctAnswer;
     } else {
       // For text input, only compare the song title
-      const correctSongTitle = currentQuestion.correctAnswer.split(" - ")[0].toLowerCase().trim();
+      const correctSongTitle = currentQuestion.correctAnswer
+        .split(" - ")[0]
+        .toLowerCase()
+        .trim();
       const userSongTitle = answer.toLowerCase().trim();
       return correctSongTitle === userSongTitle;
     }
@@ -106,11 +112,15 @@ const AnswerInput = ({ onAnswer }) => {
         }}
         placeholder="Type your guess here"
         disabled={isAnswerSubmitted}
-        className={`input input-bordered input-lg w-[70%] rounded-[8px] bg-white border-primary-light text-text-secondary text-[14px] ${
+        className={`input input-bordered input-lg w-[70%] rounded-[8px] bg-${
+          theme.colors.background.default
+        } border-${theme.colors.primary.light} text-${
+          theme.colors.text.secondary
+        } text-[14px] ${
           isAnswerSubmitted
             ? isAnswerCorrect
-              ? "bg-status-success"
-              : "bg-status-error"
+              ? `bg-${theme.colors.status.success}`
+              : `bg-${theme.colors.status.error}`
             : "bg-gray-200"
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       />
@@ -120,13 +130,19 @@ const AnswerInput = ({ onAnswer }) => {
       <button
         onClick={() => handleSubmitAnswer(userAnswer)}
         disabled={isAnswerSubmitted}
-        aria-label={isAnswerSubmitted ? (isAnswerCorrect ? "Correct answer" : "Incorrect answer") : "Submit answer"}
+        aria-label={
+          isAnswerSubmitted
+            ? isAnswerCorrect
+              ? "Correct answer"
+              : "Incorrect answer"
+            : "Submit answer"
+        }
         className={`w-[70%] text-sm/6 font-semibold px-[32px] py-[24px] text-center text-[16px] rounded-[1000px] transition-colors ${
           isAnswerSubmitted
             ? isAnswerCorrect
-              ? "text-green-700 bg-green-300 hover:bg-green-400"
-              : "text-red-700 bg-red-300 hover:bg-red-400"
-            : "text-primary-main bg-[#92f2da] hover:bg-[#5bc4ab]"
+              ? `text-${theme.colors.status.success} bg-${theme.colors.primary.light} hover:bg-${theme.colors.primary.hover}`
+              : `text-${theme.colors.status.error} bg-${theme.colors.status.error} hover:bg-${theme.colors.primary.hover}`
+            : `text-${theme.colors.primary.main} bg-${theme.colors.primary.light} hover:bg-${theme.colors.primary.hover}`
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       >
         {isAnswerSubmitted
