@@ -1,6 +1,6 @@
 import { Controller, Get, Query, UseGuards, UseInterceptors, CacheInterceptor, ValidationPipe } from "@nestjs/common"
 import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger"
-import type { PlayerEngagementService } from "../services/player-engagement.service"
+import type { PlayerEngagementService } from "../../player-engagement/player-engagement.service"
 import type { SongAnalyticsService } from "../services/song-analytics.service"
 import type { TokenAnalyticsService } from "../services/token-analytics.service"
 import type { UserProgressionService } from "../services/user-progression.service"
