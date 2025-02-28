@@ -1615,4 +1615,3 @@ fn test_start_round_correctly() {
 
     stop_cheat_block_timestamp_global();
 }
-

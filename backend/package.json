@@ -39,6 +39,7 @@
     "class-validator": "^0.14.1",
     "ioredis": "^5.5.0",
     "joi": "^17.13.3",
+    "nanoid": "^5.1.2",
     "nodemailer": "^6.10.0",
     "pg": "^8.13.1",
     "reflect-metadata": "^0.2.2",

@@ -38,8 +38,13 @@ import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
+<<<<<<< HEAD
+import { ReferralModule } from './referral/referral.module';
+=======
 import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
+import { StateRecoveryModule } from './state-recovery/state-recovery.module';
+>>>>>>> 1254719ee782ca271ea231ebe706912a91061959
 
 @Module({
   imports: [
@@ -86,7 +91,12 @@ import { PaginationModule } from './common/pagination/pagination.module';
     MusicTheoryLessonModule,
     GameModeModule,
     SongGenreModule,
+<<<<<<< HEAD
+    ReferralModule,
+StateRecoveryModule,
+=======
     GameInsightsModule,
+>>>>>>> 1254719ee782ca271ea231ebe706912a91061959
   ],
   controllers: [AppController],
   providers: [
