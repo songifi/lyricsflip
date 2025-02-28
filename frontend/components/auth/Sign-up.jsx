@@ -1,5 +1,4 @@
 "use client"
-
 import React, { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -71,7 +70,7 @@ const Signup = () => {
 
         {/* Logo and animated content */}
         <div className="relative z-50 animate-customBounce flex flex-col items-center text-center space-y-8">
-          <Image src={Imagee} alt="Profile Picture" width={300} height={200} placeholder="blur" />
+          <Image src={Imagee} alt="LyricFlip logo" width={300} height={200} placeholder="blur" />
         </div>
 
         {/* Welcome message */}
@@ -102,9 +101,8 @@ const Signup = () => {
 
         {/* Help button */}
         <div className="absolute top-4 right-10">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" aria-label="Help">
             <HelpCircle className="w-5 h-5" />
-            <span className="text-sm text-black">Help</span>
           </Button>
         </div>
 
@@ -117,7 +115,7 @@ const Signup = () => {
         {/* Sign-up form */}
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-5 text-gray-400">
           {/* Username field */}
-          <div className="space-y-2" style={{ outline: "none" }}>
+          <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <Input
               id="username"
@@ -125,10 +123,9 @@ const Signup = () => {
               {...register("username")}
               aria-invalid={errors.username ? "true" : "false"}
               className={cn(errors.username && "border-red-500")}
-              
             />
             {errors.username && (
-              <p className="text-sm text-red-500" role="alert">
+              <p className="text-sm text-red-500" role="alert" aria-live="assertive">
                 {errors.username.message}
               </p>
             )}
@@ -146,7 +143,7 @@ const Signup = () => {
               className={cn(errors.email && "border-red-500")}
             />
             {errors.email && (
-              <p className="text-sm text-red-500" role="alert">
+              <p className="text-sm text-red-500" role="alert" aria-live="assertive">
                 {errors.email.message}
               </p>
             )}
@@ -176,7 +173,7 @@ const Signup = () => {
               </Button>
             </div>
             {errors.password && (
-              <p className="text-sm text-red-500" role="alert">
+              <p className="text-sm text-red-500" role="alert" aria-live="assertive">
                 {errors.password.message}
               </p>
             )}
@@ -206,7 +203,7 @@ const Signup = () => {
               </Button>
             </div>
             {errors.confirmPassword && (
-              <p className="text-sm text-red-500" role="alert">
+              <p className="text-sm text-red-500" role="alert" aria-live="assertive">
                 {errors.confirmPassword.message}
               </p>
             )}
@@ -217,6 +214,7 @@ const Signup = () => {
             type="submit"
             className="w-full p-7 rounded-3xl bg-slate-300 hover:bg-slate-400"
             disabled={isSubmitting || isLoading}
+            aria-label={isSubmitting || isLoading ? "Submitting..." : "Sign up"}
           >
             {isSubmitting || isLoading ? <Loader2 className="mr-2 h-10 w-10 text-purple-900 animate-spin" /> : "Sign Up"}
           </Button>
@@ -236,4 +234,3 @@ const Signup = () => {
 }
 
 export default Signup
-
