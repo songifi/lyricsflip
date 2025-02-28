@@ -1,0 +1,52 @@
+# ACHIEVEMENT API
+
+@baseUrl = http://localhost:3000
+
+# Achievement Endpoints
+
+### unnamed0
+GET {{baseUrl}}/achievements/user
+
+### unnamed1
+GET {{baseUrl}}/achievements/leaderboard
+
+### unnamed2
+POST {{baseUrl}}/achievements
+Content-Type: application/json
+
+{
+  // Achievement data
+  "name": "achievement name",
+  "description": "achievement description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/achievements
+
+### findOne (Template)
+GET {{baseUrl}}/achievements/:id
+
+### create (Template)
+POST {{baseUrl}}/achievements
+Content-Type: application/json
+
+{
+  "name": "achievement name",
+  "description": "achievement description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/achievements/:id
+Content-Type: application/json
+
+{
+  "name": "updated achievement name",
+  "description": "updated achievement description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/achievements/:id
+

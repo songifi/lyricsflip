@@ -32,6 +32,8 @@ export const theme = {
   fonts: {
     primary: "var(--font-geist-sans)",
     mono: "var(--font-geist-mono)",
+    inter: "var(--font-inter)",
+    p22: "var(--font-p22mackinac)",
   },
   boxShadow: {
     navbar: "0px 2px 4px rgba(74, 9, 120, 0.2)",

@@ -1,0 +1,52 @@
+# ARTIST API
+
+@baseUrl = http://localhost:3000
+
+# Artist Endpoints
+
+### unnamed0
+GET {{baseUrl}}/artists
+
+### unnamed1
+GET {{baseUrl}}/artists/:id
+
+### unnamed2
+POST {{baseUrl}}/artists
+Content-Type: application/json
+
+{
+  // Artist data
+  "name": "artist name",
+  "description": "artist description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/artists
+
+### findOne (Template)
+GET {{baseUrl}}/artists/:id
+
+### create (Template)
+POST {{baseUrl}}/artists
+Content-Type: application/json
+
+{
+  "name": "artist name",
+  "description": "artist description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/artists/:id
+Content-Type: application/json
+
+{
+  "name": "updated artist name",
+  "description": "updated artist description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/artists/:id
+

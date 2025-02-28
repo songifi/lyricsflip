@@ -1,0 +1,59 @@
+# GAME-SESSION API
+
+@baseUrl = http://localhost:3000
+
+# Game-session Endpoints
+
+### unnamed0
+GET {{baseUrl}}/game-session/:id
+
+### unnamed1
+POST {{baseUrl}}/game-session
+Content-Type: application/json
+
+{
+  // Game-session data
+  "name": "game-session name",
+  "description": "game-session description"
+}
+
+### unnamed2
+POST {{baseUrl}}/game-session/:id/guess
+Content-Type: application/json
+
+{
+  // Game-session data
+  "name": "game-session name",
+  "description": "game-session description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/game-session
+
+### findOne (Template)
+GET {{baseUrl}}/game-session/:id
+
+### create (Template)
+POST {{baseUrl}}/game-session
+Content-Type: application/json
+
+{
+  "name": "game-session name",
+  "description": "game-session description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/game-session/:id
+Content-Type: application/json
+
+{
+  "name": "updated game-session name",
+  "description": "updated game-session description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/game-session/:id
+

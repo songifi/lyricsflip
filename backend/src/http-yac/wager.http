@@ -1,0 +1,59 @@
+# WAGER API
+
+@baseUrl = http://localhost:3000
+
+# Wager Endpoints
+
+### unnamed0
+GET {{baseUrl}}/wager/history
+
+### unnamed1
+POST {{baseUrl}}/wager
+Content-Type: application/json
+
+{
+  // Wager data
+  "name": "wager name",
+  "description": "wager description"
+}
+
+### unnamed2
+POST {{baseUrl}}/wager/claim
+Content-Type: application/json
+
+{
+  // Wager data
+  "name": "wager name",
+  "description": "wager description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/wager
+
+### findOne (Template)
+GET {{baseUrl}}/wager/:id
+
+### create (Template)
+POST {{baseUrl}}/wager
+Content-Type: application/json
+
+{
+  "name": "wager name",
+  "description": "wager description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/wager/:id
+Content-Type: application/json
+
+{
+  "name": "updated wager name",
+  "description": "updated wager description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/wager/:id
+

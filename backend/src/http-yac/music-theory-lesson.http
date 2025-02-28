@@ -1,0 +1,39 @@
+# MUSIC-THEORY-LESSON API
+
+@baseUrl = http://localhost:3000
+
+# Music-theory-lesson Endpoints
+
+### unnamed0
+GET {{baseUrl}}/music-education/overview
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/music-education
+
+### findOne (Template)
+GET {{baseUrl}}/music-education/:id
+
+### create (Template)
+POST {{baseUrl}}/music-education
+Content-Type: application/json
+
+{
+  "name": "music-theory-lesson name",
+  "description": "music-theory-lesson description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/music-education/:id
+Content-Type: application/json
+
+{
+  "name": "updated music-theory-lesson name",
+  "description": "updated music-theory-lesson description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/music-education/:id
+

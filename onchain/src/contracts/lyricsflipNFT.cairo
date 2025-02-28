@@ -8,6 +8,7 @@ pub trait ILyricsFlipNFT<TContractState> {
 #[starknet::contract]
 pub mod LyricsFlipNFT {
     use openzeppelin::access::ownable::OwnableComponent;
+    use openzeppelin::introspection::interface::{ISRC5Dispatcher, ISRC5DispatcherTrait};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin::token::erc721::{ERC721Component, ERC721HooksEmptyImpl};
     use openzeppelin_access::accesscontrol::AccessControlComponent;
@@ -20,6 +21,7 @@ pub mod LyricsFlipNFT {
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: AccessControlComponent, storage: accesscontrol, event: AccessControlEvent);
 
+    const ILYRICSFLIP_ID: felt252 = selector!("ILyricsFlip");
     const MINTER_ROLE: felt252 = selector!("MINTER_ROLE");
 
     // External
@@ -79,8 +81,11 @@ pub mod LyricsFlipNFT {
         token_symbol: ByteArray,
         base_uri: ByteArray
     ) {
-        assert(owner != contract_address_const::<0>(), 'Zero address detected');
-        assert(minter != contract_address_const::<0>(), 'Zero address detected');
+        assert(owner != contract_address_const::<0>(), 'Zero address forbidden');
+        assert(minter != contract_address_const::<0>(), 'Zero address forbidden');
+
+        let src5_dispatcher = ISRC5Dispatcher { contract_address: minter };
+        assert(src5_dispatcher.supports_interface(ILYRICSFLIP_ID), 'Minter must be LyricsFlip');
 
         self.erc721.initializer(token_name, token_symbol, base_uri);
         self.ownable.initializer(owner);

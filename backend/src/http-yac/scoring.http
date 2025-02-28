@@ -1,0 +1,65 @@
+# SCORING API
+
+@baseUrl = http://localhost:3000
+
+# Scoring Endpoints
+
+### calculateRankings
+GET {{baseUrl}}/scoring/rankings
+
+### getUserStatistics
+GET {{baseUrl}}/scoring/user/:userId
+
+### getLeaderboard
+GET {{baseUrl}}/scoring/leaderboard
+
+### recordScore
+POST {{baseUrl}}/scoring/record
+Content-Type: application/json
+
+{
+  // Scoring data
+  "name": "scoring name",
+  "description": "scoring description"
+}
+
+### updateScore
+PATCH {{baseUrl}}/scoring/:id
+Content-Type: application/json
+
+{
+  // Scoring data
+  "id": "uuid-goes-here",
+  "name": "updated scoring name"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/scoring
+
+### findOne (Template)
+GET {{baseUrl}}/scoring/:id
+
+### create (Template)
+POST {{baseUrl}}/scoring
+Content-Type: application/json
+
+{
+  "name": "scoring name",
+  "description": "scoring description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/scoring/:id
+Content-Type: application/json
+
+{
+  "name": "updated scoring name",
+  "description": "updated scoring description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/scoring/:id
+

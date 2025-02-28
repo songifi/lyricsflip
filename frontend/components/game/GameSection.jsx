@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect } from "react";
 import { useGameStore } from "@/store/gameStore";
 import GameCard from "./GameCard";
@@ -119,32 +120,46 @@ const Game = () => {
   return (
     <>
       {/* Game Overlay */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        aria-labelledby="gameModalTitle"
+        role="dialog"
+        aria-hidden={!isModalOpen}
+      >
         {gameStatus !== "idle" && (
-          <div className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] flex flex-col">
+          <div
+            className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] flex flex-col"
+            aria-live="assertive"
+          >
             {/* Game Header */}
-            <div className="bg-background-paper mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
+            <div
+              className="bg-background-paper mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md"
+              aria-labelledby="gameHeader"
+            >
               <div className="flex flex-col items-start gap-2">
                 {/* Username and Avatar */}
                 <div className="flex items-center gap-3">
-                  {/* SVG Avatar with transparent background */}
-                  <div className="w-10 h-10">
+                  <div
+                    className="w-10 h-10"
+                    aria-label="User avatar"
+                    role="img"
+                  >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
                       className="w-full h-full"
+                      role="img"
+                      aria-hidden="true"
                     >
-                      {/* Transparent background circle */}
                       <circle cx="12" cy="12" r="10" fill="transparent" />
-                      {/* Dynamic user-like image color */}
                       <path
                         d="M12 14c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0 2c2.67 0 8 1.34 8 4v1H4v-1c0-2.66 5.33-4 8-4z"
-                        fill={getAvatarColor()} // Dynamic color based on difficulty
+                        fill={getAvatarColor()}
                       />
                     </svg>
                   </div>
 
-                  {/* Username */}
                   <div>
                     <h1 className="text-[14px] font-bold text-text-primary">
                       {username || "Player"}
@@ -159,13 +174,15 @@ const Game = () => {
                   </span>
                   <span
                     className={`text-[14px] font-bold flex items-center gap-1 ${getDifficultyColor()}`}
+                    aria-label={`Current difficulty: ${selectedDifficulty}`}
                   >
                     {selectedDifficulty}
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4"
+                      className="w-4 h-4"
                       fill="currentColor"
                       viewBox="0 0 24 24"
+                      aria-hidden="true"
                     >
                       <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                     </svg>
@@ -174,7 +191,7 @@ const Game = () => {
               </div>
 
               {/* Timer */}
-              <div className="p-3 flex items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-2 p-3">
                 <div className="text-[16px] text-center text-text-secondary">
                   🕒
                 </div>

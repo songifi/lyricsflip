@@ -1,0 +1,65 @@
+# QUESTIONS API
+
+@baseUrl = http://localhost:3000
+
+# Question Endpoints
+
+### unnamed0
+GET {{baseUrl}}/questions
+
+### unnamed1
+GET {{baseUrl}}/questions/:id
+
+### unnamed2
+POST {{baseUrl}}/questions
+Content-Type: application/json
+
+{
+  // Question data
+  "name": "question name",
+  "description": "question description"
+}
+
+### unnamed3
+PATCH {{baseUrl}}/questions/:id
+Content-Type: application/json
+
+{
+  // Question data
+  "id": "uuid-goes-here",
+  "name": "updated question name"
+}
+
+### unnamed4
+DELETE {{baseUrl}}/questions/:id
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/questions
+
+### findOne (Template)
+GET {{baseUrl}}/questions/:id
+
+### create (Template)
+POST {{baseUrl}}/questions
+Content-Type: application/json
+
+{
+  "name": "question name",
+  "description": "question description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/questions/:id
+Content-Type: application/json
+
+{
+  "name": "updated question name",
+  "description": "updated question description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/questions/:id
+

@@ -12,15 +12,17 @@ import { Input } from "@/components/ui/input";
 import { useGameStore } from "@/store/gameStore";
 import { useState } from "react";
 import DifficultySelect from "../game/DifficultySelect";
+import { useGameSounds } from "@/hooks/useGameSound";
 
 export function GameSetupForm({ onStart }) {
   const { setDifficulty, setUsername, selectedDifficulty, username } =
     useGameStore();
   // const [username, setLocalUsername] = useState("");
+  const { playClick } = useGameSounds();
 
   const handleSubmit = () => {
     if (!username || !selectedDifficulty) return;
-
+    playClick();
     setUsername(username);
     onStart();
   };

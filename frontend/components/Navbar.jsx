@@ -61,7 +61,7 @@ const Navbar = () => {
   }, []);
 
   const renderContent = () => (
-    <div className="container mx-auto flex items-center justify-between">
+    <div className="container flex items-center justify-between mx-auto">
       <div className="flex-none">
         <Link href="/" className="-m-1.5 p-1.5">
           <span className="sr-only">LyricsFlip</span>
@@ -73,7 +73,7 @@ const Navbar = () => {
         </Link>
       </div>
 
-      <div className="flex lg:hidden flex-none">
+      <div className="flex flex-none lg:hidden">
         <button
           type="button"
           onClick={handleMobileMenuToggle}
@@ -87,13 +87,14 @@ const Navbar = () => {
         </button>
       </div>
 
-      <div className="hidden flex-1 justify-end items-center lg:flex lg:gap-x-12 h-full ml-auto">
+      <div className="items-center justify-end flex-1 hidden h-full ml-auto lg:flex lg:gap-x-12">
         {navigation.map((item) => (
           <Link
             key={item.name}
             href={item.href}
             onClick={(e) => handleScroll(e, item)}
-            className="text-base/6 font-medium text-white hover:text-primary-light transition-colors py-4"
+            className="py-4 font-medium text-white transition-colors text-base/6 hover:text-primary-light"
+            aria-label={item.name}
           >
             {item.name}
           </Link>
@@ -108,7 +109,7 @@ const Navbar = () => {
           open={mobileMenuOpen}
           onClose={() => setMobileMenuOpen(false)}
         >
-          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40" />
+          <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" />
           <Dialog.Panel className="fixed inset-y-0 right-0 z-50 w-full max-w-xs overflow-y-auto bg-[#040311] px-6 py-6">
             <div className="flex items-center justify-between">
               <span className="text-2xl font-bold text-white">
@@ -124,12 +125,12 @@ const Navbar = () => {
                 className="-m-2.5 rounded-md p-2.5 text-primary-light"
               >
                 <span className="sr-only">Close menu</span>
-                <IoMdClose className="h-6 w-6" aria-hidden="true" />
+                <IoMdClose className="w-6 h-6" aria-hidden="true" />
               </button>
             </div>
-            <div className="mt-6 flow-root">
+            <div className="flow-root mt-6">
               <div className="-my-6 divide-y divide-gray-500/10">
-                <div className="space-y-2 py-6">
+                <div className="py-6 space-y-2">
                   {navigation.map((item) => (
                     <Link
                       key={item.name}

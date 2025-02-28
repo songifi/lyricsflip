@@ -36,13 +36,21 @@ const HowItWorks = () => {
     <section
       id="howItWorks"
       className="relative px-4 py-12 overflow-hidden bg-gradient-to-br from-primary-main via-gradient-via_1 to-gradient-to_1"
+      role="region"
+      aria-labelledby="how-it-works-heading"
     >
       {/* Animated background */}
       <MusicBackground />
 
       {/* Decorative vinyl records */}
-      <div className="absolute w-64 h-64 bg-black border-8 border-gray-700 rounded-full -left-32 top-1/4 opacity-40 animate-spin-slow"></div>
-      <div className="absolute w-48 h-48 bg-black border-4 border-gray-700 rounded-full -right-32 bottom-1/4 opacity-30 animate-spin-slow"></div>
+      <div
+        className="absolute w-64 h-64 bg-black border-8 border-gray-700 rounded-full -left-32 top-1/4 opacity-40 animate-spin-slow"
+        aria-hidden="true"
+      ></div>
+      <div
+        className="absolute w-48 h-48 bg-black border-4 border-gray-700 rounded-full -right-32 bottom-1/4 opacity-30 animate-spin-slow"
+        aria-hidden="true"
+      ></div>
 
       <div className="relative mx-auto max-w-7xl text-center py-[100px]">
         {/* Header Section */}
@@ -53,12 +61,20 @@ const HowItWorks = () => {
           transition={{ duration: 0.8 }}
         >
           <div className="mb-2">
-            <span className="inline-block px-4 py-1 mb-4 text-sm font-semibold tracking-wider rounded-full md:text-5xl lg:text-6xl bg-primary-light bg-opacity-20 text-primary-light">
+            <span
+              id="how-it-works-heading"
+              className="inline-block px-4 py-1 mb-4 text-sm font-semibold tracking-wider rounded-full md:text-5xl lg:text-6xl bg-primary-light bg-opacity-20 text-primary-light"
+              role="heading"
+              aria-level="2"
+            >
               HOW IT WORKS
             </span>
           </div>
 
-          <h2 className="pb-4 text-5xl font-bold text-transparent text-white md:text-5xl lg:text-6xl bg-clip-text bg-gradient-to-r from-primary-light to-purple-300">
+          <h2
+            className="pb-4 text-5xl font-bold text-transparent text-white md:text-5xl lg:text-6xl bg-clip-text bg-gradient-to-r from-primary-light to-purple-300"
+            aria-labelledby="how-it-works-heading"
+          >
             Drop the Beat, Earn the Treat
           </h2>
           <p className="max-w-2xl mx-auto text-lg text-white md:text-xl">
@@ -70,7 +86,7 @@ const HowItWorks = () => {
         </motion.div>
 
         {/* Steps Grid */}
-        <div className="grid gap-8 my-16 md:grid-cols-3">
+        <div className="grid gap-8 my-16 md:grid-cols-3" role="list">
           {steps.map((step, index) => (
             <StepCard
               key={index}
@@ -79,19 +95,24 @@ const HowItWorks = () => {
               hoveredStep={hoveredStep}
               setHoveredStep={setHoveredStep}
               isLast={index === steps.length - 1}
+              aria-label={`Step ${index + 1}: ${step.title}`}
+              role="listitem"
             />
           ))}
         </div>
 
         {/* Action Buttons */}
-        <ActionButtons />
+        <ActionButtons aria-label="Action buttons" />
 
         {/* Bonus Section */}
         <BonusSection />
       </div>
 
       {/* Glass-morphism bottom effect */}
-      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gradient-to_1 to-transparent"></div>
+      <div
+        className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-gradient-to_1 to-transparent"
+        aria-hidden="true"
+      ></div>
     </section>
   );
 };
