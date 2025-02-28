@@ -33,7 +33,7 @@ export function GameSetupForm({ onStart }) {
         <p className="text-base text-black font-medium -mb-1">
           Ready to show your lyrical prowess?🌚
         </p>
-        <p className="text-[12px] text-[#666666]">
+        <p className="text-[12px] text-text-secondary">
           Fill in the form below to continue
         </p>
       </div>

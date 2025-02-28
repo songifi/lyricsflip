@@ -10,7 +10,7 @@ const noteData = Array.from({ length: 15 }, (_, i) => ({
   size: 10 + (i % 10) + 10,
   top: (i * 7) % 100,
   left: (i * 13) % 100,
-  opacity: 0.1 + ((i % 5) / 10),
+  opacity: 0.1 + (i % 5) / 10,
   animation: `float-${i % 3}`,
   duration: 5 + (i % 10),
   delay: i % 5,
@@ -26,19 +26,19 @@ export const MusicBackground = () => {
       <GiMusicalNotes key="icon3" />,
       <FaMusic key="icon4" />,
       <GiMicrophone key="icon5" />,
-      <GiSpeaker key="icon6" />
+      <GiSpeaker key="icon6" />,
     ];
 
-    const newNotes = noteData.map(note => ({
+    const newNotes = noteData.map((note) => ({
       ...note,
-      icon: noteIcons[note.iconIndex]
+      icon: noteIcons[note.iconIndex],
     }));
 
     setNotes(newNotes);
   }, []);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {notes.map((note) => (
         <div
           key={note.id}
