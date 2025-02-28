@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common"
-import type { PlayerEngagementService } from "./player-engagement.service"
+import type { PlayerEngagementService } from "../../player-engagement/player-engagement.service"
 import type { SongAnalyticsService } from "./song-analytics.service"
 import type { TokenAnalyticsService } from "./token-analytics.service"
 import type { UserProgressionService } from "./user-progression.service"
