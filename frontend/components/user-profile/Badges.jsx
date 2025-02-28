@@ -2,7 +2,7 @@ import React from "react";
 import MusicConnoisseurBadge from "./MusicConnoisseurBadge";
 const Badges = () => {
   return (
-    <div className="flex flex-col items-start gap-[10px]  ">
+    <div className="flex flex-col items-start gap-[10px] h-full ">
       <h1 className="text-[24px] font-inter font-semibold leading-[36px] text-[#090909]">
         Badges
       </h1>

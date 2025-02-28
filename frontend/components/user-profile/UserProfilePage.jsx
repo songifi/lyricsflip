@@ -2,6 +2,7 @@ import React from "react";
 import UserProfileHeader from "./UserProfileHeader";
 import GameStatsOverview from "./GameStatsOverview";
 import Badges from "./Badges";
+import Statistics from "./Statistics";
 
 const UserProfilePage = () => {
   return (
@@ -13,6 +14,7 @@ const UserProfilePage = () => {
         <GameStatsOverview />
         <div className="grid grid-col-1 lg:grid-cols-2 gap-6">
           <Badges />
+          <Statistics />
         </div>
       </div>
     </div>
