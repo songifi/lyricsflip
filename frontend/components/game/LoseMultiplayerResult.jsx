@@ -1,17 +1,23 @@
 import Image from "next/image";
 import React from "react";
+import PropTypes from "prop-types";
+import { theme } from "../theme";
 
-const LoseMultiplayerResult = ({ isOpen, onClose }) => {
+const LoseMultiplayerResult = ({ isOpen, onClose, className }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-[#090909]/25 backdrop-blur-[1px] flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-[1008px] shadow-lg">
+    <div className="fixed inset-0 bg-black/25 backdrop-blur-[1px] flex justify-center items-center z-50">
+      <div
+        className={`bg-${theme.colors.background.default} rounded-lg w-full max-w-[1008px] shadow-lg ${className}`}
+      >
         {/* Header */}
-        <div className="bg-[#F5F5F5] px-12 py-6 border-b border-[#DBE2E7] rounded-xl flex justify-between items-center">
+        <div
+          className={`bg-${theme.colors.background.paper} px-12 py-6 border-b border-gray-300 rounded-xl flex justify-between items-center`}
+        >
           <div className="flex flex-col gap-4">
-            <div className="border border-[#DBE1E7] bg-white rounded-full p-1 pr-3 flex items-center gap-3">
-              <div className="w-18 h-18 rounded-full flex items-center justify-center p-2 border bg-[#EEFCF8] border-[#CBF6EA]">
+            <div className="border border-gray-300 bg-white rounded-full p-1 pr-3 flex items-center gap-3">
+              <div className="w-18 h-18 rounded-full flex items-center justify-center p-2 border bg-green-100 border-green-300">
                 <Image
                   src="/img/argent.svg"
                   alt="badge icon"
@@ -19,14 +25,16 @@ const LoseMultiplayerResult = ({ isOpen, onClose }) => {
                   height={21}
                 />
               </div>
-              <p className="text-sm font-semibold text-[#090909]">
+              <p className="text-sm font-semibold text-${theme.colors.text.primary}">
                 00134dyh45yhc...55e1
               </p>
             </div>
             <div className="flex items-center">
-              <span className="text-sm text-[#666666]">
+              <span className="text-sm text-${theme.colors.text.secondary}">
                 Payout if won:{" "}
-                <strong className="text-[#090909]">$1,500.00</strong>
+                <strong className={`text-${theme.colors.text.primary}`}>
+                  $1,500.00
+                </strong>
               </span>
               <div className="w-6 h-6 pl-1">
                 <Image
@@ -41,8 +49,9 @@ const LoseMultiplayerResult = ({ isOpen, onClose }) => {
           <div className="flex flex-col items-end gap-4">
             <button
               onClick={onClose}
-              className="text-gray-600 hover:text-gray-800">
-              <div className="w-8 h-8 p-2 rounded-full border border-[#DBE1E7]">
+              className="text-gray-600 hover:text-gray-800"
+            >
+              <div className="w-8 h-8 p-2 rounded-full border border-gray-300">
                 <Image
                   src="/img/pause.svg"
                   alt="badge icon"
@@ -51,8 +60,11 @@ const LoseMultiplayerResult = ({ isOpen, onClose }) => {
                 />
               </div>
             </button>
-            <p className="text-[#666666]">
-              Time left: <span className="font-bold text-[#2EAE4E]">05:00</span>
+            <p className="text-${theme.colors.text.secondary}">
+              Time left:{" "}
+              <span className={`font-bold text-${theme.colors.status.success}`}>
+                05:00
+              </span>
             </p>
           </div>
         </div>
@@ -67,18 +79,22 @@ const LoseMultiplayerResult = ({ isOpen, onClose }) => {
               height={160}
             />
           </div>
-          <h2 className="text-2xl mt-4 font-bold text-[#090909]">
-            <span className="text-[#70E3C7]">368 Points</span> - Oh oo, you
-            didn't win o 😔
+          <h2
+            className={`text-2xl mt-4 font-bold text-${theme.colors.text.primary}`}
+          >
+            <span className={`text-${theme.colors.primary.light}`}>
+              368 Points
+            </span>{" "}
+            - Oh oo, you didn't win o 😔
           </h2>
         </div>
 
         {/* Challenge Result */}
         <div className="border rounded-lg w-full max-w-[598px] mx-auto">
-          <h3 className="font-semibold p-6 text-black border-b border-dashed">
+          <h3 className="font-semibold p-6 text-${theme.colors.text.primary} border-b border-dashed">
             Challenge Result
           </h3>
-          <div className="mt-2 mb-5 pt-5 space-y-6 text-[#666666] px-6">
+          <div className="mt-2 mb-5 pt-5 space-y-6 text-${theme.colors.text.secondary} px-6">
             <div className="flex justify-between">
               <p>Winner:</p> <p className="font-bold">You</p>
             </div>
@@ -92,20 +108,30 @@ const LoseMultiplayerResult = ({ isOpen, onClose }) => {
             </div>
             <div className="flex justify-between">
               <p>Prize Won: </p>
-              <p className="text-[#70E3C7] font-bold">$1,500.00</p>
+              <p className={`text-${theme.colors.primary.light} font-bold`}>
+                $1,500.00
+              </p>
             </div>
           </div>
         </div>
 
         {/* Buttons */}
         <div className="flex justify-center space-x-4 w-full max-w-[598px] mx-auto mt-[120px] mb-[60px]">
-          <button className="bg-[#70E3C7] text-[#090909] px-8 py-6 rounded-full w-full">
+          <button
+            className={`bg-${theme.colors.primary.light} text-${theme.colors.text.primary} px-8 py-6 rounded-full w-full`}
+          >
             Create Challenge
           </button>
         </div>
       </div>
     </div>
   );
+};
+
+LoseMultiplayerResult.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  className: PropTypes.string,
 };
 
 export default LoseMultiplayerResult;
