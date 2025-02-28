@@ -1,8 +1,8 @@
 "use client";
 import Image from "next/image";
-import rankOne from "../public/leaderboard-img/rankOne.svg"
-import rankTwo from "../public/leaderboard-img/rankTwo.svg"
-import rankThree from "../public/leaderboard-img/rankThree.svg"
+import rankOne from "../public/leaderboard-img/rankOne.svg";
+import rankTwo from "../public/leaderboard-img/rankTwo.svg";
+import rankThree from "../public/leaderboard-img/rankThree.svg";
 import avatar from "../public/leaderboard-img/avatar.svg";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { IoMdArrowDropdown } from "react-icons/io";
@@ -10,7 +10,6 @@ import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
 import { useState } from "react";
 import { useGameStore } from "@/store/gameStore";
-
 
 const leaderboardData = [
   { rank: 1, username: "theJohnKennedy", points: 1200, challenges: 120 },
@@ -90,7 +89,7 @@ export default function Leaderboard() {
       {/*LeaderBoard header  */}
       <div className="flex flex-col md:flex-row items-center justify-between md:mb-8">
         <div className="mb-4">
-          <h1 className="text-2xl font-semibold text-[#090909] mb-1">
+          <h1 className="text-2xl font-semibold text-text-primary mb-1">
             Leaderboard
           </h1>
           <p className="text-gray-400 text-xs md:text-sm font-normal">
@@ -132,9 +131,10 @@ export default function Leaderboard() {
               key={entry.rank}
               className={`
                 px-6 py-4
-                ${index == 0
-                  ? "bg-[#70E3C7] transition-colors ease-out-in"
-                  : ""
+                ${
+                  index == 0
+                    ? "bg-primary-light transition-colors ease-out-in"
+                    : ""
                 }
               `}
             >
@@ -243,7 +243,6 @@ export default function Leaderboard() {
           </div>
         </div>
       </div>
-
 
       <Modal
         isOpen={isModalOpen}

@@ -80,7 +80,10 @@ const Navbar = () => {
           className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700 h-12 w-12"
         >
           <span className="sr-only">Open main menu</span>
-          <MdOutlineMenu aria-hidden="true" className="size-6 text-[#70E3C7]" />
+          <MdOutlineMenu
+            aria-hidden="true"
+            className="size-6 text-primary-light"
+          />
         </button>
       </div>
 
@@ -90,7 +93,7 @@ const Navbar = () => {
             key={item.name}
             href={item.href}
             onClick={(e) => handleScroll(e, item)}
-            className="text-base/6 font-medium text-white hover:text-[#70E3C7] transition-colors py-4"
+            className="text-base/6 font-medium text-white hover:text-primary-light transition-colors py-4"
           >
             {item.name}
           </Link>
@@ -118,7 +121,7 @@ const Navbar = () => {
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="-m-2.5 rounded-md p-2.5 text-[#70E3C7]"
+                className="-m-2.5 rounded-md p-2.5 text-primary-light"
               >
                 <span className="sr-only">Close menu</span>
                 <IoMdClose className="h-6 w-6" aria-hidden="true" />

@@ -123,7 +123,7 @@ const Game = () => {
         {gameStatus !== "idle" && (
           <div className="fixed inset-0 z-50 h-[95%] my-auto rounded-[12px] flex flex-col">
             {/* Game Header */}
-            <div className="bg-[#F5F5F5] mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
+            <div className="bg-background-paper mx-auto w-full max-w-4xl p-3 flex justify-between items-center rounded-t-[12px] shadow-md">
               <div className="flex flex-col items-start gap-2">
                 {/* Username and Avatar */}
                 <div className="flex items-center gap-3">
@@ -154,7 +154,9 @@ const Game = () => {
 
                 {/* Difficulty */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[14px] text-text-secondary">Difficulty:</span>
+                  <span className="text-[14px] text-text-secondary">
+                    Difficulty:
+                  </span>
                   <span
                     className={`text-[14px] font-bold flex items-center gap-1 ${getDifficultyColor()}`}
                   >
@@ -173,7 +175,9 @@ const Game = () => {
 
               {/* Timer */}
               <div className="p-3 flex items-center justify-center gap-2">
-                <div className="text-[16px] text-center text-text-secondary">🕒</div>
+                <div className="text-[16px] text-center text-text-secondary">
+                  🕒
+                </div>
                 <div className="text-[16px] font-bold text-status-success">
                   {formatTime(timeLeft)}
                 </div>
