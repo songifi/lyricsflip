@@ -11,4 +11,5 @@ pub mod Errors {
     pub const ROUND_COMPLETED: felt252 = 'Round already completed';
     pub const NOT_A_PARTICIPANT: felt252 = 'Not a participant';
     pub const ALREADY_READY: felt252 = 'Already signalled ready';
+    pub const NOT_AUTHORIZED: felt252 = 'Not authorized';
 }
