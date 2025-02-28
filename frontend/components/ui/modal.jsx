@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Modal({ isOpen, onClose, title, children, className }) {
   const modalRef = useRef(null);
@@ -48,7 +48,7 @@ export function Modal({ isOpen, onClose, title, children, className }) {
           className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
         >
           <motion.div
-            initial={{ 
+            initial={{
               opacity: 0,
               y: -40,
               scale: 0.8,
@@ -62,13 +62,13 @@ export function Modal({ isOpen, onClose, title, children, className }) {
                 stiffness: 400,
                 damping: 25,
                 mass: 0.5,
-                restDelta: 0.001
-              }
+                restDelta: 0.001,
+              },
             }}
             exit={{
               opacity: 0,
               y: 20,
-              transition: { duration: 0.15 }
+              transition: { duration: 0.15 },
             }}
             className={cn(
               "relative w-full max-w-2xl rounded-[13px] bg-white shadow-lg",

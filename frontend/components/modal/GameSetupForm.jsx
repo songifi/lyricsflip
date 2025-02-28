@@ -12,15 +12,17 @@ import { Input } from "@/components/ui/input";
 import { useGameStore } from "@/store/gameStore";
 import { useState } from "react";
 import DifficultySelect from "../game/DifficultySelect";
+import { useGameSounds } from "@/hooks/useGameSound";
 
 export function GameSetupForm({ onStart }) {
   const { setDifficulty, setUsername, selectedDifficulty, username } =
     useGameStore();
   // const [username, setLocalUsername] = useState("");
+  const { playClick } = useGameSounds();
 
   const handleSubmit = () => {
     if (!username || !selectedDifficulty) return;
-
+    playClick();
     setUsername(username);
     onStart();
   };
@@ -53,7 +55,10 @@ export function GameSetupForm({ onStart }) {
         </div>
 
         <div className="space-y-2 flex flex-col items-start">
-          <label htmlFor="genre" className="text-sm font-medium text-text-primary">
+          <label
+            htmlFor="genre"
+            className="text-sm font-medium text-text-primary"
+          >
             Genre
           </label>
           <div className="h-10 w-full">
@@ -62,7 +67,7 @@ export function GameSetupForm({ onStart }) {
                 <SelectValue placeholder="Select genre" />
               </SelectTrigger>
               <SelectContent className="border-2 border-primary-light/20 rounded-lg bg-white/95 backdrop-blur-sm">
-                <SelectItem 
+                <SelectItem
                   value="pop"
                   className="rounded-[6px] transition-colors duration-200 hover:bg-transparent"
                 >
@@ -108,7 +113,10 @@ export function GameSetupForm({ onStart }) {
           </div>
         </div>
         <div className="space-y-2 flex flex-col items-start">
-          <label htmlFor="mode" className="text-sm font-medium text-text-primary">
+          <label
+            htmlFor="mode"
+            className="text-sm font-medium text-text-primary"
+          >
             Game Mode
           </label>
           <div className="h-10 w-full">

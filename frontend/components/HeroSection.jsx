@@ -10,7 +10,6 @@ import { Modal } from "./ui/modal";
 import { GameSetupForm } from "./modal/GameSetupForm";
 import { StarBackground } from "./ui/StarBackground";
 import GeniusService from "@/services/geniusService";
-import { useEffect } from "react";
 
 import { useGameSounds } from "@/hooks/useGameSound";
 import WelcomeModal from "./modal/welcomeModal";
@@ -20,12 +19,6 @@ export default function HeroSection() {
   const { playClick, playBackground, stopBackground } = useGameSounds();
   const { showGame } = useUIStore();
 
-  useEffect(() => {
-    return () => {
-      stopBackground();
-    };
-  }, []);
-
   if (showGame) {
     return <GameSection />;
   }
@@ -33,7 +26,7 @@ export default function HeroSection() {
   return (
     <div className="relative min-h-[800px] w-full overflow-hidden">
       <StarBackground />
-
+      <WelcomeModal />
       <section className="relative z-10 min-h-[800px] flex items-center justify-center">
         <div className="container mx-auto px-4 w-full flex justify-center items-center">
           <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl relative z-[1] text-center">
@@ -51,7 +44,10 @@ export default function HeroSection() {
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => {
+                  playClick();
+                  setIsModalOpen(true);
+                }}
                 className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-primary-main rounded-lg bg-primary-light hover:bg-[#5fcfb5] transition-colors duration-300 flex items-center justify-center gap-2"
               >
                 <FaPlay className="text-lg" />
@@ -60,7 +56,7 @@ export default function HeroSection() {
 
               <button
                 onClick={(e) => {
-                  e.preventDefault();
+                  playClick();
                   const section = document.getElementById("howItWorks");
                   if (section) {
                     section.scrollIntoView({ behavior: "smooth" });
@@ -78,7 +74,10 @@ export default function HeroSection() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          playClick();
+          setIsModalOpen(false);
+        }}
         title="Guess the song"
       >
         <GameSetupForm onStart={handleStartGame} />

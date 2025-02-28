@@ -7,7 +7,7 @@ export default function WelcomeModal() {
 
   const handleClose = () => {
     setIsOpen(false);
-    playBackground();
+    // playBackground();
   };
 
   if (!isOpen) return null;
