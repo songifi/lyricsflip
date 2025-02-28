@@ -5,6 +5,7 @@ import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
 import { Song } from './entities/song.entity';
 import { RedisService } from 'src/redis/redis.service';
+import { Difficulty } from 'src/difficulty/entities/difficulty.entity';
 
 @Injectable()
 export class SongsService {
@@ -12,7 +13,8 @@ export class SongsService {
     @InjectRepository(Song)
     private songsRepository: Repository<Song>,
     // injecting the redis sercvice
-    private redisService: RedisService
+    private redisService: RedisService,
+    private readonly difficultyRepository: Repository<Difficulty>,
   ) {}
 
   async create(createSongDto: CreateSongDto) {
@@ -93,24 +95,39 @@ export class SongsService {
     return songs;
   }
 
-  async searchSongs(query: string) {
-    const cacheKey = `songs:search:${query}`;
-
+  async searchSongs(
+    searchQuery: string,
+    filters?: { difficultyId: string },
+    sort?: { field: string, order: 'ASC' | 'DESC' }
+  ) {
+    const cacheKey = `songs:search:${searchQuery}`;
     const cachedResults = await this.redisService.get(cacheKey);
     if (cachedResults) {
-      return JSON.parse(cachedResults);
+      return JSON.parse(cachedResults)
     }
 
-    const songs = await this.songsRepository
-      .createQueryBuilder('song')
-      .where('song.title ILIKE :query OR song.artist ILIKE :query', {
-        query: `%${query}%`,
-      })
+    const query = this.songsRepository.createQueryBuilder('songs')
+
+    if (filters?.difficultyId) {
+      query.andWhere('song.difficultyId = :difficultyId', { difficultyId: filters.difficultyId })
       .getMany();
+    }
+    
+    // Integrated search
+    if (searchQuery) {
+      query.andWhere(
+        '(song.title ILIKE :searchQuery OR song.artist ILIKE :searchQuery)',
+        { searchQuery: `%${searchQuery}%` }
+      ).getMany();
+    }
+    
+    if (sort?.field) {
+      query.orderBy(`song.${sort.field}`, sort.order || 'ASC').getMany();
+    }
 
-    await this.redisService.set(cacheKey, JSON.stringify(songs), 1800);
+    await this.redisService.set(cacheKey, JSON.stringify(query), 1800);
 
-    return songs;
+    return query
   }
 
   async updatePlayCount(id: string) {
@@ -124,7 +141,15 @@ export class SongsService {
   }
 
   async findByDifficulty(level: number) {
-    return this.songsRepository.find({ where: { difficulty: level } });
+    const difficulty = await this.difficultyRepository.findOne({ where: { value: level } });
+
+    if (!difficulty) {
+      throw new NotFoundException(`Difficulty level ${level} not found`)
+    }
+
+    return this.songsRepository.find({
+      where: { difficultyId: difficulty.id }
+    })
   }
 
   async getRandomSong() {

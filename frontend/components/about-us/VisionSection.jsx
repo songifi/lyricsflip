@@ -27,7 +27,7 @@ const VisionSection = () => {
               for songs with interactive challenges, fostering a deeper appreciation for 
               the art of lyrics.
             </p>
-            <div className="space-y-4">
+            <div className="space-y-4" role="list">
               {visionPoints.map((item, index) => (
                 <div key={index} className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-primary-light" />
@@ -44,7 +44,7 @@ const VisionSection = () => {
           >
             <Image
               src="/img/music-vision.jpg"
-              alt="Music Vision"
+              alt="A visual representation of music vision, with vibrant music notes and soundwaves."
               fill
               className="object-cover"
             />
