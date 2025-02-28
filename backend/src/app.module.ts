@@ -38,6 +38,7 @@ import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ReferralModule } from './referral/referral.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     MusicTheoryLessonModule,
     GameModeModule,
     SongGenreModule,
+    ReferralModule,
   ],
   controllers: [AppController],
   providers: [
