@@ -49,7 +49,7 @@ const Sidebar = () => {
             <div
               className={`p-5 rounded-l-lg ${
                 pathname === item.href
-                  ? "bg-white text-black"
+                  ? "bg-white dark:bg-black text-black"
                   : "hover:bg-gray-400"
               }`}
             >

@@ -29,7 +29,7 @@ export default function HeroSection() {
       <section className="relative z-10 min-h-[800px] flex items-center justify-center">
   <div className="container mx-auto px-4 w-full flex justify-center items-center">
     <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl relative z-[1] text-center">
-      <h1 className="text-[56px] font-[800] tracking-tight text-white leading-tight font-geist">
+      <h1 className="text-[56px] font-[800] light:text-black dark:text-[#490878] tracking-tight text-white leading-tight font-geist">
         Sing, Guess and Earn
       </h1>
         <p className="mt-6 text-base sm:text-lg md:text-xl text-white max-w-xl font-inter font-[300] mx-auto">

@@ -80,7 +80,7 @@ export default function Leaderboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8">
+    <div className="max-w-7xl mx-auto bg-teal dark:[#490878] p-4 md:p-8">
       {/* Leaderboard header */}
       <div className="flex flex-col md:flex-row items-center justify-between md:mb-8">
         <div className="mb-4">

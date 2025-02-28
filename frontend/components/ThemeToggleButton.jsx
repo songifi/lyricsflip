@@ -1,6 +1,7 @@
-'use client';
 
-import useThemeStore from '@/store/themeStore';
+"use client";
+
+import useThemeStore from "@/store/themeStore";
 
 const ThemeToggleButton = () => {
   const { theme, toggleTheme } = useThemeStore();
@@ -8,9 +9,9 @@ const ThemeToggleButton = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 bg-gray-200 dark:bg-gray-800 text-black dark:text-white rounded-md"
+      className="p-2 bg-white dark:bg-white-800 text-black dark:text-black border border-red rounded-md"
     >
-      Toggle Theme ({theme === 'light' ? 'Dark' : 'Light'})
+      Toggle Theme ({theme === "light" ? "Dark" : "Light"})
     </button>
   );
 };

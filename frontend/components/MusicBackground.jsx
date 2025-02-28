@@ -38,7 +38,7 @@ export const MusicBackground = () => {
   }, []);
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
+    <div className="absolute bg-[#63B2AE] dark:bg-black inset-0 pointer-events-none overflow-hidden">
       {notes.map((note) => (
         <div
           key={note.id}

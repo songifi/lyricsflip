@@ -5,7 +5,7 @@ import Game from "@/components/game/GameSection";
 
 export default function Home() {
     return (
-        <div className="bg-white">
+        <div className="bg-white dark:bg-black">
             <Header />
             <div className="p-20">
                 <LeaderBoard />

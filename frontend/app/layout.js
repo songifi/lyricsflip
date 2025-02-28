@@ -31,5 +31,5 @@ export default function RootLayout({ children }) {
         </body>
       </StarknetProvider>
     </html>
-  );
-}
+  )
+};

@@ -30,7 +30,7 @@ const Navbar = () => {
   // Remove these duplicate state declarations
   // const [isModalOpen, setIsModalOpen] = useState(false);
   // const [isLoading, setIsLoading] = useState(false);
-  // const [error, setError] = useState(null);
+
   const handleMobileMenuToggle = useCallback(() => {
     setMobileMenuOpen(!mobileMenuOpen);
   }, [mobileMenuOpen, setMobileMenuOpen]);

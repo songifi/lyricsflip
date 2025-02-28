@@ -35,7 +35,7 @@ const HowItWorks = () => {
   return (
     <section
       id="howItWorks"
-      className="relative overflow-hidden bg-gradient-to-br from-[#490878] via-[#2a0545] to-[#1c0731] px-4 py-12"
+      className="relative bg-teal dark:bg-[#490878] overflow-hidden bg-gradient-to-br from-[#490878] via-[#2a0545] to-[#1c0731] px-4 py-12"
       role="region" 
       aria-labelledby="how-it-works-heading"
     >
@@ -66,7 +66,7 @@ const HowItWorks = () => {
           </div>
 
           <h2
-            className="pb-4 text-5xl font-bold text-white md:text-5xl lg:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary-light to-purple-300"
+            className=" dark:bg-black text-black pb-4 text-5xl font-bold text-white md:text-5xl lg:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-primary-light to-purple-300"
             aria-labelledby="how-it-works-heading"
           >
             Drop the Beat, Earn the Treat

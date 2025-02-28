@@ -4,7 +4,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay">
+    <div className="modal-overlay bg-white dark:bg-black-200">
       <div className="modal-content">
         <h2>Are you sure you want to quit the game?</h2>
         <button onClick={onConfirm}>Quit</button>

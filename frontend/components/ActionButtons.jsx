@@ -40,7 +40,7 @@ export const ActionButtons = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.98 }}
       >
-        <span className="flex items-center justify-center gap-2">
+        <span className=" bg-[#490878] dark:bg-black-200 flex items-center justify-center gap-2">
           <FaWallet /> Connect Wallet
         </span>
       </motion.button>
