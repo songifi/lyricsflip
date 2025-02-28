@@ -39,6 +39,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { GameInsightsModule } from './game-insights/game-insights.module';
+import { PaginationModule } from './common/pagination/pagination.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { GameInsightsModule } from './game-insights/game-insights.module';
     LoggerModule,
     ConfigModule,
     GameModule,
+    PaginationModule,
     ThrottlerModule.forRoot({
       ttl: 60, // Time window in seconds (1 minute)
       limit: 10, // Max 10 requests per minute per user/IP
@@ -65,12 +67,7 @@ import { GameInsightsModule } from './game-insights/game-insights.module';
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
     }),
-<<<<<<< HEAD
     QuestionsModule,
-<<<<<<< HEAD
-    
-=======
-=======
     CacheModule.register({
       store: redisStore,
       socket: {
@@ -80,7 +77,6 @@ import { GameInsightsModule } from './game-insights/game-insights.module';
       ttl: 3600, 
     }),
     SongsModule,
->>>>>>> aa333f7f48426058a0826a4038e906a9f86a3915
     ChatRoomModule,
     ScoringModule,
     PowerUpModule,
