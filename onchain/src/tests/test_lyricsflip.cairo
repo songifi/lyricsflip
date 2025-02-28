@@ -278,7 +278,7 @@ fn test_start_round_player_cannot_start_round_twice() {
 }
 
 #[test]
-#[should_panic(expected: ('Not a participant',))]
+#[should_panic(expected: ('Not authorized',))]
 fn test_start_round_only_participants_can_ready() {
     let lyricsflip = deploy();
 
@@ -1359,6 +1359,133 @@ fn test_submit_answer_should_panic_with_completed_round() {
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
 
+
+#[test]
+#[should_panic(expected: ('Not authorized',))]
+fn test_start_round_should_panic_if_not_admin_or_participant() {
+    let lyricsflip = deploy();
+
+    // Setup admin and cards
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    for i in 0..5_u64 {
+        let card = Card {
+            card_id: i.into(),
+            genre: Genre::HipHop,
+            artist: 'Bob Marley',
+            title: "",
+            year: 2000,
+            lyrics: "Lorem Ipsum",
+        };
+        lyricsflip.add_card(card);
+    };
+
+    lyricsflip.set_cards_per_round(5);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Create round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Non-admin and non-participant tries to start the round, should panic
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_3());
+    lyricsflip.start_round(round_id);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+fn test_start_round_by_admin_or_participant() {
+    let lyricsflip = deploy();
+    let mut spy = spy_events();
+
+    start_cheat_block_timestamp_global(1736593692);
+
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    for i in 0..10_u64 {
+        let card = Card {
+            card_id: i.into(),
+            genre: Genre::HipHop,
+            artist: 'Bob Marley',
+            title: "",
+            year: 2000,
+            lyrics: "Lorem Ipsum",
+        };
+        lyricsflip.add_card(card);
+    };
+
+    let valid_cards_per_round = 5;
+    lyricsflip.set_cards_per_round(valid_cards_per_round);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Player 1 creates and joins round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Player 2 joins round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());
+    lyricsflip.join_round(round_id);
+
+    // Check round isn't started
+    let round = lyricsflip.get_round(round_id);
+    assert(!round.is_started, 'Round should not be started yet');
+
+    // Player 1 signals ready
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+    lyricsflip.start_round(round_id);
+
+    // Verify round still not started with only one player ready
+    let round = lyricsflip.get_round(round_id);
+    assert!(!round.is_started, "Round should not start with 1 ready");
+
+    // Player 2 signals ready
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_2());
+    lyricsflip.start_round(round_id);
+
+    // Verify round started after all players ready
+    let round = lyricsflip.get_round(round_id);
+    assert(round.is_started, 'Round should be started');
+
+    spy
+        .assert_emitted(
+            @array![
+                (
+                    lyricsflip.contract_address,
+                    LyricsFlip::Event::PlayerReady(
+                        LyricsFlip::PlayerReady {
+                            round_id, player: PLAYER_1(), ready_time: get_block_timestamp(),
+                        }
+                    )
+                ),
+                (
+                    lyricsflip.contract_address,
+                    LyricsFlip::Event::PlayerReady(
+                        LyricsFlip::PlayerReady {
+                            round_id, player: PLAYER_2(), ready_time: get_block_timestamp(),
+                        }
+                    )
+                ),
+                (
+                    lyricsflip.contract_address,
+                    LyricsFlip::Event::RoundStarted(
+                        LyricsFlip::RoundStarted {
+                            round_id, admin: round.admin, start_time: round.start_time,
+                        }
+                    )
+                ),
+            ],
+        );
+
+    stop_cheat_block_timestamp_global();
+}
 
 #[test]
 #[should_panic(expected: ('Round already started',))]

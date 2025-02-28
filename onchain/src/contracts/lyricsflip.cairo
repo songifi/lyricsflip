@@ -216,8 +216,12 @@ pub mod LyricsFlip {
             let caller_address = get_caller_address();
             let round = self.rounds.entry(round_id);
 
-            //check if caller is a participant
-            assert(self._is_round_player(round_id, caller_address), Errors::NOT_A_PARTICIPANT);
+            assert(!round.is_started.read(), Errors::ROUND_ALREADY_STARTED);
+
+            // Check if caller is the admin or a participant
+            let is_admin = round.admin.read() == caller_address;
+            let is_participant = self._is_round_player(round_id, caller_address);
+            assert(is_admin || is_participant, Errors::NOT_AUTHORIZED);
 
             //check if caller has already signaled readiness
             let is_ready = self.round_ready_players.entry(round_id).entry(caller_address).read();
@@ -560,3 +564,4 @@ pub mod LyricsFlip {
     // fn _build_question_card(self: @ContractState, card: Card) -> QuestionCard<T> {}
     }
 }
+
