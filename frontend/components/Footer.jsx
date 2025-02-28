@@ -53,7 +53,7 @@ const Footer = () => {
                 Privacy Policy
               </Link>
               <Link
-                href="/terms"
+                href="/terms-of-service"
                 className="hover:text-gray-300 transition-colors"
               >
                 Terms of Service
