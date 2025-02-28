@@ -27,7 +27,7 @@ const MusicConnoisseurBadge = ({
       </div>
 
       {/* Label text below the badge */}
-      <p className="sm:text-[12px] text-[9px] font-p22 font-medium text-nowrap text-center text-[#090909]">
+      <p className="xl:text-[12px] text-[9px] font-p22 font-medium text-nowrap text-center text-[#090909]">
         Music Connoisseur
       </p>
     </div>

@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Label,
 } from "recharts";
 
 const data = [
@@ -39,15 +40,36 @@ const CustomTooltip = ({ active, payload, label }) => {
   }
 };
 
+const renderCustomizedTick = (props) => {
+  const { x, y, payload } = props;
+  const isFirst = payload.value === "1M";
+
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0}
+        y={0}
+        dy={16}
+        textAnchor="middle"
+        fontSize={12}
+        fontFamily="var(--font-primary)"
+        fill={isFirst ? "#000" : "#929292"}
+      >
+        {payload.value}
+      </text>
+    </g>
+  );
+};
+
 const StatsChart = () => {
   return (
-    <div className="flex flex-col w-full gap-3 pt-6 pb-0 h-full px-6 rounded-[16px] max-w-3xl lg:max-w-full mx-auto border border-[#DBE2E8] bg-white">
+    <div className="flex flex-col w-full gap-3 pt-3 px-3 md:pt-6 pb-0 h-full md:px-6 rounded-[16px]  border border-[#DBE2E8] bg-white">
       {/* Current value and statistics */}
       <div>
         <h2 className="text-gray-500 font-primary text-[12px] not-italic  leading-[20px]">
           Your Savings
         </h2>
-        <div className="text-[#212121] font-primary text-[16px] leading-[24px]">
+        <div className="text-[#212121] font-primary text-[16px] font-semibold leading-[24px]">
           $ 24,000.00
         </div>
         <div className="mt-1 flex items-center font-primary gap-1">
@@ -71,11 +93,7 @@ const StatsChart = () => {
               dataKey="name"
               tickLine={false}
               axisLine={{ stroke: "#DBE2E8" }}
-              tick={{
-                fontSize: 12,
-                fill: "#929292",
-                fontFamily: "var(--font-primary)",
-              }}
+              tick={renderCustomizedTick}
             />
             <YAxis orientation="right" hide />
 
