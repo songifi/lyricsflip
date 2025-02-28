@@ -1,10 +1,10 @@
 import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { UserService } from "src/user/providers/user.service";
+import { UserService } from "./../../user/providers/user.service";
 import jwtConfig from "../authConfig/jwt.config";
 import { ConfigType } from "@nestjs/config";
-import { User } from "src/user/user.entity";
-// import { User } from "src/user/user.entity";
+import { User } from "./../../user/user.entity";
+// import { User } from "./../../user/user.entity";
 
 @Injectable()
 export class GenerateTokensProvider {
@@ -27,7 +27,7 @@ export class GenerateTokensProvider {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
   ) {}
 
-  public async signToken<T>(userId: number, expiresIn: number, payload?: T) {
+  public async signToken<T>(userId: string, expiresIn: number, payload?: T) {
     return await this.jwtService.signAsync(
       {
         sub: userId,
@@ -48,7 +48,7 @@ export class GenerateTokensProvider {
     this.signToken(user.id, this.jwtConfiguration.ttl, {email: user.email}),
 
     // generate refresh token
-    this.signToken(user.id, this.jwtConfiguration.ttl)
+    this.signToken(user.id, this.jwtConfiguration.refreshttl)
     ])
     
     return {'accessToken': accessToken, 'refreshToken': refreshToken, user}

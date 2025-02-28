@@ -1,26 +1,78 @@
-import { GoDotFill } from "react-icons/go";
-import { FaMusic } from "react-icons/fa6";
+"use client";
 
-const HeroSection = () => {
+import Link from "next/link";
+import { FaMusic, FaPlay } from "react-icons/fa6";
+import { IoInformationCircleOutline } from "react-icons/io5";
+import { useGameStore } from "../store/gameStore";
+import { useUIStore } from "../store/uiStore";
+import GameSection from "./game/GameSection";
+import { Modal } from "./ui/modal";
+import { GameSetupForm } from "./modal/GameSetupForm";
+import { StarBackground } from "./ui/StarBackground";
+import GeniusService from "@/services/geniusService";
+import { useState } from "react";
+
+export default function HeroSection() {
+  // Remove the GameSection prop
+  const { handleStartGame, isModalOpen, setIsModalOpen } = useGameStore();
+  const { showGame,  } = useUIStore();
+
+
+  if (showGame) {
+    return <GameSection />; // Use the imported GameSection component
+  }
+
   return (
-    <div className="" style={{backgroundImage: "url('/img/hero-background.svg')", backgroundRepeat: 'no-repeat', height: '100vh'}}>
-      <div className="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:flex lg:items-center lg:gap-x-24 lg:px-8 lg:py-40">
-        <div className="mx-auto max-w-2xl lg:mx-0 lg:flex-auto">
-          <h1 className="mt-10 text-5xl font-semibold tracking-tight text-pretty text-[#490878] sm:text-7xl">
-            Sing <FaMusic className="inline text-2xl" /> Guess{" "}
-            <FaMusic className="inline text-2xl" /> Earn
-          </h1>
-          <p className="mt-8 text-lg pt-8 font-medium text-white sm:text-2xl/8">
-          Test your lyrical knowledge, flip the cards, and guess the song!
-          Discover your favorite genres, wager tokens, and compete for the top spot. Let the music challenge begin!
-          </p>
-        </div>
-        <div className="mt-14 sm:mt-24 lg:mt-20 lg:shrink-0 lg:grow">
-          <FaMusic className="text-[350px] text-[#70E3C7] animate-customBounce " />
-        </div>
+    <div className="relative min-h-[800px] w-full overflow-hidden">
+  <StarBackground />
+
+      <section className="relative z-10 min-h-[800px] flex items-center justify-center">
+  <div className="container mx-auto px-4 w-full flex justify-center items-center">
+    <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl relative z-[1] text-center">
+      <h1 className="text-[56px] font-[800] tracking-tight text-white leading-tight font-geist">
+        Sing, Guess and Earn
+      </h1>
+        <p className="mt-6 text-base sm:text-lg md:text-xl text-white max-w-xl font-inter font-[300] mx-auto">
+          <span className="block">Test your lyrical knowledge, flip the cards, and guess the song! Discover your favorite genres, wager tokens,</span>
+          <span className="block">and compete for the top spot. Let the music challenge begin!</span>
+        </p>
+      <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-primary-main rounded-lg bg-primary-light hover:bg-[#5fcfb5] transition-colors duration-300 flex items-center justify-center gap-2"
+        >
+          <FaPlay className="text-lg" />
+          Play Now
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            const section = document.getElementById("howItWorks");
+            if (section) {
+              section.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+          className="w-full sm:w-auto px-8 py-4 text-base font-[600] text-primary-light rounded-lg border-2 border-primary-light hover:bg-primary-light hover:text-primary-main transition-colors duration-300 flex items-center justify-center gap-2"
+        >
+          <IoInformationCircleOutline className="text-xl" />
+          How to Play
+        </button>
       </div>
     </div>
-  );
-};
+  </div>
+</section>
 
-export default HeroSection;
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Guess the song"
+      >
+        <GameSetupForm
+          onStart={handleStartGame}
+        />
+      </Modal>
+    </div>
+  );
+}
