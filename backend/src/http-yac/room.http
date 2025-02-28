@@ -1,0 +1,47 @@
+# ROOM API
+
+@baseUrl = http://localhost:3000
+
+# Room Endpoints
+
+### findAll
+GET {{baseUrl}}/rooms
+
+### findById
+GET {{baseUrl}}/rooms/:id
+
+### getPlayerCount
+GET {{baseUrl}}/rooms/:id/player-count
+
+### create
+POST {{baseUrl}}/rooms
+Content-Type: application/json
+
+{
+  // Room data
+  "name": "room name",
+  "description": "room description"
+}
+
+### update
+PUT {{baseUrl}}/rooms/:id
+Content-Type: application/json
+
+{
+  // Room data
+  "id": "uuid-goes-here",
+  "name": "updated room name"
+}
+
+### delete
+DELETE {{baseUrl}}/rooms/:id
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findOne (Template)
+GET {{baseUrl}}/rooms/:id
+
+### remove (Template)
+DELETE {{baseUrl}}/rooms/:id
+

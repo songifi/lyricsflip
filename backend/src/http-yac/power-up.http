@@ -1,0 +1,69 @@
+# POWER-UP API
+
+@baseUrl = http://localhost:3000
+
+# Power-up Endpoints
+
+### getActivePowerUps
+GET {{baseUrl}}/power-ups/active
+
+### createPowerUp
+POST {{baseUrl}}/power-ups
+Content-Type: application/json
+
+{
+  // Power-up data
+  "name": "power-up name",
+  "description": "power-up description"
+}
+
+### purchasePowerUp
+POST {{baseUrl}}/power-ups/purchase
+Content-Type: application/json
+
+{
+  // Power-up data
+  "name": "power-up name",
+  "description": "power-up description"
+}
+
+### usePowerUp
+POST {{baseUrl}}/power-ups/use
+Content-Type: application/json
+
+{
+  // Power-up data
+  "name": "power-up name",
+  "description": "power-up description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/power-ups
+
+### findOne (Template)
+GET {{baseUrl}}/power-ups/:id
+
+### create (Template)
+POST {{baseUrl}}/power-ups
+Content-Type: application/json
+
+{
+  "name": "power-up name",
+  "description": "power-up description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/power-ups/:id
+Content-Type: application/json
+
+{
+  "name": "updated power-up name",
+  "description": "updated power-up description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/power-ups/:id
+

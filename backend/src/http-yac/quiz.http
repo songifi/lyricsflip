@@ -1,0 +1,52 @@
+# QUIZ API
+
+@baseUrl = http://localhost:3000
+
+# Quiz Endpoints
+
+### unnamed0
+GET {{baseUrl}}/quizzes
+
+### unnamed1
+GET {{baseUrl}}/quizzes/:id
+
+### unnamed2
+POST {{baseUrl}}/quizzes
+Content-Type: application/json
+
+{
+  // Quiz data
+  "name": "quiz name",
+  "description": "quiz description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/quizzes
+
+### findOne (Template)
+GET {{baseUrl}}/quizzes/:id
+
+### create (Template)
+POST {{baseUrl}}/quizzes
+Content-Type: application/json
+
+{
+  "name": "quiz name",
+  "description": "quiz description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/quizzes/:id
+Content-Type: application/json
+
+{
+  "name": "updated quiz name",
+  "description": "updated quiz description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/quizzes/:id
+

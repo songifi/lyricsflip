@@ -1,0 +1,51 @@
+# ANALYTICS API
+
+@baseUrl = http://localhost:3000
+
+# Analytic Endpoints
+
+### getPlayerEngagement
+GET {{baseUrl}}/analytics/player-engagement
+
+### getSongCategories
+GET {{baseUrl}}/analytics/song-categories
+
+### getTokenEconomyStats
+GET {{baseUrl}}/analytics/token-economy
+
+### getUserProgressionTrends
+GET {{baseUrl}}/analytics/user-progression
+
+### getAggregatedAnalytics
+GET {{baseUrl}}/analytics/aggregate
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/analytics
+
+### findOne (Template)
+GET {{baseUrl}}/analytics/:id
+
+### create (Template)
+POST {{baseUrl}}/analytics
+Content-Type: application/json
+
+{
+  "name": "analytic name",
+  "description": "analytic description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/analytics/:id
+Content-Type: application/json
+
+{
+  "name": "updated analytic name",
+  "description": "updated analytic description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/analytics/:id
+
