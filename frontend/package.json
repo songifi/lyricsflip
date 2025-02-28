@@ -35,6 +35,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwind-variants": "^0.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "use-sound": "^5.0.0",
     "yup": "^1.6.1",
     "zod": "^3.24.1",
     "zustand": "^5.0.3"
