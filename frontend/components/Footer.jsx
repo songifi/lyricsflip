@@ -58,6 +58,12 @@ const Footer = () => {
               >
                 Terms of Service
               </Link>
+              <Link
+                href="/faqs"
+                className="hover:text-gray-300 transition-colors"
+              >
+                FAQs
+              </Link>
             </nav>
 
             {/* Social Media Icons */}
