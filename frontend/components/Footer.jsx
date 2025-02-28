@@ -47,7 +47,7 @@ const Footer = () => {
                 Contact Us
               </Link>
               <Link
-                href="/privacy"
+                href="/privacy-policy"
                 className="hover:text-gray-300 transition-colors"
               >
                 Privacy Policy

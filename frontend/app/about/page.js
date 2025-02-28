@@ -7,7 +7,6 @@ import JoinSection from "@/components/about-us/JoinSection";
 import StatsSection from "@/components/about-us/StatsSection";
 import Game from "@/components/game/GameSection";
 
-
 export default function AboutPage() {
   return (
     <div className="bg-white">
@@ -17,7 +16,7 @@ export default function AboutPage() {
       <VisionSection />
       <JoinSection />
       <StatsSection />
-      <Game/>
+      <Game />
       <Footer />
     </div>
   );
