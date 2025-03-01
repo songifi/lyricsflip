@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useGameStore } from "@/store/gameStore";
 import { useState } from "react";
 import DifficultySelect from "../game/DifficultySelect";
-import WagerGameModal from "../../components/modal/WagerGameModal";
+ import WagerGameModal from "../../components/modal/WagerGameModal";
 
 export function GameSetupForm({ onStart }) {
   const { setDifficulty, setUsername, selectedDifficulty, username } =
