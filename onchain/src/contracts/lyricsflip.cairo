@@ -439,6 +439,12 @@ pub mod LyricsFlip {
         fn get_player_stat(self: @ContractState, player: ContractAddress) -> PlayerStats {
             self.player_stats.entry(player).read()
         }
+
+        fn build_question_card(
+            self: @ContractState, card: Card, seed: u64
+        ) -> QuestionCard<ByteArray> {
+            self._build_question_card(card, seed)
+        }
     }
 
     #[generate_trait]
@@ -564,6 +570,7 @@ pub mod LyricsFlip {
         ) -> QuestionCard<ByteArray> {
             // Get random cards to use as false answers
             let random_numbers = self.get_random_cards(10, seed);
+
             let mut random_cards: Array<Card> = ArrayTrait::new();
 
             // Collect potential false answer cards
