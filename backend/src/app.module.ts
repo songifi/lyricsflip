@@ -38,6 +38,13 @@ import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
+<<<<<<< HEAD
+import { ReferralModule } from './referral/referral.module';
+=======
+import { GameInsightsModule } from './game-insights/game-insights.module';
+import { PaginationModule } from './common/pagination/pagination.module';
+import { StateRecoveryModule } from './state-recovery/state-recovery.module';
+>>>>>>> 1254719ee782ca271ea231ebe706912a91061959
 
 @Module({
   imports: [
@@ -54,6 +61,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     LoggerModule,
     ConfigModule,
     GameModule,
+    PaginationModule,
     ThrottlerModule.forRoot({
       ttl: 60, // Time window in seconds (1 minute)
       limit: 10, // Max 10 requests per minute per user/IP
@@ -64,12 +72,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
       autoLoadEntities: true,
       synchronize: process.env.NODE_ENV === 'development',
     }),
-<<<<<<< HEAD
     QuestionsModule,
-<<<<<<< HEAD
-    
-=======
-=======
     CacheModule.register({
       store: redisStore,
       socket: {
@@ -79,7 +82,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
       ttl: 3600, 
     }),
     SongsModule,
->>>>>>> aa333f7f48426058a0826a4038e906a9f86a3915
     ChatRoomModule,
     ScoringModule,
     PowerUpModule,
@@ -89,6 +91,12 @@ import { ThrottlerModule } from '@nestjs/throttler';
     MusicTheoryLessonModule,
     GameModeModule,
     SongGenreModule,
+<<<<<<< HEAD
+    ReferralModule,
+StateRecoveryModule,
+=======
+    GameInsightsModule,
+>>>>>>> 1254719ee782ca271ea231ebe706912a91061959
   ],
   controllers: [AppController],
   providers: [

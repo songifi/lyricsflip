@@ -38,4 +38,11 @@ export class GameSession {
 
   @ManyToMany(() => Player, player => player.gameSessions, { cascade: true })
   players: Player[];
+<<<<<<< HEAD
+  playerId: string;
+  questions: any;
+  answers: any;
 }
+=======
+}
+>>>>>>> ce6a694f98c6bc94b0eb412b497295e662976e5b

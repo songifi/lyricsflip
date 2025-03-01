@@ -26,6 +26,7 @@ pub mod LyricsFlip {
 
     #[abi(embed_v0)]
     impl SRC5Impl = SRC5Component::SRC5Impl<ContractState>;
+    impl SRC5InternalImpl = SRC5Component::InternalImpl<ContractState>;
 
     #[abi(embed_v0)]
     impl AccessControlImpl =
@@ -122,12 +123,14 @@ pub mod LyricsFlip {
     }
 
     const ADMIN_ROLE: felt252 = selector!("ADMIN_ROLE");
+    const ILYRICSFLIP_ID: felt252 = selector!("ILyricsFlip");
 
     #[constructor]
     fn constructor(ref self: ContractState, owner: ContractAddress) {
         self.ownable.initializer(owner);
         self.accesscontrol.initializer();
         self.accesscontrol._grant_role(ADMIN_ROLE, owner);
+        self.src5.register_interface(ILYRICSFLIP_ID);
     }
 
     #[abi(embed_v0)]
@@ -213,8 +216,10 @@ pub mod LyricsFlip {
             let caller_address = get_caller_address();
             let round = self.rounds.entry(round_id);
 
-            //check if caller is a participant
-            assert(self._is_round_player(round_id, caller_address), Errors::NOT_A_PARTICIPANT);
+            // Check if caller is the admin or a participant
+            let is_admin = round.admin.read() == caller_address;
+            let is_participant = self._is_round_player(round_id, caller_address);
+            assert(is_admin || is_participant, Errors::NOT_AUTHORIZED);
 
             //check if caller has already signaled readiness
             let is_ready = self.round_ready_players.entry(round_id).entry(caller_address).read();

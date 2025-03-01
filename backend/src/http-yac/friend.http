@@ -1,0 +1,59 @@
+# FRIEND API
+
+@baseUrl = http://localhost:3000
+
+# Friend Endpoints
+
+### getFriends
+GET {{baseUrl}}/friends
+
+### sendFriendRequest
+POST {{baseUrl}}/friends/request
+Content-Type: application/json
+
+{
+  // Friend data
+  "name": "friend name",
+  "description": "friend description"
+}
+
+### acceptFriendRequest
+POST {{baseUrl}}/friends/request/:requestId/accept
+Content-Type: application/json
+
+{
+  // Friend data
+  "name": "friend name",
+  "description": "friend description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/friends
+
+### findOne (Template)
+GET {{baseUrl}}/friends/:id
+
+### create (Template)
+POST {{baseUrl}}/friends
+Content-Type: application/json
+
+{
+  "name": "friend name",
+  "description": "friend description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/friends/:id
+Content-Type: application/json
+
+{
+  "name": "updated friend name",
+  "description": "updated friend description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/friends/:id
+

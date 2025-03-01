@@ -47,16 +47,22 @@ const Footer = () => {
                 Contact Us
               </Link>
               <Link
-                href="/privacy"
+                href="/privacy-policy"
                 className="hover:text-gray-300 transition-colors"
               >
                 Privacy Policy
               </Link>
               <Link
-                href="/terms"
+                href="/terms-of-service"
                 className="hover:text-gray-300 transition-colors"
               >
                 Terms of Service
+              </Link>
+              <Link
+                href="/faqs"
+                className="hover:text-gray-300 transition-colors"
+              >
+                FAQs
               </Link>
             </nav>
 

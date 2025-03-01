@@ -32,6 +32,8 @@ const FeatureCards = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.2 }}
             className="bg-white rounded-xl shadow-xl p-8 hover:transform hover:-translate-y-2 transition-all duration-300"
+            aria-labelledby={`feature-title-${index}`}
+            aria-describedby={`feature-description-${index}`}
           >
             <div className="bg-primary-main/10 w-20 h-20 rounded-full flex items-center justify-center mb-6">
               {feature.icon}

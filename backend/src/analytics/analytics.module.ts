@@ -1,7 +1,7 @@
 import { Module, CacheModule } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
 import { AnalyticsController } from "./controllers/analytics.controller"
-import { PlayerEngagementService } from "./services/player-engagement.service"
+import { PlayerEngagementService } from "../player-engagement/player-engagement.service"
 import { SongAnalyticsService } from "./services/song-analytics.service"
 import { TokenAnalyticsService } from "./services/token-analytics.service"
 import { UserProgressionService } from "./services/user-progression.service"

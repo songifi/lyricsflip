@@ -1,0 +1,39 @@
+# USER-PROGRESS API
+
+@baseUrl = http://localhost:3000
+
+# User-progres Endpoints
+
+### unnamed0
+GET {{baseUrl}}/practice/progress
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/practice/progress
+
+### findOne (Template)
+GET {{baseUrl}}/practice/progress/:id
+
+### create (Template)
+POST {{baseUrl}}/practice/progress
+Content-Type: application/json
+
+{
+  "name": "user-progres name",
+  "description": "user-progres description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/practice/progress/:id
+Content-Type: application/json
+
+{
+  "name": "updated user-progres name",
+  "description": "updated user-progres description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/practice/progress/:id
+
