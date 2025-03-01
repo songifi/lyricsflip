@@ -1750,3 +1750,67 @@ fn test_build_question_card_insufficient_random_cards() {
     stop_cheat_block_timestamp_global();
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
+
+#[test]
+fn test_build_question_card_shuffling() {
+    // Deploy contract
+    let lyricsflip = deploy();
+    
+    // Setup admin and add some cards
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), selector!("ADMIN_ROLE"), true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+    
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    
+    // Add cards with predictable titles
+    for i in 0..20_u64 {
+        let card = Card {
+            card_id: i.into(),
+            genre: Genre::HipHop,
+            artist: 'Artist',
+            title: format!("False Answer {}", i),
+            year: 2000,
+            lyrics: format!("Lyrics for song {}", i),
+        };
+        lyricsflip.add_card(card);
+    };
+    
+    // Set specific timestamp for testing
+    start_cheat_block_timestamp_global(1736593692);
+    
+
+    let card1 = Card {
+        card_id: 100,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Correct Answer",
+        year: 2020,
+        lyrics: "These are the test lyrics",
+    };
+
+    let card2 = Card {
+        card_id: 100,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Correct Answer",
+        year: 2020,
+        lyrics: "These are the test lyrics",
+    };
+    
+    
+    // Create question cards with different seeds
+    let question_card1 = lyricsflip.build_question_card(card1, 12345);
+    let question_card2 = lyricsflip.build_question_card(card2, 67890);
+    
+    let all_same_order = 
+        question_card1.option_one == question_card2.option_one &&
+        question_card1.option_two == question_card2.option_two &&
+        question_card1.option_three == question_card2.option_three &&
+        question_card1.option_four == question_card2.option_four;
+        
+    assert(!all_same_order, 'Options not differently ordered');
+    
+    stop_cheat_block_timestamp_global();
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
