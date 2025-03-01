@@ -1,0 +1,49 @@
+# PROGRESSION API
+
+@baseUrl = http://localhost:3000
+
+# Progression Endpoints
+
+### unnamed0
+GET {{baseUrl}}/progression/:userId
+
+### unnamed1
+POST {{baseUrl}}/progression/xp
+Content-Type: application/json
+
+{
+  // Progression data
+  "name": "progression name",
+  "description": "progression description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/progression
+
+### findOne (Template)
+GET {{baseUrl}}/progression/:id
+
+### create (Template)
+POST {{baseUrl}}/progression
+Content-Type: application/json
+
+{
+  "name": "progression name",
+  "description": "progression description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/progression/:id
+Content-Type: application/json
+
+{
+  "name": "updated progression name",
+  "description": "updated progression description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/progression/:id
+

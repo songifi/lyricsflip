@@ -1,0 +1,39 @@
+# APP API
+
+@baseUrl = http://localhost:3000
+
+# App Endpoints
+
+### unnamed0
+GET {{baseUrl}}/
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/
+
+### findOne (Template)
+GET {{baseUrl}}//:id
+
+### create (Template)
+POST {{baseUrl}}/
+Content-Type: application/json
+
+{
+  "name": "app name",
+  "description": "app description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}//:id
+Content-Type: application/json
+
+{
+  "name": "updated app name",
+  "description": "updated app description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}//:id
+

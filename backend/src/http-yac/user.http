@@ -1,0 +1,142 @@
+# USER API
+
+@baseUrl = http://localhost:3000
+
+# User Endpoints
+
+### unnamed0
+GET {{baseUrl}}/user/admin
+
+### unnamed1
+GET {{baseUrl}}/user/admin/:id
+
+### unnamed2
+GET {{baseUrl}}/user/admins
+
+### unnamed3
+GET {{baseUrl}}/user/player
+
+### unnamed4
+GET {{baseUrl}}/user/player/:id
+
+### unnamed5
+GET {{baseUrl}}/user/players
+
+### unnamed6
+GET {{baseUrl}}/user/user
+
+### unnamed7
+GET {{baseUrl}}/user/user/:id
+
+### unnamed8
+GET {{baseUrl}}/user/users
+
+### unnamed9
+POST {{baseUrl}}/user/signup
+Content-Type: application/json
+
+{
+  // User data
+  "name": "user name",
+  "description": "user description"
+}
+
+### unnamed10
+POST {{baseUrl}}/user/signin
+Content-Type: application/json
+
+{
+  // User data
+  "name": "user name",
+  "description": "user description"
+}
+
+### unnamed11
+POST {{baseUrl}}/user/refresh-token
+Content-Type: application/json
+
+{
+  // User data
+  "name": "user name",
+  "description": "user description"
+}
+
+### unnamed12
+PUT {{baseUrl}}/user/admin/:id
+Content-Type: application/json
+
+{
+  // User data
+  "id": "uuid-goes-here",
+  "name": "updated user name"
+}
+
+### unnamed13
+PUT {{baseUrl}}/user/player/:id
+Content-Type: application/json
+
+{
+  // User data
+  "id": "uuid-goes-here",
+  "name": "updated user name"
+}
+
+### unnamed14
+PUT {{baseUrl}}/user/user/:id
+Content-Type: application/json
+
+{
+  // User data
+  "id": "uuid-goes-here",
+  "name": "updated user name"
+}
+
+### unnamed15
+PUT {{baseUrl}}/user/profile
+Content-Type: application/json
+
+{
+  // User data
+  "id": "uuid-goes-here",
+  "name": "updated user name"
+}
+
+### unnamed16
+DELETE {{baseUrl}}/user/admin/:id
+
+### unnamed17
+DELETE {{baseUrl}}/user/player/:id
+
+### unnamed18
+DELETE {{baseUrl}}/user/user/:id
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/user
+
+### findOne (Template)
+GET {{baseUrl}}/user/:id
+
+### create (Template)
+POST {{baseUrl}}/user
+Content-Type: application/json
+
+{
+  "name": "user name",
+  "description": "user description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/user/:id
+Content-Type: application/json
+
+{
+  "name": "updated user name",
+  "description": "updated user description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/user/:id
+

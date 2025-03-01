@@ -51,7 +51,7 @@ export function WalletModal() {
         className="w-full md:w-[610px] bg-primary-light bg-opacity-80 text-primary-main rounded-3xl py-12 px-6 relative text-center"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-xl font-semibold">Connect Wallet</h3>
+        <h3 className="bg-[#63B2AE] dark:bg-black text-xl font-semibold">Connect Wallet</h3>
         <p className="mt-2 mb-7 text-base">
           Choose a wallet you want to use to connect
         </p>

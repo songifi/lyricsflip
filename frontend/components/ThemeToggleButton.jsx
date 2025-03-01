@@ -9,7 +9,7 @@ const ThemeToggleButton = () => {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 bg-white dark:bg-white-800 text-black dark:text-black border border-red rounded-md"
+      className="p-2 bg-white dark:bg-whitetext-black dark:text-black border border-red rounded-md"
     >
       Toggle Theme ({theme === "light" ? "Dark" : "Light"})
     </button>

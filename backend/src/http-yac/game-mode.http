@@ -1,0 +1,49 @@
+# GAME-MODE API
+
+@baseUrl = http://localhost:3000
+
+# Game-mode Endpoints
+
+### getAllGameModes
+GET {{baseUrl}}/game-mode
+
+### createGameMode
+POST {{baseUrl}}/game-mode
+Content-Type: application/json
+
+{
+  // Game-mode data
+  "name": "game-mode name",
+  "description": "game-mode description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/game-mode
+
+### findOne (Template)
+GET {{baseUrl}}/game-mode/:id
+
+### create (Template)
+POST {{baseUrl}}/game-mode
+Content-Type: application/json
+
+{
+  "name": "game-mode name",
+  "description": "game-mode description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/game-mode/:id
+Content-Type: application/json
+
+{
+  "name": "updated game-mode name",
+  "description": "updated game-mode description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/game-mode/:id
+

@@ -1,0 +1,52 @@
+# GENRE-HISTORY API
+
+@baseUrl = http://localhost:3000
+
+# Genre-history Endpoints
+
+### unnamed0
+GET {{baseUrl}}/genre-history
+
+### unnamed1
+GET {{baseUrl}}/genre-history/:id
+
+### unnamed2
+POST {{baseUrl}}/genre-history
+Content-Type: application/json
+
+{
+  // Genre-history data
+  "name": "genre-history name",
+  "description": "genre-history description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/genre-history
+
+### findOne (Template)
+GET {{baseUrl}}/genre-history/:id
+
+### create (Template)
+POST {{baseUrl}}/genre-history
+Content-Type: application/json
+
+{
+  "name": "genre-history name",
+  "description": "genre-history description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/genre-history/:id
+Content-Type: application/json
+
+{
+  "name": "updated genre-history name",
+  "description": "updated genre-history description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/genre-history/:id
+

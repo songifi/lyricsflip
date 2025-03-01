@@ -1,0 +1,49 @@
+# REWARD API
+
+@baseUrl = http://localhost:3000
+
+# Reward Endpoints
+
+### unnamed0
+GET {{baseUrl}}/reward
+
+### unnamed1
+POST {{baseUrl}}/reward/claim
+Content-Type: application/json
+
+{
+  // Reward data
+  "name": "reward name",
+  "description": "reward description"
+}
+
+# Template CRUD Operations
+# These are common operations that might not be implemented in your controller yet
+
+### findAll (Template)
+GET {{baseUrl}}/reward
+
+### findOne (Template)
+GET {{baseUrl}}/reward/:id
+
+### create (Template)
+POST {{baseUrl}}/reward
+Content-Type: application/json
+
+{
+  "name": "reward name",
+  "description": "reward description"
+}
+
+### update (Template)
+PATCH {{baseUrl}}/reward/:id
+Content-Type: application/json
+
+{
+  "name": "updated reward name",
+  "description": "updated reward description"
+}
+
+### remove (Template)
+DELETE {{baseUrl}}/reward/:id
+
