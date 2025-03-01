@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { useGameStore } from "@/store/gameStore";
 import { useState } from "react";
 import DifficultySelect from "../game/DifficultySelect";
-import { useGameSounds } from "@/hooks/useGameSound";
+import {useGameSounds} from "@/hooks/useGameSound";
+import WagerGameModal from "../../components/modal/WagerGameModal";
 
 export function GameSetupForm({ onStart }) {
   const { setDifficulty, setUsername, selectedDifficulty, username } =
@@ -26,6 +27,7 @@ export function GameSetupForm({ onStart }) {
     setUsername(username);
     onStart();
   };
+  const [isModalOpen, setModalOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -154,13 +156,27 @@ export function GameSetupForm({ onStart }) {
       </div>
 
       <div className="max-w-[300px] mx-auto pt-4">
+        <div className="grid grid-cols-2 gap-5">
         <Button
           onClick={onStart}
           disabled={!username || !selectedDifficulty}
-          className="w-full bg-primary-light py-7 text-md font-bold text-black hover:bg-primary-light/90 rounded-full disabled:opacity-50"
+          className="w-full bg-white py-7 text-md font-bold text-black hover:bg-primary-light/90 rounded-full disabled:opacity-50"
+          style={{color: "#70E3C7"}}
         >
           Start Game
         </Button>
+        <Button
+          onClick={() => setModalOpen(true)}
+          disabled={!username || !selectedDifficulty}
+          className="w-full bg-primary-light py-7 text-md font-bold text-black hover:bg-primary-light/90 rounded-full disabled:opacity-50"
+          style={{color: "#090909"}}
+        >
+          Join Challange
+        </Button>
+
+          {/* Modal */}
+      <WagerGameModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} />
+        </div>
       </div>
     </div>
   );
