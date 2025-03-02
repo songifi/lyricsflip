@@ -5,7 +5,7 @@ pub mod LyricsFlip {
     use lyricsflip::interfaces::lyricsflip::{ILyricsFlip};
     use lyricsflip::utils::errors::Errors;
 
-    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer, PlayerStats};
+    use lyricsflip::utils::types::{Card, Entropy, Genre, Round, Answer, PlayerStats, QuestionCard};
     use openzeppelin::introspection::src5::SRC5Component;
     use openzeppelin_access::accesscontrol::{AccessControlComponent};
     use openzeppelin_access::ownable::OwnableComponent;
@@ -215,7 +215,6 @@ pub mod LyricsFlip {
 
             let caller_address = get_caller_address();
             let round = self.rounds.entry(round_id);
-
             // Check if caller is the admin or a participant
             let is_admin = round.admin.read() == caller_address;
             let is_participant = self._is_round_player(round_id, caller_address);
@@ -440,6 +439,12 @@ pub mod LyricsFlip {
         fn get_player_stat(self: @ContractState, player: ContractAddress) -> PlayerStats {
             self.player_stats.entry(player).read()
         }
+
+        fn build_question_card(
+            self: @ContractState, card: Card, seed: u64
+        ) -> QuestionCard<ByteArray> {
+            self._build_question_card(card, seed)
+        }
     }
 
     #[generate_trait]
@@ -558,7 +563,150 @@ pub mod LyricsFlip {
             };
             is_player
         }
+
         //TODO
-    // fn _build_question_card(self: @ContractState, card: Card) -> QuestionCard<T> {}
+        fn _build_question_card(
+            self: @ContractState, card: Card, seed: u64
+        ) -> QuestionCard<ByteArray> {
+            // Get random cards to use as false answers
+            let random_numbers = self.get_random_cards(10, seed);
+
+            let mut random_cards: Array<Card> = ArrayTrait::new();
+
+            // Collect potential false answer cards
+            let mut i: usize = 0;
+            while i < random_numbers.len() {
+                let card_id = *random_numbers.at(i);
+                random_cards.append(self.cards.read(card_id));
+                i += 1;
+            };
+
+            // Get current timestamp/block number for the card
+            let timestamp: u64 = get_block_timestamp();
+
+            // Collect unique false answers
+            let mut false_answers: Array<ByteArray> = ArrayTrait::new();
+            let mut j: usize = 0;
+
+            while j < random_cards.len() && false_answers.len() < 3 {
+                let rand_card = random_cards.at(j);
+
+                // Check if this card title is unique and not the correct answer
+                if rand_card.title.clone() != card.title
+                    && !self.array_contains(ref false_answers, rand_card.title.clone()) {
+                    false_answers.append(rand_card.title.clone());
+                }
+
+                j += 1;
+            };
+
+            // If we don't have enough false answers, try to find more
+            let mut extra_seed = seed + 1;
+            while false_answers.len() < 3 {
+                let additional_ids = self.get_random_cards(1, extra_seed);
+                let new_card = self.cards.read(*additional_ids.at(0));
+
+                if new_card.title != card.title
+                    && !self.array_contains(ref false_answers, new_card.title.clone()) {
+                    false_answers.append(new_card.title.clone());
+                }
+
+                extra_seed += 1;
+            };
+
+            // Create an array with all options (correct + false)
+            let mut options: Array<ByteArray> = ArrayTrait::new();
+            options.append(card.title.clone()); // Add correct answer
+
+            // Add all false answers
+            let mut k: usize = 0;
+            while k < false_answers.len() {
+                options.append(false_answers.at(k).clone());
+                k += 1;
+            };
+
+            // Shuffle the options to randomize the correct answer position
+            let shuffled_options = self.shuffle_array(options, seed);
+
+            // Return the QuestionCard with all required fields
+            QuestionCard {
+                lyric: card.lyrics.clone(),
+                timestamp: timestamp,
+                option_one: shuffled_options.at(0).clone(),
+                option_two: shuffled_options.at(1).clone(),
+                option_three: shuffled_options.at(2).clone(),
+                option_four: shuffled_options.at(3).clone(),
+            }
+        }
+
+        fn array_contains(
+            self: @ContractState, ref arr: Array<ByteArray>, item: ByteArray
+        ) -> bool {
+            let mut found = false;
+            let mut i: usize = 0;
+
+            while i < arr.len() {
+                let current_item = arr.at(i).clone();
+                if current_item == item {
+                    found = true;
+                    break;
+                }
+                i += 1;
+            };
+
+            found
+        }
+
+        fn shuffle_array(
+            self: @ContractState, arr: Array<ByteArray>, seed: u64
+        ) -> Array<ByteArray> {
+            let mut result: Array<ByteArray> = ArrayTrait::new();
+            let arr_len = arr.len();
+
+            // First copy all elements to the result array
+            let mut i: usize = 0;
+            while i < arr_len {
+                result.append(arr.at(i).clone());
+                i += 1;
+            };
+
+            // Fisher-Yates shuffle
+            let mut j: usize = arr_len;
+            let mut current_seed = seed;
+
+            while j > 1 {
+                j -= 1;
+
+                // Generate a random index using proper type conversion
+                current_seed = (current_seed * 1664525_u64 + 1013904223_u64) % 0xFFFFFFFF_u64;
+                let j_u64: u64 = j.try_into().unwrap();
+                let rand_idx_u64 = current_seed % (j_u64 + 1);
+                let rand_idx: usize = rand_idx_u64.try_into().unwrap();
+
+                // Swap elements j and rand_idx by creating a new array
+                if j != rand_idx {
+                    let temp = result.at(j);
+                    let rand_val = result.at(rand_idx);
+
+                    let mut new_result: Array<ByteArray> = ArrayTrait::new();
+                    let mut k: usize = 0;
+
+                    while k < arr_len {
+                        if k == j {
+                            new_result.append(rand_val.clone());
+                        } else if k == rand_idx {
+                            new_result.append(temp.clone());
+                        } else {
+                            new_result.append(result.at(k).clone());
+                        }
+                        k += 1;
+                    };
+
+                    result = new_result;
+                }
+            };
+
+            result
+        }
     }
 }

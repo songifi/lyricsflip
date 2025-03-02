@@ -1488,3 +1488,328 @@ fn test_start_round_by_admin_or_participant() {
 
     stop_cheat_block_timestamp_global();
 }
+
+#[test]
+fn test_build_question_card_basic() {
+    // Set specific timestamp for testing
+    start_cheat_block_timestamp_global(1736593692);
+
+    // Deploy contract
+    let lyricsflip = deploy();
+
+    // Setup admin and add some cards
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), selector!("ADMIN_ROLE"), true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+
+    // Add 10 cards with unique titles for testing
+    for i in 0
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Artist',
+                title: format!("Song Title {}", i),
+                year: 2000,
+                lyrics: format!("Lyrics for song {}", i),
+            };
+            lyricsflip.add_card(card);
+        };
+
+    // Directly test the internal function
+    let card = Card {
+        card_id: 3,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Correct Answer",
+        year: 2020,
+        lyrics: "These are the test lyrics",
+    };
+
+    // Access internal functions trait to call _build_question_card
+    let question_card = lyricsflip.build_question_card(card, 12345);
+
+    // Verify the question card has the correct lyrics
+    assert(question_card.lyric == "These are the test lyrics", 'Wrong lyrics');
+
+    // Verify timestamp matches the mocked value
+    assert(question_card.timestamp == get_block_timestamp(), 'Wrong timestamp');
+
+    // Verify the correct answer is among the options
+    let mut found_correct_answer = false;
+    if question_card.option_one == "Correct Answer"
+        || question_card.option_two == "Correct Answer"
+        || question_card.option_three == "Correct Answer"
+        || question_card.option_four == "Correct Answer" {
+        found_correct_answer = true;
+    }
+    assert(found_correct_answer, 'Correct answer not in options');
+
+    // Verify all options are unique
+    assert(
+        question_card.option_one != question_card.option_two
+            && question_card.option_one != question_card.option_three
+            && question_card.option_one != question_card.option_four
+            && question_card.option_two != question_card.option_three
+            && question_card.option_two != question_card.option_four
+            && question_card.option_three != question_card.option_four,
+        'Options not unique'
+    );
+
+    stop_cheat_block_timestamp_global();
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+fn test_build_question_card_duplicates_handling() {
+    // Set specific timestamp for testing
+    start_cheat_block_timestamp_global(1736593692);
+
+    // Deploy contract
+    let lyricsflip = deploy();
+
+    // Setup admin and add some cards
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), selector!("ADMIN_ROLE"), true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+
+    // Add cards with some duplicate titles to test duplicate handling
+    let duplicate_title = "Duplicate Title";
+    for i in 0
+        ..5_u64 {
+            let dup_card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Artist',
+                title: duplicate_title.clone(),
+                year: 2000,
+                lyrics: format!("Lyrics for song {}", i),
+            };
+            lyricsflip.add_card(dup_card);
+        };
+
+    // Add unique title cards
+    for i in 5
+        ..10_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Artist',
+                title: format!("Unique Title {}", i),
+                year: 2000,
+                lyrics: format!("Lyrics for song {}", i),
+            };
+            lyricsflip.add_card(card);
+        };
+
+    let correct_card = Card {
+        card_id: 100,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Correct Answer",
+        year: 2020,
+        lyrics: "These are the test lyrics",
+    };
+
+    let question_card = lyricsflip.build_question_card(correct_card, 12345);
+
+    // Verify the question card has the correct lyrics
+    assert(question_card.lyric == "These are the test lyrics", 'Wrong lyrics');
+
+    // Verify all options are unique despite duplicate titles in the pool
+    assert(
+        question_card.option_one != question_card.option_two
+            && question_card.option_one != question_card.option_three
+            && question_card.option_one != question_card.option_four
+            && question_card.option_two != question_card.option_three
+            && question_card.option_two != question_card.option_four
+            && question_card.option_three != question_card.option_four,
+        'Options not unique'
+    );
+
+    // Verify the correct answer is among the options
+    let mut found_correct_answer = false;
+    if question_card.option_one == "Correct Answer"
+        || question_card.option_two == "Correct Answer"
+        || question_card.option_three == "Correct Answer"
+        || question_card.option_four == "Correct Answer" {
+        found_correct_answer = true;
+    }
+    assert(found_correct_answer, 'Correct answer not in options');
+
+    stop_cheat_block_timestamp_global();
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+fn test_build_question_card_insufficient_random_cards() {
+    // Deploy contract
+    let lyricsflip = deploy();
+
+    // Setup admin and add some cards
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), selector!("ADMIN_ROLE"), true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+
+    // Add only 2 unique cards (not enough for 3 false answers)
+
+    let mut id: u64 = 1;
+    let card1 = Card {
+        card_id: id,
+        genre: Genre::HipHop,
+        artist: 'Artist 1',
+        title: "False Answer 1",
+        year: 2000,
+        lyrics: "Lyrics for song 1",
+    };
+    lyricsflip.add_card(card1);
+
+    id = 2;
+
+    let card2 = Card {
+        card_id: id,
+        genre: Genre::HipHop,
+        artist: 'Artist 2',
+        title: "False Answer 2",
+        year: 2000,
+        lyrics: "Lyrics for song 2",
+    };
+    lyricsflip.add_card(card2);
+
+    // Add duplicate titles (which should be filtered out)
+    for i in 3
+        ..8_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Test Artist',
+                title: "Duplicate Title",
+                year: 2000,
+                lyrics: format!("Lyrics for song {}", i),
+            };
+            lyricsflip.add_card(card);
+        };
+
+    // Add more unique cards for the extra_seed logic to find
+    for i in 8
+        ..12_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Test Artist',
+                title: format!("Extra Title {}", i),
+                year: 2000,
+                lyrics: format!("Lyrics for song {}", i),
+            };
+            lyricsflip.add_card(card);
+        };
+
+    // Set specific timestamp for testing
+    start_cheat_block_timestamp_global(1736593692);
+
+    let card = Card {
+        card_id: 100,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Correct Answer",
+        year: 2020,
+        lyrics: "These are the test lyrics",
+    };
+
+    let question_card = lyricsflip.build_question_card(card, 12345);
+
+    // Verify the question card has the correct lyrics
+    assert(question_card.lyric == "These are the test lyrics", 'Wrong lyrics');
+
+    // Verify we have 4 options and one is the correct answer
+    let mut found_correct_answer = false;
+    if question_card.option_one == "Correct Answer"
+        || question_card.option_two == "Correct Answer"
+        || question_card.option_three == "Correct Answer"
+        || question_card.option_four == "Correct Answer" {
+        found_correct_answer = true;
+    }
+    assert(found_correct_answer, 'Correct answer not in options');
+
+    // Verify all options are unique
+    assert(
+        question_card.option_one != question_card.option_two
+            && question_card.option_one != question_card.option_three
+            && question_card.option_one != question_card.option_four
+            && question_card.option_two != question_card.option_three
+            && question_card.option_two != question_card.option_four
+            && question_card.option_three != question_card.option_four,
+        'Options not unique'
+    );
+
+    stop_cheat_block_timestamp_global();
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
+
+#[test]
+fn test_build_question_card_shuffling() {
+    // Deploy contract
+    let lyricsflip = deploy();
+
+    // Setup admin and add some cards
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), selector!("ADMIN_ROLE"), true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+
+    // Add cards with predictable titles
+    for i in 0
+        ..20_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Artist',
+                title: format!("False Answer {}", i),
+                year: 2000,
+                lyrics: format!("Lyrics for song {}", i),
+            };
+            lyricsflip.add_card(card);
+        };
+
+    // Set specific timestamp for testing
+    start_cheat_block_timestamp_global(1736593692);
+
+    let card1 = Card {
+        card_id: 100,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Correct Answer",
+        year: 2020,
+        lyrics: "These are the test lyrics",
+    };
+
+    let card2 = Card {
+        card_id: 100,
+        genre: Genre::HipHop,
+        artist: 'Test Artist',
+        title: "Correct Answer",
+        year: 2020,
+        lyrics: "These are the test lyrics",
+    };
+
+    // Create question cards with different seeds
+    let question_card1 = lyricsflip.build_question_card(card1, 12345);
+    let question_card2 = lyricsflip.build_question_card(card2, 67890);
+
+    let all_same_order = question_card1.option_one == question_card2.option_one
+        && question_card1.option_two == question_card2.option_two
+        && question_card1.option_three == question_card2.option_three
+        && question_card1.option_four == question_card2.option_four;
+
+    assert(!all_same_order, 'Options not differently ordered');
+
+    stop_cheat_block_timestamp_global();
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}
