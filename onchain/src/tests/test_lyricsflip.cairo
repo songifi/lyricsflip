@@ -1489,7 +1489,6 @@ fn test_start_round_by_admin_or_participant() {
     stop_cheat_block_timestamp_global();
 }
 
-
 #[test]
 fn test_build_question_card_basic() {
     // Set specific timestamp for testing
