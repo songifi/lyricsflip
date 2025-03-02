@@ -14,7 +14,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          {/* Backdrop */}
+          {/* Backdrop/*/}
           <motion.div
             className="absolute inset-0 bg-black"
             style={{ opacity: 0.5 }}
