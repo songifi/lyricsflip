@@ -9,10 +9,7 @@ import { UserDTO } from '../dtos/create-user.dto';
 import { CustomLoggerService } from '../../logger/custom-logger.service';
 import { v4 as uuidv4 } from 'uuid';
 
-
-const requestId = uuidv4(); 
-
-
+const requestId = uuidv4();
 
 // Service responsible for handling user operations.
 @Injectable()
@@ -38,6 +35,15 @@ export class UserService {
     this.logger.setContext('UserService'); // Set logging context
   }
 
+  public async getAll(limit: number, page: number): Promise<User[]> {
+    const skip = (page - 1) * limit;
+
+    return this.userRepository.find({
+      skip,
+      take: limit,
+    });
+  }
+
   async createUser(userData: any) {
     this.logger.log(
       `Creating new user: ${JSON.stringify({
@@ -45,7 +51,6 @@ export class UserService {
         timestamp: new Date(),
         requestId: uuidv4(),
       })}`,
-      
     );
 
     try {

@@ -24,8 +24,13 @@ export class RoomService {
     return this.roomRepository.save(room);
   }
 
-  findAll() {
-    return this.roomRepository.find();
+  public async getAll(limit: number, page: number): Promise<Room[]> {
+    const skip = (page - 1) * limit;
+
+    return this.roomRepository.find({
+      skip,
+      take: limit,
+    });
   }
 
   async findOne(id: string) {
