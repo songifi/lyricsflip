@@ -1,20 +1,20 @@
-import { Injectable, Inject } from "@nestjs/common";
-import { PaginationQueryDto } from "src/common/nterceptors/data-response/pagination/pagination-query.dto";
-import { ObjectLiteral, Repository } from "typeorm";
-import { Request } from "express";
-import { REQUEST } from "@nestjs/core";
-import { paginated } from "../interfaces/pagination-interface";
+import { Injectable, Inject } from '@nestjs/common';
+import { ObjectLiteral, Repository } from 'typeorm';
+import { Request } from 'express';
+import { REQUEST } from '@nestjs/core';
+import { paginated } from '../interfaces/pagination-interface';
+import { PaginationQueryDto } from '../pagination-query-dto.dto';
 
 @Injectable()
 export class PaginationProvider {
   constructor(
     @Inject(REQUEST)
-    private readonly request: Request
+    private readonly request: Request,
   ) {}
   public async paginationQuery<T extends ObjectLiteral>(
     //type generic is a type that is used when we are unsure of the type of object to return
     paginatedQueryDto: PaginationQueryDto,
-    repository: Repository<T>
+    repository: Repository<T>,
   ): Promise<paginated<T>> {
     const result = await repository.find({
       skip: paginatedQueryDto.limit * (paginatedQueryDto.page - 1),
@@ -24,7 +24,7 @@ export class PaginationProvider {
     //create a request url
     //create a variable called base url
     const baseUrl =
-      this.request.protocol + "://" + this.request.headers.host + "/";
+      this.request.protocol + '://' + this.request.headers.host + '/';
     console.log(baseUrl);
 
     const newUrl = new URL(this.request.url, baseUrl);

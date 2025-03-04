@@ -24,17 +24,17 @@ export class GameResultsService {
     // Implement your scoring algorithm based on your game's logic
     // Example: Base score from game + time bonus + achievement bonus
     let finalScore = gameData.baseScore || 0;
-    
+
     // Time bonus (example: faster completion = higher bonus)
     const timeBonus = Math.max(1000 - timeSpent, 0) * 0.1;
     finalScore += timeBonus;
-    
+
     // Achievement bonus
     if (gameData.achievements && Array.isArray(gameData.achievements)) {
       const achievementBonus = gameData.achievements.length * 50;
       finalScore += achievementBonus;
     }
-    
+
     // Round to integer
     return Math.round(finalScore);
   }
@@ -42,7 +42,9 @@ export class GameResultsService {
   /**
    * Create and store a new game result
    */
-  async createResult(createGameResultDto: CreateGameResultDto): Promise<GameResult> {
+  async createResult(
+    createGameResultDto: CreateGameResultDto,
+  ): Promise<GameResult> {
     // Calculate final score if not provided
     if (!createGameResultDto.score) {
       createGameResultDto.score = this.calculateFinalScore(
@@ -50,11 +52,11 @@ export class GameResultsService {
         createGameResultDto.timeSpent,
       );
     }
-    
+
     // Create and save the entity
     const gameResult = this.gameResultsRepository.create(createGameResultDto);
     const savedResult = await this.gameResultsRepository.save(gameResult);
-    
+
     // Emit event for other parts of the system
     this.eventEmitter.emit(
       'game.result.created',
@@ -65,30 +67,35 @@ export class GameResultsService {
         savedResult.achievements || [],
       ),
     );
-    
-    this.logger.log(`Game result created for user ${savedResult.userId} with score ${savedResult.score}`);
-    
+
+    this.logger.log(
+      `Game result created for user ${savedResult.userId} with score ${savedResult.score}`,
+    );
+
     return savedResult;
   }
 
   /**
    * Generate a leaderboard for a specific game
    */
-  async generateLeaderboard(gameId: string, limit = 10): Promise<LeaderboardEntryDto[]> {
+  async generateLeaderboard(
+    gameId: string,
+    limit = 10,
+  ): Promise<LeaderboardEntryDto[]> {
     // Get top scores for the specified game
     const results = await this.gameResultsRepository.find({
       where: { gameId },
       order: { score: 'DESC' },
       take: limit,
     });
-    
+
     // Transform into leaderboard entries with ranks
     const leaderboard = await Promise.all(
       results.map(async (result, index) => {
         // In a real app, you might want to fetch username from a user service
         // This is a simplified example
         const username = `User_${result.userId.substring(0, 6)}`;
-        
+
         const entry: LeaderboardEntryDto = {
           userId: result.userId,
           username,
@@ -97,18 +104,21 @@ export class GameResultsService {
           achievements: result.achievements || [],
           gameId: result.gameId,
         };
-        
+
         return entry;
       }),
     );
-    
+
     return leaderboard;
   }
 
   /**
    * Get user's personal best for a specific game
    */
-  async getUserBest(userId: string, gameId: string): Promise<GameResult | null> {
+  async getUserBest(
+    userId: string,
+    gameId: string,
+  ): Promise<GameResult | null> {
     return this.gameResultsRepository.findOne({
       where: { userId, gameId },
       order: { score: 'DESC' },
@@ -118,10 +128,17 @@ export class GameResultsService {
   /**
    * Get all results for a specific user
    */
-  async getUserResults(userId: string): Promise<GameResult[]> {
+  async getUserResults(
+    userId: string,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<GameResult[]> {
+    const offset = (page - 1) * limit;
     return this.gameResultsRepository.find({
       where: { userId },
       order: { createdAt: 'DESC' },
+      skip: offset,
+      take: limit,
     });
   }
 }
