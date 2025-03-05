@@ -1,4 +1,4 @@
-import { Module, } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -26,25 +26,17 @@ import { TournamentModule } from './tournament/tournament.module';
 import { GameGateway } from './websocket-game comms/providers/gamegateway';
 import { GameModule } from './websocket-game comms/game.module';
 import { AchievementModule } from './achievement/achievement.module';
-
 import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
-
 import { GameModeModule } from './game-mode/game-mode.module';
-
 import { SongGenreModule } from './song-genre/song-genre.module';
-
 import { SocialModule } from './social/social.module';
-// import { AchievementModule } from './achievement/achievement.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import * as redisStore from 'cache-manager-redis-store';
 import { ThrottlerModule } from '@nestjs/throttler';
-<<<<<<< HEAD
 import { ReferralModule } from './referral/referral.module';
-=======
 import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
 import { StateRecoveryModule } from './state-recovery/state-recovery.module';
->>>>>>> 1254719ee782ca271ea231ebe706912a91061959
 
 @Module({
   imports: [
@@ -79,7 +71,7 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
         host: process.env.REDIS_HOST || 'localhost',
         port: Number(process.env.REDIS_PORT) || 6379,
       },
-      ttl: 3600, 
+      ttl: 3600,
     }),
     SongsModule,
     ChatRoomModule,
@@ -91,12 +83,9 @@ import { StateRecoveryModule } from './state-recovery/state-recovery.module';
     MusicTheoryLessonModule,
     GameModeModule,
     SongGenreModule,
-<<<<<<< HEAD
     ReferralModule,
-StateRecoveryModule,
-=======
+    StateRecoveryModule,
     GameInsightsModule,
->>>>>>> 1254719ee782ca271ea231ebe706912a91061959
   ],
   controllers: [AppController],
   providers: [

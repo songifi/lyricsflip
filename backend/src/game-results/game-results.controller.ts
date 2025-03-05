@@ -1,8 +1,19 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  DefaultValuePipe,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { GameResultsService } from './game-results.service';
 import { CreateGameResultDto } from './dto/game-result.dto';
 import { GameResult } from './entities/game-result.entity';
 import { LeaderboardEntryDto } from './dto/leaderboard-entry.dto';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 // Assuming you have some form of authentication
 // import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -12,7 +23,9 @@ export class GameResultsController {
 
   @Post()
   // @UseGuards(JwtAuthGuard)
-  async createResult(@Body() createGameResultDto: CreateGameResultDto): Promise<GameResult> {
+  async createResult(
+    @Body() createGameResultDto: CreateGameResultDto,
+  ): Promise<GameResult> {
     return this.gameResultsService.createResult(createGameResultDto);
   }
 
@@ -33,10 +46,17 @@ export class GameResultsController {
     return this.gameResultsService.getUserBest(userId, gameId);
   }
 
-  @Get('user/:userId')
-  // @UseGuards(JwtAuthGuard)
-  async getUserResults(@Param('userId') userId: string): Promise<GameResult[]> {
-    return this.gameResultsService.getUserResults(userId);
+  @Get('/user/:userId')
+  @ApiOperation({ summary: 'Get user results with pagination' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of user results successfully retrieved',
+  })
+  public getUserResults(
+    @Param('userId') userId: string,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+  ): Promise<GameResult[]> {
+    return this.gameResultsService.getUserResults(userId, page, limit);
   }
 }
-

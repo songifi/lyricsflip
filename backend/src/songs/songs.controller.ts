@@ -1,5 +1,16 @@
 // src/songs/songs.controller.ts
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { SongsService } from './songs.service';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
@@ -23,19 +34,28 @@ export class SongsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get songs with filtering, sorting, and searching' })
-  async getSongs(
-  @Query('difficulty') difficultyId?: string,
-  @Query('sortBy') sortBy?: string,
-  @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
-  @Query('q') searchQuery?: string, // Added search parameter
-) {
-  return this.songsService.searchSongs(
-    searchQuery,
-    { difficultyId },
-    { field: sortBy, order: sortOrder },
-  );
-}
+  @ApiOperation({
+    summary: 'Get songs with filtering, sorting, searching and pagination',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of songs successfully retrieved',
+  })
+  async getAllSongs(
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('difficulty') difficultyId?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: 'ASC' | 'DESC',
+    @Query('q') searchQuery?: string,
+  ) {
+    return this.songsService.getAllSongs(
+      searchQuery,
+      { difficultyId },
+      { field: sortBy, order: sortOrder },
+      { page, limit },
+    );
+  }
 
   @Get('search')
   @ApiOperation({ summary: 'Search songs' })

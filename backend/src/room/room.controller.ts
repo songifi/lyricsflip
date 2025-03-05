@@ -8,6 +8,8 @@ import {
   Param,
   Delete,
   Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -46,8 +48,11 @@ export class RoomController {
     status: 200,
     description: 'List of all room successfully retrieved',
   })
-  findAll() {
-    return this.roomService.findAll();
+  public getRooms(
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+  ) {
+    return this.roomService.getAll(limit, page);
   }
 
   @Get(':id')
