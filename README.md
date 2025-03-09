@@ -17,27 +17,37 @@ LyricFlip is an on-chain card-based music guessing game built on the Starknet ec
 ## Tech Stack
 
 ### Frontend
+
 - Framework: [Next.js](https://nextjs.org/) (React-based)
 - Styling: Tailwind CSS or Chakra UI for responsive design and modern UI components
 
 ### Smart Contracts
+
 - Language: [Cairo](https://www.cairo-lang.org/) for Starknet contract development
 - Features: Contracts for gameplay mechanics, token wagering, and NFT minting
 
 ### Backend
+
 - Framework: [NestJS](https://nestjs.com/) for scalable and modular backend development
 - Database: [PostgreSQL](https://www.postgresql.org/) for storing user data, game sessions, and song metadata
 - ORM: [TypeORM](https://typeorm.io/) for managing database models and migrations
 
 ### Deployment
-- Frontend Hosting**: Vercel (preferred for Next.js apps)
+
+- Frontend Hosting\*\*: Vercel (preferred for Next.js apps)
 - Backend Hosting: AWS, Heroku, or Render
 - Blockchain: Starknet for smart contract deployment
 
 ## Installation
 
-1. Clone the Repository**:
+1. Clone the Repository\*\*:
    ```bash
    git clone https://github.com/your-username/lyricsflip.git
    cd lyricsflip
+   ```
 
+## 📌 Recent Update
+
+As part of our transition to a multi-repo architecture, the **LyricsFlip Mobile App** is being migrated to its own dedicated repository. Once the migration is complete, you will be able to find it here: [LyricsFlip Mobile](https://github.com/songifi/lyricsflip_mobile).
+
+This change will improve maintainability, streamline development, and isolate mobile-specific code.
