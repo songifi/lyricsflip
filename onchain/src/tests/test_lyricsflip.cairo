@@ -1813,3 +1813,66 @@ fn test_build_question_card_shuffling() {
     stop_cheat_block_timestamp_global();
     stop_cheat_caller_address(lyricsflip.contract_address);
 }
+
+
+#[test]
+fn test_submit_answer_updates_player_stats() {
+    let lyricsflip = deploy();
+
+    // Setup admin and initial card
+    start_cheat_caller_address(lyricsflip.contract_address, OWNER());
+    lyricsflip.set_role(ADMIN_ADDRESS(), ADMIN_ROLE, true);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    start_cheat_caller_address(lyricsflip.contract_address, ADMIN_ADDRESS());
+    for i in 0
+        ..5_u64 {
+            let card = Card {
+                card_id: i.into(),
+                genre: Genre::HipHop,
+                artist: 'Test Artist',
+                title: "Test Title",
+                year: 2000,
+                lyrics: "Test Lyrics",
+            };
+            lyricsflip.add_card(card);
+        };
+    lyricsflip.set_cards_per_round(5);
+    stop_cheat_caller_address(lyricsflip.contract_address);
+
+    // Create and start round
+    start_cheat_caller_address(lyricsflip.contract_address, PLAYER_1());
+
+    let round_id = lyricsflip.create_round(Option::Some(Genre::HipHop), 1);
+    lyricsflip.start_round(round_id);
+
+    // Submit three consecutive correct answers
+    lyricsflip.next_card(round_id);
+    let answer = Answer::Artist('Test Artist');
+    lyricsflip.submit_answer(round_id, answer);
+
+    lyricsflip.next_card(round_id);
+    let answer = Answer::Year(2000);
+    lyricsflip.submit_answer(round_id, answer);
+
+    lyricsflip.next_card(round_id);
+    let answer = Answer::Title("Test Title");
+    lyricsflip.submit_answer(round_id, answer);
+
+    // Verify that the player's streak is updated correctly
+    let player_stats = lyricsflip.get_player_stat(PLAYER_1());
+    assert(player_stats.current_streak == 3, 'Current streak should be 3');
+    assert(player_stats.max_streak == 3, 'Max streak should be 3');
+
+    // Submit an incorrect answer
+    lyricsflip.next_card(round_id);
+    let answer = Answer::Artist('Wrong Artist');
+    lyricsflip.submit_answer(round_id, answer);
+
+    // Verify that the player's current streak resets while max streak remains unchanged
+    let player_stats = lyricsflip.get_player_stat(PLAYER_1());
+    assert(player_stats.current_streak == 0, 'Current streak should be 0');
+    assert(player_stats.max_streak == 3, 'Max streak should remain 3');
+
+    stop_cheat_caller_address(lyricsflip.contract_address);
+}

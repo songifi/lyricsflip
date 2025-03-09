@@ -429,11 +429,27 @@ pub mod LyricsFlip {
             let current_card = self.cards.entry(current_card_id).read();
 
             // Compare answer with card data
-            match answer {
+            let is_answer_correct: bool = match answer {
                 Answer::Artist(value) => { value == current_card.artist },
                 Answer::Year(value) => { value == current_card.year },
                 Answer::Title(value) => { value == current_card.title }
+            };
+
+            // Update the player's win streak
+            let player_stats = self.player_stats.entry(caller_address);
+            if is_answer_correct {
+                let updated_streak = player_stats.current_streak.read() + 1;
+                player_stats.current_streak.write(updated_streak);
+
+                let max_streak = player_stats.max_streak.read();
+                if updated_streak > max_streak {
+                    player_stats.max_streak.write(updated_streak);
+                }
+            } else {
+                player_stats.current_streak.write(0);
             }
+
+            is_answer_correct
         }
 
         fn get_player_stat(self: @ContractState, player: ContractAddress) -> PlayerStats {
