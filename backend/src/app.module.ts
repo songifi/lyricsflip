@@ -18,6 +18,7 @@ import { GlobalInterceptor } from './interceptors/global.interceptor';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { ChatRoomModule } from './chat-room/chat-room.module';
+import { CommentModule } from './comment/comment.module';
 
 @Module({
   imports: [
@@ -39,7 +40,7 @@ import { ChatRoomModule } from './chat-room/chat-room.module';
     SongsModule,
     ChatRoomModule,
     ScoringModule,
-
+    CommentModule,
   ],
   controllers: [AppController],
   providers: [
