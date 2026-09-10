@@ -25,7 +25,12 @@ pub struct PlayerStats {
 
 impl PlayerStats {
     pub fn zero() -> Self {
-        PlayerStats { total_rounds: 0, rounds_won: 0, current_streak: 0, max_streak: 0 }
+        PlayerStats {
+            total_rounds: 0,
+            rounds_won: 0,
+            current_streak: 0,
+            max_streak: 0,
+        }
     }
 }
 
