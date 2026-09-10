@@ -11,7 +11,7 @@ export default () => ({
   jwt: {
     secret: process.env.JWT_SECRET,
   },
-  starknet: {
-    network: process.env.STARKNET_NETWORK,
+  stellar: {
+    network: process.env.STELLAR_NETWORK,
   },
 });

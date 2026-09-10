@@ -15,27 +15,19 @@ import { WagerSummaryContent } from './WagerSummaryModal';
 import { WagerDetails } from '@/store';
 import { useGameStore } from '@/store/game';
 import { useRouter } from 'next/navigation';
-import { Account, CairoCustomEnum } from 'starknet';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import type { Genre } from '@/lib/stellar/types';
 
 // Map form genre values to contract Genre enum variants and their display names
-export const GENRE_MAPPING = {
-  pop: { variant: 'Pop', index: 0, display: 'Pop' },
-  rock: { variant: 'Rock', index: 1, display: 'Rock' },
-  hiphop: { variant: 'HipHop', index: 2, display: 'Hip Hop' },
-  rnb: { variant: 'RnB', index: 3, display: 'R&B' },
-} as const;
+export const GENRE_MAPPING: Record<string, { variant: Genre; display: string }> = {
+  pop: { variant: 'Pop', display: 'Pop' },
+  rock: { variant: 'Rock', display: 'Rock' },
+  hiphop: { variant: 'HipHop', display: 'Hip Hop' },
+  rnb: { variant: 'RnB', display: 'R&B' },
+};
 
 // Type for genre keys
 export type GenreKey = keyof typeof GENRE_MAPPING;
-
-// Map genre strings to their enum indices
-export const GENRE_INDEX = {
-  'Pop': 0,
-  'Rock': 1,
-  'HipHop': 2,
-  'RnB': 3,
-};
 
 export function WagerModal() {
   const router = useRouter();
@@ -54,8 +46,8 @@ export function WagerModal() {
   const startGame = useGameStore((state) => state.startGame);
   const isModalOpen = isOpen && modalType === 'wager';
 
-  // Initialize Dojo setup
-  const { setup, account, isLoading, error } = useDojo();
+  // Initialize Stellar setup
+  const { setup, account, isLoading, error } = useStellar();
 
   useEffect(() => {
     const oddsValue = parseFloat(wagerDetails.odds);
@@ -102,37 +94,28 @@ export function WagerModal() {
         return;
       }
 
-      if (!setup?.config?.actions) {
+      if (!setup?.systemCalls) {
         setSubmissionError('Game system not initialized. Please try again.');
         return;
       }
 
-      // Map genre to contract enum variant
+      // Map form genre key to the contract's Genre variant
       const genreKey = wagerDetails.genre as GenreKey;
       const genreInfo = GENRE_MAPPING[genreKey];
-      
+
       if (!genreInfo) {
         setSubmissionError('Invalid genre selected.');
         return;
       }
 
       try {
-        // Construct the genre enum in the format StarkNet.js expects
-        const genreEnum = {
-          type: 'enum',
-          variant: genreInfo.variant,
-          // For simple enums in Cairo 1.0, we need to pass an empty object
-          values: {}
-        };
-
         console.log('Attempting createRound with genre:', {
-          genreEnum,
+          genre: genreInfo.variant,
           account: account?.address,
-          hasActions: !!setup?.config?.actions
         });
 
-        const result = await setup.config.actions.createRound(account, genreEnum);
-        console.log('Round created with transaction hash:', result);
+        const result = await setup.systemCalls.createRound(genreInfo.variant);
+        console.log('Round created, round id:', result);
 
         // Start game in store
         startGame({

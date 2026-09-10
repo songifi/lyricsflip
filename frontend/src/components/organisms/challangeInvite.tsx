@@ -1,12 +1,12 @@
 import { Copy, Lightbulb, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function ChallengeInvite() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { systemCalls } = useDojo();
+  const { systemCalls } = useStellar();
   const [isCopied, setIsCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,11 +17,11 @@ export default function ChallengeInvite() {
 
   useEffect(() => {
     const fetchRoundData = async () => {
-      if (!roundId) return;
-      
+      if (!roundId || !systemCalls) return;
+
       try {
         setIsLoading(true);
-        const data = await systemCalls.getRound(roundId);
+        const data = await systemCalls.getRound(BigInt(roundId));
         setRoundData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch round data');
@@ -65,11 +65,11 @@ export default function ChallengeInvite() {
   };
 
   const handleStartChallenge = async () => {
-    if (!roundId) return;
-    
+    if (!roundId || !systemCalls) return;
+
     try {
       setIsLoading(true);
-      await systemCalls.startRound(roundId);
+      await systemCalls.startRound(BigInt(roundId));
       router.push(`/multiplayer/game?roundId=${roundId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start challenge');
@@ -84,8 +84,10 @@ export default function ChallengeInvite() {
       return;
     }
 
+    if (!roundId) return;
+
     try {
-      const data = await systemCalls.getRound(roundId);
+      const data = await systemCalls.getRound(BigInt(roundId));
       // ... rest of the code
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get round data');
@@ -98,8 +100,10 @@ export default function ChallengeInvite() {
       return;
     }
 
+    if (!roundId) return;
+
     try {
-      await systemCalls.startRound(roundId);
+      await systemCalls.startRound(BigInt(roundId));
       // ... rest of the code
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start round');

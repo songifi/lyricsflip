@@ -6,9 +6,8 @@ import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import { SongOptions } from '@/components/molecules/song-options';
 import { useMultiplayerRoom, type Player } from '@/hooks/use-multiplayer-room';
 import { useEffect, useState } from 'react';
-import { useGameService } from "@/hooks/useGameService";
-import { useDojo } from "@/lib/dojo/hooks/useDojo";
-import { Round, RoundState } from "@/lib/dojo/types";
+import { useStellar } from "@/lib/stellar/hooks/useStellar";
+import type { Round } from "@/lib/stellar/types";
 import { Button } from "@/components/atoms/button";
 // Define the SongOption type
 interface SongOption {
@@ -19,9 +18,10 @@ interface SongOption {
 export default function MultiplayerPage() {
   const router = useRouter();
   const [playerName, setPlayerName] = useState<string>('Guest');
-  const { systemCalls } = useDojo();
-  const { joinRound, startRound, isLoading, error } = useGameService();
+  const { systemCalls } = useStellar();
+  const [isLoading, setIsLoading] = useState(false);
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
+  const [playersCount, setPlayersCount] = useState(0);
   const [roundId, setRoundId] = useState<string>("");
   const [errorState, setError] = useState<string | null>(null);
   // In a real app, you would get the roomId from the URL or props
@@ -72,27 +72,44 @@ export default function MultiplayerPage() {
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
     try {
-      await systemCalls.joinRound(roundId);
-      const round = await systemCalls.getRound(roundId);
+      const id = BigInt(roundId);
+      await systemCalls.joinRound(id);
+      const [round, players] = await Promise.all([
+        systemCalls.getRound(id),
+        systemCalls.getRoundPlayers(id),
+      ]);
       setCurrentRound(round);
+      setPlayersCount(players.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to join round');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleStartRound = async () => {
-    if (!systemCalls) {
+    if (!systemCalls || !currentRound) {
       setError('System calls not initialized');
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
     try {
-      await systemCalls.startRound(roundId);
-      const round = await systemCalls.getRound(roundId);
+      await systemCalls.startRound(currentRound.round_id);
+      const [round, players] = await Promise.all([
+        systemCalls.getRound(currentRound.round_id),
+        systemCalls.getRoundPlayers(currentRound.round_id),
+      ]);
       setCurrentRound(round);
+      setPlayersCount(players.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start round');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -144,15 +161,16 @@ export default function MultiplayerPage() {
         <div className="max-w-md mx-auto">
           <h2 className="text-xl font-bold mb-4">Current Round</h2>
           <div className="bg-white rounded-lg shadow p-6">
-            <p className="mb-2">Creator: {currentRound.creator}</p>
+            <p className="mb-2">Creator: {currentRound.admin}</p>
             <p className="mb-2">Genre: {currentRound.genre}</p>
-            <p className="mb-2">State: {currentRound.state}</p>
-            <p className="mb-2">Players: {currentRound.players_count}</p>
-            <p className="mb-2">Ready Players: {currentRound.ready_players_count}</p>
-            <p className="mb-2">Wager: {currentRound.wager_amount}</p>
+            <p className="mb-2">
+              State: {currentRound.is_completed ? 'Completed' : currentRound.is_started ? 'Started' : 'Pending'}
+            </p>
+            <p className="mb-2">Players: {playersCount}</p>
+            <p className="mb-2">Wager: {currentRound.wager_amount.toString()}</p>
           </div>
 
-          {currentRound.state === RoundState.Pending && (
+          {!currentRound.is_started && (
             <Button
               onClick={handleStartRound}
               disabled={isLoading}

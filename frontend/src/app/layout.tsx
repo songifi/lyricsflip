@@ -23,7 +23,7 @@ const interV = localFont({
   variable: '--font-interv',
 });
 
-const DynamicDojoProvider = dynamic(() => import('@/lib/dojo/DojoProvider').then(mod => mod.DojoProvider), {
+const DynamicStellarProvider = dynamic(() => import('@/lib/stellar/StellarProvider').then(mod => mod.StellarProvider), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center min-h-screen">
@@ -52,11 +52,11 @@ export default function RootLayout({
               </div>
             </div>
           }>
-            <DynamicDojoProvider>
+            <DynamicStellarProvider>
               <Navbar />
               {children}
               <MobileNav />
-            </DynamicDojoProvider>
+            </DynamicStellarProvider>
           </Suspense>
         </ClientProvider>
       </body>

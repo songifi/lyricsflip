@@ -29,7 +29,7 @@ export class ConfigService {
     return this.get<string>('jwt.secret');
   }
 
-  getStarknetNetwork(): string {
-    return this.get<string>('starknet.network');
+  getStellarNetwork(): string {
+    return this.get<string>('stellar.network');
   }
 }

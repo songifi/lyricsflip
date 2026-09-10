@@ -3,7 +3,7 @@
 import { useModalStore } from '@/store/modal-store';
 import { Modal } from './modal';
 import { Button } from '@/components/atoms/button';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useEffect, useState } from 'react';
 import { GENRE_MAPPING, GenreKey } from './WagerModal';
 import { WagerDetails } from '@/store';
@@ -64,14 +64,14 @@ export function WagerSummaryContent({
 
 export function WagerSummaryModal() {
   const { isOpen, closeModal, modalType } = useModalStore();
-  const { setup } = useDojo();
+  const { setup } = useStellar();
   const [wagerDetails, setWagerDetails] = useState<WagerDetails | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRoundDetails = async () => {
     if (!setup) {
-      setError('Dojo setup not initialized');
+      setError('Stellar setup not initialized');
       return;
     }
 

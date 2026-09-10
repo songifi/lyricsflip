@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import { BigNumberish } from 'starknet';
 
 interface GameState {
-  roundId: BigNumberish | null;
-  setRoundId: (roundId: BigNumberish) => void;
+  roundId: bigint | null;
+  setRoundId: (roundId: bigint) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({

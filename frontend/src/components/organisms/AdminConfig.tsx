@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/atoms/button";
 import { Input } from "@/components/atoms/input";
-import { useDojo } from "@/lib/dojo/hooks/useDojo";
+import { useStellar } from "@/lib/stellar/hooks/useStellar";
 
 export const AdminConfig = () => {
-    const { systemCalls } = useDojo();
+    const { systemCalls } = useStellar();
     const [cardsPerRound, setCardsPerRoundValue] = useState<string>("");
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);

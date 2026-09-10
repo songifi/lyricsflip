@@ -10,7 +10,7 @@ export class TestConfigController {
     return {
       environment: this.configService.get('nodeEnv'),
       port: this.configService.getPort(),
-      starknetNetwork: this.configService.getStarknetNetwork(),
+      stellarNetwork: this.configService.getStellarNetwork(),
       isDev: this.configService.isDevelopment()
     };
   }

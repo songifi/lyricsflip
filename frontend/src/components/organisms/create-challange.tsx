@@ -1,12 +1,19 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
-import { BigNumberish } from 'starknet';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import type { Genre } from '@/lib/stellar/types';
 import { useRouter } from 'next/navigation';
+
+// Maps the form's genre <select> values to the contract's Genre variants.
+const FORM_GENRE_TO_CONTRACT_GENRE: Record<string, Genre> = {
+  hiphop: 'HipHop',
+  afrobeats: 'Afrobeat',
+  pop: 'Pop',
+};
 
 export default function CreateChallenge() {
   const router = useRouter();
-  const { systemCalls } = useDojo();
+  const { systemCalls } = useStellar();
   const currency_Amount = { STRK: '18,678', USD: '5,676' };
   const [formData, setFormData] = useState({
     genre: '',
@@ -89,7 +96,12 @@ export default function CreateChallenge() {
     }
 
     try {
-      const roundId = await systemCalls.createRound(formData.genre as BigNumberish);
+      const genre = FORM_GENRE_TO_CONTRACT_GENRE[formData.genre];
+      if (!genre) {
+        setError('Invalid genre selected');
+        return;
+      }
+      const roundId = await systemCalls.createRound(genre);
       router.push(`/multiplayer?roundId=${roundId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create challenge');

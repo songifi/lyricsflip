@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { FaCircleCheck } from 'react-icons/fa6';
 import { MdCancel } from 'react-icons/md';
-import { Button } from '@components/atoms/button';
+import { Button } from '@/components/atoms/button';
 import { Modal } from './modal';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 
 interface GameResultPopupProps {
   isWin: boolean;
@@ -21,7 +21,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { systemCalls } = useDojo();
+  const { systemCalls } = useStellar();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roundData, setRoundData] = useState<any>(null);
@@ -36,10 +36,10 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
       }
 
       if (!roundId) return;
-      
+
       try {
         setIsLoading(true);
-        const data = await systemCalls.getRound(roundId);
+        const data = await systemCalls.getRound(BigInt(roundId));
         setRoundData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to get round data');
@@ -77,10 +77,10 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
     }
 
     if (!roundId) return;
-    
+
     try {
       setIsLoading(true);
-      await systemCalls.claimEarnings(roundId);
+      await systemCalls.claimEarnings();
       alert('Earnings claimed successfully!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to claim earnings');

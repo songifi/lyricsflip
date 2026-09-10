@@ -18,11 +18,7 @@
     ]
   },
   "dependencies": {
-    "@dojoengine/core": "^1.4.4",
-    "@dojoengine/create-burner": "^1.4.4",
-    "@dojoengine/sdk": "^1.4.4",
-    "@dojoengine/torii-client": "^1.4.4",
-    "@dojoengine/torii-wasm": "^1.4.4",
+    "@creit.tech/stellar-wallets-kit": "^2.6.0",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-select": "^2.1.6",
     "@radix-ui/react-slot": "^1.1.2",
@@ -43,6 +39,7 @@
     "react-dom": "^18.2.0",
     "react-icons": "^5.5.0",
     "socket.io-client": "^4.8.1",
+    "@stellar/stellar-sdk": "^17.0.1",
     "stream-browserify": "^3.0.0",
     "tailwind-merge": "^3.0.2",
     "tw-animate-css": "^1.2.4",
