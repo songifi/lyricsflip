@@ -3,7 +3,10 @@
 #[cfg(test)]
 mod test;
 
-use soroban_sdk::{contract, contracterror, contractevent, contractimpl, contracttype, panic_with_error, Address, Env, String};
+use soroban_sdk::{
+    contract, contracterror, contractevent, contractimpl, contracttype, panic_with_error, Address,
+    Env, String,
+};
 
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -58,8 +61,12 @@ impl LyricsFlipNFT {
         }
         env.storage().instance().set(&DataKey::Owner, &owner);
         env.storage().instance().set(&DataKey::Minter, &minter);
-        env.storage().instance().set(&DataKey::TokenName, &token_name);
-        env.storage().instance().set(&DataKey::TokenSymbol, &token_symbol);
+        env.storage()
+            .instance()
+            .set(&DataKey::TokenName, &token_name);
+        env.storage()
+            .instance()
+            .set(&DataKey::TokenSymbol, &token_symbol);
         env.storage().instance().set(&DataKey::BaseUri, &base_uri);
         env.storage().instance().set(&DataKey::TokenCount, &0u128);
     }
@@ -72,17 +79,33 @@ impl LyricsFlipNFT {
             panic_with_error!(env, Error::NotMinter);
         }
 
-        let count: u128 = env.storage().instance().get(&DataKey::TokenCount).unwrap_or(0);
+        let count: u128 = env
+            .storage()
+            .instance()
+            .get(&DataKey::TokenCount)
+            .unwrap_or(0);
         let token_id = count + 1;
 
-        if env.storage().persistent().has(&DataKey::TokenOwner(token_id)) {
+        if env
+            .storage()
+            .persistent()
+            .has(&DataKey::TokenOwner(token_id))
+        {
             panic_with_error!(env, Error::TokenAlreadyExists);
         }
 
-        env.storage().persistent().set(&DataKey::TokenOwner(token_id), &recipient);
-        env.storage().instance().set(&DataKey::TokenCount, &token_id);
+        env.storage()
+            .persistent()
+            .set(&DataKey::TokenOwner(token_id), &recipient);
+        env.storage()
+            .instance()
+            .set(&DataKey::TokenCount, &token_id);
 
-        NftMinted { token_id, recipient }.publish(&env);
+        NftMinted {
+            token_id,
+            recipient,
+        }
+        .publish(&env);
 
         token_id
     }
@@ -107,6 +130,9 @@ impl LyricsFlipNFT {
     }
 
     pub fn token_count(env: Env) -> u128 {
-        env.storage().instance().get(&DataKey::TokenCount).unwrap_or(0)
+        env.storage()
+            .instance()
+            .get(&DataKey::TokenCount)
+            .unwrap_or(0)
     }
 }

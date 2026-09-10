@@ -82,11 +82,17 @@ fn round_requires_all_players_ready_before_starting() {
 
     client.start_round(&owner, &round_id);
     let round = client.get_round(&round_id);
-    assert!(!round.is_started, "round should not auto-start until every player is ready");
+    assert!(
+        !round.is_started,
+        "round should not auto-start until every player is ready"
+    );
 
     client.start_round(&player2, &round_id);
     let round = client.get_round(&round_id);
-    assert!(round.is_started, "round should start once all players signal ready");
+    assert!(
+        round.is_started,
+        "round should start once all players signal ready"
+    );
 }
 
 #[test]
