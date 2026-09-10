@@ -3,14 +3,14 @@ import { Modal } from './modal';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useState, useEffect } from 'react';
 
 export const GameResultModal = () => {
   const { isOpen, modalType, closeModal } = useModalStore();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { systemCalls } = useDojo();
+  const { systemCalls } = useStellar();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roundData, setRoundData] = useState<any>(null);
@@ -28,7 +28,7 @@ export const GameResultModal = () => {
 
       try {
         setIsLoading(true);
-        const data = await systemCalls.getRound(roundId);
+        const data = await systemCalls.getRound(BigInt(roundId));
         setRoundData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch round data');

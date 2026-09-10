@@ -1,14 +1,13 @@
 'use client'
 import React, { useEffect, useState } from 'react';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useStore } from '../store';
-import { BigNumberish } from 'starknet';
 
 const GameComponent = () => {
-  const { systemCalls, account } = useDojo();
+  const { systemCalls, account } = useStellar();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [roundId, setRoundId] = useState<BigNumberish | null>(null);
+  const [roundId, setRoundId] = useState<bigint | null>(null);
   const [isPlayer, setIsPlayer] = useState(false);
 
   // Keep theme from store for now
@@ -26,7 +25,7 @@ const GameComponent = () => {
       }
 
       try {
-        const result = await systemCalls.createRound(0); 
+        const result = await systemCalls.createRound('HipHop'); 
         setRoundId(result);
         const isPlayerInRound = await systemCalls.isRoundPlayer(result, account.address);
         setIsPlayer(isPlayerInRound);
@@ -83,7 +82,7 @@ const GameComponent = () => {
                 setIsLoading(false);
                 return;
               }
-              systemCalls.createRound(0).then(result => {
+              systemCalls.createRound('HipHop').then(result => {
                 setRoundId(result);
                 systemCalls.isRoundPlayer(result, account.address).then(isPlayerInRound => {
                   setIsPlayer(isPlayerInRound);

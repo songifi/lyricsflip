@@ -1,5 +1,5 @@
 'use client';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useEffect, useState } from 'react';
 
 interface LeaderboardUser {
@@ -24,7 +24,7 @@ interface Category {
 }
 
 export default function MusicDashboard() {
-  const { systemCalls } = useDojo();
+  const { systemCalls } = useStellar();
   const [songs, setSongs] = useState<Song[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);

@@ -9,11 +9,9 @@ const customJestConfig = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@dojoengine/create-burner$': '<rootDir>/src/__mocks__/types.ts',
-    '^@dojoengine/core$': '<rootDir>/src/__mocks__/dojoCore.ts'
   },
   transformIgnorePatterns: [
-    '/node_modules/(?!@dojoengine)'
+    '/node_modules/(?!(@stellar|@creit\\.tech)/)'
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],

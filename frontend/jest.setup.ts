@@ -1,23 +1,34 @@
-// Mock @dojoengine/create-burner and related types
-jest.mock('@dojoengine/create-burner', () => ({
-  createBurner: jest.fn(() => ({
-    account: {
-      address: '0x123',
-      publicKey: '0x456',
-      privateKey: '0x789',
-      sign: jest.fn()
-    },
-    create: jest.fn(),
-  }))
+// Mock @creit.tech/stellar-wallets-kit
+jest.mock('@creit.tech/stellar-wallets-kit', () => ({
+  StellarWalletsKit: {
+    init: jest.fn(),
+    setWallet: jest.fn(),
+    setNetwork: jest.fn(),
+    getAddress: jest.fn(() => Promise.resolve({ address: '' })),
+    authModal: jest.fn(() => Promise.resolve({ address: 'GABCDEFMOCKADDRESS' })),
+    signTransaction: jest.fn(() => Promise.resolve({ signedTxXdr: '', signerAddress: '' })),
+    disconnect: jest.fn(),
+  },
+  Networks: {
+    PUBLIC: 'Public Global Stellar Network ; September 2015',
+    TESTNET: 'Test SDF Network ; September 2015',
+    FUTURENET: 'Test SDF Future Network ; October 2022',
+  },
 }));
 
-// Mock dojo setup
-jest.mock('@/lib/dojo/setup', () => ({
-  setupNetwork: jest.fn(),
-  setupWorld: jest.fn(() => ({
-    config: {},
-    components: {},
-  })),
+jest.mock('@creit.tech/stellar-wallets-kit/modules/freighter', () => ({ FreighterModule: jest.fn() }));
+jest.mock('@creit.tech/stellar-wallets-kit/modules/xbull', () => ({ xBullModule: jest.fn() }));
+jest.mock('@creit.tech/stellar-wallets-kit/modules/albedo', () => ({ AlbedoModule: jest.fn() }));
+jest.mock('@creit.tech/stellar-wallets-kit/modules/lobstr', () => ({ LobstrModule: jest.fn() }));
+jest.mock('@creit.tech/stellar-wallets-kit/modules/hana', () => ({ HanaModule: jest.fn() }));
+
+// Mock @stellar/stellar-sdk's contract client
+jest.mock('@stellar/stellar-sdk', () => ({
+  contract: {
+    Client: {
+      from: jest.fn(() => Promise.resolve({})),
+    },
+  },
 }));
 
 // Mock next/navigation
@@ -31,27 +42,6 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => ({
     get: jest.fn(),
   }),
-}));
-
-// Mock @dojoengine/core
-jest.mock('@dojoengine/core', () => ({
-  DojoProvider: {
-    setup: jest.fn(),
-    config: {
-      rpcUrl: 'mock-rpc-url',
-      toriiUrl: 'mock-torii-url',
-      masterAddress: 'mock-master-address',
-      masterPrivateKey: 'mock-private-key',
-      accountClassHash: 'mock-class-hash',
-    }
-  },
-  setupDojoConfig: jest.fn(() => ({
-    rpcUrl: 'mock-rpc-url',
-    toriiUrl: 'mock-torii-url',
-    masterAddress: 'mock-master-address',
-    masterPrivateKey: 'mock-private-key',
-    accountClassHash: 'mock-class-hash',
-  }))
 }));
 
 // Add required JSDOM setup for Next.js

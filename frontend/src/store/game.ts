@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { BigNumberish } from 'starknet';
 
 interface GameState {
   score: number;
@@ -16,7 +15,7 @@ interface GameState {
     wagerAmount: number;
   };
   lastGuessResult: 'correct' | 'incorrect' | null;
-  roundId: BigNumberish | null;
+  roundId: bigint | null;
   increaseScore: () => void;
   setGuessResult: (result: GameState['lastGuessResult']) => void;
   decreaseTime: () => void;
@@ -24,7 +23,7 @@ interface GameState {
   startGame: (config: GameState['gameConfig']) => void;
   endGame: () => void;
   setGameStatus: (status: GameState['gameStatus']) => void;
-  setRoundId: (roundId: BigNumberish) => void;
+  setRoundId: (roundId: bigint) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({

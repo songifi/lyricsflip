@@ -3,13 +3,12 @@ import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import GameResultPopup from '@/components/organisms/GameResultPopup';
 import { LyricCard } from '@/components/organisms/LyricCard';
-import { useDojo } from '@/lib/dojo/hooks/useDojo';
+import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Round } from '@/lib/dojo/typescript/models.gen';
-import { BigNumberish } from 'starknet';
+import type { Round } from '@/lib/stellar/types';
 
 interface SongOption {
   title: string;
@@ -20,7 +19,7 @@ export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundId = searchParams.get('roundId');
-  const { systemCalls } = useDojo();
+  const { systemCalls } = useStellar();
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +45,11 @@ export default function SinglePlayerGame() {
 
       if (roundId) {
         try {
-          const roundData = await systemCalls.getRound(roundId);
+          const roundData = await systemCalls.getRound(BigInt(roundId));
           setRound(roundData);
           setIsGameStarted(true);
-          
-          // TODO: Fetch current lyric from Dojo
+
+          // TODO: Fetch current lyric from the contract
           // For now, using mock data
           setCurrentLyric({
             text: "Sample lyric text",
@@ -90,7 +89,7 @@ export default function SinglePlayerGame() {
     setIsCardFlipped(true);
     
     try {
-      // TODO: Implement answer submission in Dojo
+      // TODO: Implement answer submission against the contract
       // For now, just check if the option matches the current lyric
       const isCorrect = option.title === currentLyric?.title && option.artist === currentLyric?.artist;
       setCorrectOption(option);

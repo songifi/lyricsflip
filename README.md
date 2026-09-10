@@ -1,11 +1,11 @@
 # LyricFlip
 
-LyricFlip is an on-chain card-based music guessing game built on the Starknet ecosystem. Players guess the title or artist of a song by viewing a snippet of the lyrics on a card. The card flips after 15 seconds unless the player guesses correctly, triggering instant feedback with confetti. The game incorporates NFT rewards, token wagering, and song categories based on genres and decades (e.g., 90s R&B).
+LyricFlip is an on-chain card-based music guessing game built on the Stellar ecosystem. Players guess the title or artist of a song by viewing a snippet of the lyrics on a card. The card flips after 15 seconds unless the player guesses correctly, triggering instant feedback with confetti. The game incorporates NFT rewards, token wagering, and song categories based on genres and decades (e.g., 90s R&B).
 
 ## Features
 
 - **Interactive Gameplay**: Guess the song title or artist based on lyrics displayed on a card.
-- **On-Chain Integration**: Built on Starknet to leverage blockchain transparency and security.
+- **On-Chain Integration**: Built on Stellar (Soroban smart contracts) to leverage blockchain transparency and security.
 - **NFT Rewards**: Earn NFTs for achieving milestones or winning games.
 - **Token Wagering**: Players can bet tokens for higher stakes.
 - **Song Categories**: Choose categories based on genres and decades.
@@ -23,7 +23,7 @@ LyricFlip is an on-chain card-based music guessing game built on the Starknet ec
 
 ### Smart Contracts
 
-- Language: [Cairo](https://www.cairo-lang.org/) for Starknet contract development
+- Language: [Rust](https://www.rust-lang.org/) using the [Soroban SDK](https://soroban.stellar.org/) for Stellar contract development
 - Features: Contracts for gameplay mechanics, token wagering, and NFT minting
 
 ### Backend
@@ -36,7 +36,7 @@ LyricFlip is an on-chain card-based music guessing game built on the Starknet ec
 
 - Frontend Hosting\*\*: Vercel (preferred for Next.js apps)
 - Backend Hosting: AWS, Heroku, or Render
-- Blockchain: Starknet for smart contract deployment
+- Blockchain: Stellar (Soroban) for smart contract deployment
 
 ## Installation
 

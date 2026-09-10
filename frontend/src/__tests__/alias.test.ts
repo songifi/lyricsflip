@@ -3,13 +3,14 @@ import { render } from '@testing-library/react';
 import GameComponent from "@/components/GameComponent";
 import React from 'react';
 
-// Mock the Dojo hooks
-jest.mock('@/lib/dojo/hooks/useDojo', () => ({
-  useDojo: () => ({
+// Mock the Stellar hooks
+jest.mock('@/lib/stellar/hooks/useStellar', () => ({
+  useStellar: () => ({
     account: null,
     systemCalls: {},
-    execute: jest.fn(),
-    world: {},
+    setup: null,
+    isLoading: false,
+    error: null,
   })
 }));
 

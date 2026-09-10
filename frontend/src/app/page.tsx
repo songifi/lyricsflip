@@ -5,11 +5,11 @@ import { GameModal } from '@/components/organisms/game-modal';
 import { GameOptions } from '@/components/organisms/game-mode-selection';
 import { WagerModal } from '@/components/organisms/WagerModal';
 import { useModalStore } from '@/store/modal-store';
-import { useDojo, type DojoHookResult } from '@/lib/dojo/hooks/useDojo';
+import { useStellar, type UseStellarResult } from '@/lib/stellar/hooks/useStellar';
 
 export default function Home() {
   const { openModal } = useModalStore();
-  const { systemCalls, account, isLoading, error } = useDojo();
+  const { systemCalls, account, isLoading, error } = useStellar();
 
   const handleGameSelect = (gameId: string) => {
     if (gameId === 'quick-game') {
@@ -21,14 +21,14 @@ export default function Home() {
   };
 
   // Debug: Log initialization status
-  console.log('Dojo initialization:', {
+  console.log('Stellar initialization:', {
     isLoading,
     hasSystemCalls: !!systemCalls,
     hasAccount: !!account,
     error: error?.message
   });
 
-  // Show loading state while Dojo is initializing
+  // Show loading state while Stellar is initializing
   if (isLoading) {
     return (
       <main className="lg:max-w-[53rem] mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">

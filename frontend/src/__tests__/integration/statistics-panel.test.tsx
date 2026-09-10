@@ -12,13 +12,14 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
-// Mock Dojo hooks
-jest.mock('@/lib/dojo/hooks/useDojo', () => ({
-  useDojo: () => ({
+// Mock Stellar hooks
+jest.mock('@/lib/stellar/hooks/useStellar', () => ({
+  useStellar: () => ({
     account: null,
     systemCalls: {},
-    execute: jest.fn(),
-    world: {},
+    setup: null,
+    isLoading: false,
+    error: null,
   })
 }));
 

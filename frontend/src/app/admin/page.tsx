@@ -1,12 +1,12 @@
 'use client';
 
 import { AdminConfig } from "@/components/organisms/AdminConfig";
-import { useDojo } from "@/lib/dojo/hooks/useDojo";
+import { useStellar } from "@/lib/stellar/hooks/useStellar";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function AdminPage() {
-  const { account } = useDojo();
+  const { account } = useStellar();
   const router = useRouter();
 
   useEffect(() => {

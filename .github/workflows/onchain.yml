@@ -1,0 +1,36 @@
+name: LyricsFlip Contracts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+permissions: read-all
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32v1-none
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - run: cargo fmt --check
+        working-directory: onchain
+      - run: cargo build --target wasm32v1-none --release
+        working-directory: onchain
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - run: cargo test
+        working-directory: onchain
