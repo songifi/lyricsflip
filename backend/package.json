@@ -34,7 +34,7 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.3.3",
     "@nestjs/platform-socket.io": "^10.4.22",
-    "@nestjs/schedule": "^4.0.0",
+    "@nestjs/schedule": "^12.0.2",
     "@nestjs/swagger": "^7.3.0",
     "@nestjs/terminus": "^10.2.3",
     "@nestjs/throttler": "^5.1.2",
