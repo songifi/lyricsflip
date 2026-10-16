@@ -81,6 +81,15 @@ pub struct ApproveForAll {
     pub live_until_ledger: u32,
 }
 
+/// Event emitted when a token is burned or revoked.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Burn {
+    #[topic]
+    pub token_id: u128,
+    pub owner: Address,
+}
+
 /// An approval that is valid up to and including `live_until_ledger`.
 #[contracttype]
 #[derive(Clone)]
@@ -270,6 +279,31 @@ impl LyricsFlipNFT {
             panic_with_error!(env, Error::InsufficientApproval);
         }
         Self::do_transfer(&env, &from, &to, token_id);
+    }
+
+    /// Burns `token_id` owned by `owner`. The caller must authenticate as `owner`.
+    pub fn burn(env: Env, owner: Address, token_id: u128) {
+        owner.require_auth();
+        Self::do_burn(&env, &owner, token_id);
+    }
+
+    /// Burns `token_id` owned by `owner` on behalf of `owner`.
+    /// The caller must authenticate as `spender`. Spender must be `owner`,
+    /// the contract owner (allowing badge revocation), an approved spender
+    /// for the token, or an approved operator for all of `owner`'s tokens.
+    pub fn burn_from(env: Env, spender: Address, owner: Address, token_id: u128) {
+        spender.require_auth();
+        let contract_owner: Address = env.storage().instance().get(&DataKey::Owner).unwrap();
+        let is_contract_owner = spender == contract_owner;
+        let is_token_approved = Self::get_approved(env.clone(), token_id) == Some(spender.clone());
+        let is_approved_for_all =
+            Self::is_approved_for_all(env.clone(), owner.clone(), spender.clone());
+
+        if spender != owner && !is_contract_owner && !is_token_approved && !is_approved_for_all {
+            panic_with_error!(env, Error::InsufficientApproval);
+        }
+
+        Self::do_burn(&env, &owner, token_id);
     }
 
     /// Approves `approved` to transfer `token_id` until `live_until_ledger`.
@@ -502,6 +536,27 @@ impl LyricsFlipNFT {
             from: from.clone(),
             to: to.clone(),
             token_id,
+        }
+        .publish(env);
+    }
+
+    fn do_burn(env: &Env, owner: &Address, token_id: u128) {
+        let current_owner = Self::owner_of(env.clone(), token_id);
+        if current_owner != *owner {
+            panic_with_error!(env, Error::IncorrectOwner);
+        }
+
+        env.storage()
+            .persistent()
+            .remove(&DataKey::Approval(token_id));
+        env.storage()
+            .persistent()
+            .remove(&DataKey::TokenOwner(token_id));
+        Self::add_balance(env, owner, -1);
+
+        Burn {
+            token_id,
+            owner: owner.clone(),
         }
         .publish(env);
     }
