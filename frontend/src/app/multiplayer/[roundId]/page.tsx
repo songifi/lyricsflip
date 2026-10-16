@@ -35,7 +35,7 @@ import { ArrowLeft } from 'lucide-react';
 import { LyricCard } from '@/components/organisms/LyricCard';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import { SongOptions } from '@/components/molecules/song-options';
-import ChallengeInvite from '@/components/organisms/challangeInvite';
+import ChallengeInvite from '@/components/organisms/challenge-invite';
 import { Button } from '@/components/atoms/button';
 import { useMultiplayerRoom } from '@/hooks/use-multiplayer-room';
 import { useRoundEvents } from '@/hooks/useRoundEvents';
