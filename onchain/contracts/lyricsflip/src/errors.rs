@@ -58,4 +58,8 @@ pub enum Error {
     /// this round. A player may answer each card at most once.
     AlreadyAnswered = 35,
     NoActiveCard = 34,
+    /// The contract is paused by the owner (LF-174). New rounds, joins and
+    /// claims are blocked; refund and cancel paths stay open so funds can
+    /// always leave the contract.
+    Paused = 36,
 }

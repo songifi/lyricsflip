@@ -273,6 +273,76 @@ fn ownership_transfer_is_two_step() {
     );
 }
 
+// ---------------------------------------------------------------------------
+// LF-174 – emergency pause
+// ---------------------------------------------------------------------------
+
+#[test]
+fn pause_blocks_mint_transfer_and_transfer_from() {
+    let (env, client, owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+
+    client.pause(&owner);
+    assert!(client.paused());
+
+    assert_eq!(
+        client.try_mint(&minter, &bob),
+        Err(Ok(Error::Paused.into()))
+    );
+    assert_eq!(
+        client.try_transfer(&alice, &bob, &token_id),
+        Err(Ok(Error::Paused.into()))
+    );
+    client.approve(&alice, &bob, &token_id, &1000);
+    assert_eq!(
+        client.try_transfer_from(&bob, &alice, &bob, &token_id),
+        Err(Ok(Error::Paused.into()))
+    );
+
+    // State is untouched by the blocked calls.
+    assert_eq!(client.owner_of(&token_id), alice);
+    assert_eq!(client.balance(&alice), 1);
+}
+
+#[test]
+fn unpause_restores_mint_and_transfer() {
+    let (env, client, owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+
+    client.pause(&owner);
+    assert_eq!(
+        client.try_mint(&minter, &alice),
+        Err(Ok(Error::Paused.into()))
+    );
+
+    client.unpause(&owner);
+    assert!(!client.paused());
+
+    let token_id = client.mint(&minter, &alice);
+    client.transfer(&alice, &bob, &token_id);
+    assert_eq!(client.owner_of(&token_id), bob);
+    assert_eq!(client.balance(&bob), 1);
+}
+
+#[test]
+fn pause_and_unpause_are_owner_only() {
+    let (env, client, _owner, minter) = setup();
+
+    assert_eq!(
+        client.try_pause(&minter),
+        Err(Ok(Error::NotOwner.into()))
+    );
+    client.pause(&_owner);
+    assert_eq!(
+        client.try_unpause(&minter),
+        Err(Ok(Error::NotOwner.into()))
+    );
+    assert!(client.paused());
+}
+
 #[test]
 fn upgrade_keeps_state_and_changes_version() {
     let (env, client, owner, minter) = setup();

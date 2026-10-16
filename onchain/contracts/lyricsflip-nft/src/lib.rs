@@ -48,6 +48,20 @@ pub struct NftMinted {
     pub recipient: Address,
 }
 
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Paused {
+    #[topic]
+    pub owner: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Unpaused {
+    #[topic]
+    pub owner: Address,
+}
+
 /// SEP-0050 `transfer` event, emitted by `transfer` and `transfer_from`.
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -119,6 +133,8 @@ pub enum Error {
     NotPendingOwner = 9,
     /// `base_uri` is longer than `MAX_BASE_URI_LEN`.
     BaseUriTooLong = 10,
+    /// The contract is paused; the requested operation is blocked.
+    Paused = 11,
 }
 
 #[contracttype]
@@ -135,6 +151,7 @@ enum DataKey {
     Balance(Address),
     Approval(u128),
     ApprovalForAll((Address, Address)),
+    Paused,
 }
 
 // ---------------------------------------------------------------------------
@@ -191,6 +208,7 @@ impl LyricsFlipNFT {
 
     /// Mints a new token.
     pub fn mint(env: Env, caller: Address, recipient: Address) -> u128 {
+        Self::require_not_paused(&env);
         caller.require_auth();
 
         let minter: Address = env.storage().instance().get(&DataKey::Minter).unwrap();
@@ -254,6 +272,7 @@ impl LyricsFlipNFT {
 
     /// Transfers a token.
     pub fn transfer(env: Env, from: Address, to: Address, token_id: u128) {
+        Self::require_not_paused(&env);
         from.require_auth();
         Self::do_transfer(&env, &from, &to, token_id);
     }
@@ -261,6 +280,7 @@ impl LyricsFlipNFT {
     /// Transfers on behalf of `from` by a `spender` approved for the token
     /// or for all of `from`'s tokens.
     pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, token_id: u128) {
+        Self::require_not_paused(&env);
         spender.require_auth();
         let is_token_approved = Self::get_approved(env.clone(), token_id) == Some(spender.clone());
         if spender != from
@@ -415,6 +435,14 @@ impl LyricsFlipNFT {
         VERSION
     }
 
+    /// Returns whether the contract is paused.
+    pub fn is_paused(env: Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
+    }
+
     // ---- Owner-only administration ----
 
     /// Sets the base uri.
@@ -473,10 +501,31 @@ impl LyricsFlipNFT {
         env.deployer().update_current_contract_wasm(new_wasm_hash);
     }
 
+    /// Pauses the contract, blocking `mint`, `transfer` and `transfer_from`.
+    /// Refund/cancel-style paths stay open so funds can always leave.
+    pub fn pause(env: Env, caller: Address) {
+        Self::assert_owner(&env, &caller);
+        env.storage().instance().set(&DataKey::Paused, &true);
+        Paused { owner: caller }.publish(&env);
+    }
+
+    /// Unpauses the contract, re-enabling paused operations.
+    pub fn unpause(env: Env, caller: Address) {
+        Self::assert_owner(&env, &caller);
+        env.storage().instance().set(&DataKey::Paused, &false);
+        Unpaused { owner: caller }.publish(&env);
+    }
+
     fn assert_owner(env: &Env, caller: &Address) {
         caller.require_auth();
         if *caller != Self::owner(env.clone()) {
             panic_with_error!(env, Error::NotOwner);
+        }
+    }
+
+    fn require_not_paused(env: &Env) {
+        if Self::is_paused(env.clone()) {
+            panic_with_error!(env, Error::Paused);
         }
     }
 
