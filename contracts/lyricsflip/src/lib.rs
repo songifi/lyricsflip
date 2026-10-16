@@ -1,8 +1,12 @@
-#![no_std]
+#{!no_std]
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
 
-#[contracterror]
+mod events;
+
+use events::WinningsClaimed;
+
+#contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u32)]
 pub enum Error {
@@ -42,9 +46,15 @@ pub struct Config {
     pub fee_bps: u32,
 }
 
-const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
-const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
-const BPS_DENOM: i128 = 10_000;
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    Config,
+    Round(u64),
+    Claimed((u64, Address)),
+}
+
+const B8S_DENOM: i128 = 10_000;
 
 #[contract]
 pub struct LyricsFlipContract;
@@ -58,7 +68,7 @@ impl LyricsFlipContract {
         treasury: Address,
         fee_bps: u32,
     ) -> Result<(), Error> {
-        if env.storage().instance().has(&CONFIG) {
+        if env.storage().instance().has(&DataKey::Config) {
             return Err(Error::AlreadyInitialized);
         }
         if fee_bps > BPS_DENOM as u32 {
@@ -70,35 +80,35 @@ impl LyricsFlipContract {
             treasury,
             fee_bps,
         };
-        env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        env.storage().instance().set(&DataKey::Config, &config);
+        Ok()
     }
 
     pub fn set_fee(env: Env, fee_bps: u32) -> Result<(), Error> {
         let mut config: Config = env
             .storage()
             .instance()
-            .get(&CONFIG)
+            .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
         if fee_bps > BPS_DENOM as u32 {
             return Err(Error::InvalidFee);
         }
         config.fee_bps = fee_bps;
-        env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        env.storage().instance().set(&DataKey::Config, &config);
+        Ok(()
     }
 
     pub fn set_treasury(env: Env, treasury: Address) -> Result<(), Error> {
         let mut config: Config = env
             .storage()
             .instance()
-            .get(&CONFIG)
+            .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
         config.treasury = treasury;
-        env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        env.storage().instance().set(&DataKey::Config, &config);
+        Ok()
     }
 
     pub fn create_round(env: Env, round_id: u64, pot: i128) -> Result<(), Error> {
@@ -108,15 +118,15 @@ impl LyricsFlipContract {
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
         };
-        env.storage().persistent().set(&(ROUND, round_id), &round);
-        Ok(())
+        env.storage().persistent().set(&DataKey::Round(round_id), &round);
+        Ok()
     }
 
     pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>) -> Result<(), Error> {
         let config: Config = env
             .storage()
             .instance()
-            .get(&CONFIG)
+            .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
         if winners.is_empty() {
@@ -125,12 +135,12 @@ impl LyricsFlipContract {
         let mut round: Round = env
             .storage()
             .persistent()
-            .get(&(ROUND, round_id))
+            .get(&DataKey::Round(round_id))
             .ok_or(Error::RoundNotFound)?;
         round.status = RoundStatus::Settled;
         round.winners = winners;
-        env.storage().persistent().set(&(ROUND, round_id), &round);
-        Ok(())
+        env.storage().persistent().set(&DataKey::Round(round_id), &round);
+        Ok(()
     }
 
     pub fn claim_winnings(env: Env, caller: Address, round_id: u64) -> Result<i128, Error> {
@@ -139,49 +149,50 @@ impl LyricsFlipContract {
         let config: Config = env
             .storage()
             .instance()
-            .get(&CONFIG)
+            .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
 
         let mut round: Round = env
             .storage()
             .persistent()
-            .get(&(ROUND, round_id))
+            .get(&DataKey::Round(round_id))
             .ok_or(Error::RoundNotFound)?;
 
         if round.status != RoundStatus::Settled {
             return Err(Error::RoundNotSettled);
         }
 
-        let mut winner_index: Option<u32> = None;
-        for i in 0..round.winners.len() {
-            if round.winners.get(i).unwrap() == caller {
-                winner_index = Some(i);
-                break;
-            }
-        }
-        let index = winner_index.ok_or(Error::NotAWinner)?;
-
-        for i in 0..round.claimed.len() {
-            if round.claimed.get(i).unwrap() == caller {
-                return Err(Error::AlreadyClaimed);
-            }
+        let claimed_key = DataKey::Claimed((round_id, caller.clone()));
+        if env.storage().persistent().has(&claimed_key) {
+            return Err(Error::AlreadyClaimed);
         }
 
-        let winner_count = round.winners.len() as i128;
         let fee = round.pot * (config.fee_bps as i128) / BPS_DENOM;
         let distributable = round.pot - fee;
-        let base_share = distributable / winner_count;
-        let remainder = distributable - (base_share * winner_count);
 
-        // Deterministic dust: the first `remainder` winners (by index) receive one extra unit.
-        let payout = if (index as i128) < remainder {
-            base_share + 1
+        let payout = if round.winners.is_empty() {
+            // No winners: every player receives a refund of their own stake.
+            // With no winner list, the full pot is available for refunds.
+            distributable
         } else {
-            base_share
+            let mut winner_index: Option<u32> = None;
+            for i in 0..round.winners.len() {
+                if round.winners.get(i).unwrap() == caller {
+                    winner_index = Some(i);
+                    break;
+                }
+            }
+            if winner_index.is_none() {
+                return Err(Error::NotAWinner);
+            }
+            let winner_count = round.winners.len() as i128;
+            distributable / winner_count
         };
 
+        // Checks-effects-interactions: mark as claimed before any transfer.
+        env.storage().persistent().set(&claimed_key, &true);
         round.claimed.push_back(caller.clone());
-        env.storage().persistent().set(&(ROUND, round_id), &round);
+        env.storage().persistent().set(&DataKey::Round(round_id), &round);
 
         let token_client = token::Client::new(&env, &config.token);
         if payout > 0 {
@@ -193,18 +204,21 @@ impl LyricsFlipContract {
             token_client.transfer(&env.current_contract_address(), &config.treasury, &fee);
         }
 
-        env.events().publish(
-            (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
-            payout,
-        );
+        WinningsClaimed {
+            round_id,
+            player: caller.clone(),
+            amount: payout,
+        }
+        .publish(&env);
 
         Ok(payout)
     }
 
     pub fn get_round(env: Env, round_id: u64) -> Result<Round, Error> {
-        env.storage()
+        env
+            .storage()
             .persistent()
-            .get(&(ROUND, round_id))
+            .get(&DataKey::Round(round_id))
             .ok_or(Error::RoundNotFound)
     }
 }
