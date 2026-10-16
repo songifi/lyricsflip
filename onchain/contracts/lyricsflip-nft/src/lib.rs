@@ -40,12 +40,14 @@ pub struct OwnershipTransferred {
     pub new_owner: Address,
 }
 
+/// SEP-0050 `mint` event, emitted by `mint`.
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NftMinted {
+pub struct Mint {
+    #[topic]
+    pub recipient: Address,
     #[topic]
     pub token_id: u128,
-    pub recipient: Address,
 }
 
 /// SEP-0050 `transfer` event, emitted by `transfer` and `transfer_from`.
@@ -168,8 +170,8 @@ impl LyricsFlipNFT {
         env: Env,
         owner: Address,
         minter: Address,
-        token_name: String,
-        token_symbol: String,
+        name: String,
+        symbol: String,
         base_uri: String,
     ) {
         if env.storage().instance().has(&DataKey::Owner) {
@@ -178,12 +180,8 @@ impl LyricsFlipNFT {
         Self::assert_base_uri_len(&env, &base_uri);
         env.storage().instance().set(&DataKey::Owner, &owner);
         env.storage().instance().set(&DataKey::Minter, &minter);
-        env.storage()
-            .instance()
-            .set(&DataKey::TokenName, &token_name);
-        env.storage()
-            .instance()
-            .set(&DataKey::TokenSymbol, &token_symbol);
+        env.storage().instance().set(&DataKey::TokenName, &name);
+        env.storage().instance().set(&DataKey::TokenSymbol, &symbol);
         env.storage().instance().set(&DataKey::BaseUri, &base_uri);
         env.storage().instance().set(&DataKey::TokenCount, &0u128);
         bump_instance(&env);
@@ -224,9 +222,9 @@ impl LyricsFlipNFT {
             .set(&DataKey::TokenCount, &token_id);
         bump_instance(&env);
 
-        NftMinted {
-            token_id,
+        Mint {
             recipient,
+            token_id,
         }
         .publish(&env);
 
@@ -244,8 +242,8 @@ impl LyricsFlipNFT {
         owner
     }
 
-    /// Executes balance.
-    pub fn balance(env: Env, owner: Address) -> u32 {
+    /// Returns the number of tokens owned by `owner`.
+    pub fn balance(env: Env, owner: Address) -> i128 {
         env.storage()
             .persistent()
             .get(&DataKey::Balance(owner))
@@ -344,14 +342,14 @@ impl LyricsFlipNFT {
             .is_some_and(|live_until| live_until >= env.ledger().sequence())
     }
 
-    /// Executes token name.
-    pub fn token_name(env: Env) -> String {
+    /// Returns the token collection name.
+    pub fn name(env: Env) -> String {
         bump_instance(&env);
         env.storage().instance().get(&DataKey::TokenName).unwrap()
     }
 
-    /// Executes token symbol.
-    pub fn token_symbol(env: Env) -> String {
+    /// Returns the token collection symbol.
+    pub fn symbol(env: Env) -> String {
         bump_instance(&env);
         env.storage().instance().get(&DataKey::TokenSymbol).unwrap()
     }
@@ -506,11 +504,11 @@ impl LyricsFlipNFT {
         .publish(env);
     }
 
-    fn add_balance(env: &Env, owner: &Address, delta: i32) {
+    fn add_balance(env: &Env, owner: &Address, delta: i128) {
         let balance = Self::balance(env.clone(), owner.clone());
         env.storage().persistent().set(
             &DataKey::Balance(owner.clone()),
-            &balance.checked_add_signed(delta).unwrap(),
+            &balance.checked_add(delta).unwrap(),
         );
     }
 
