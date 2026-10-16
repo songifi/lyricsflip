@@ -119,6 +119,8 @@ pub enum Error {
     NotPendingOwner = 9,
     /// `base_uri` is longer than `MAX_BASE_URI_LEN`.
     BaseUriTooLong = 10,
+    /// Balance is insufficient or missing.
+    InsufficientBalance = 11,
 }
 
 #[contracttype]
@@ -246,10 +248,16 @@ impl LyricsFlipNFT {
 
     /// Executes balance.
     pub fn balance(env: Env, owner: Address) -> u32 {
-        env.storage()
+        let key = DataKey::Balance(owner);
+        let balance = env
+            .storage()
             .persistent()
-            .get(&DataKey::Balance(owner))
-            .unwrap_or(0)
+            .get(&key)
+            .unwrap_or(0);
+        if env.storage().persistent().has(&key) {
+            bump_persistent(&env, &key);
+        }
+        balance
     }
 
     /// Transfers a token.
@@ -298,6 +306,7 @@ impl LyricsFlipNFT {
                     live_until_ledger,
                 },
             );
+            bump_persistent(&env, &key);
         }
         Approve {
             approver,
@@ -318,6 +327,7 @@ impl LyricsFlipNFT {
         } else {
             Self::assert_live_until(&env, live_until_ledger);
             env.storage().persistent().set(&key, &live_until_ledger);
+            bump_persistent(&env, &key);
         }
         ApproveForAll {
             owner,
@@ -329,19 +339,30 @@ impl LyricsFlipNFT {
 
     /// Returns the approved.
     pub fn get_approved(env: Env, token_id: u128) -> Option<Address> {
-        env.storage()
+        let key = DataKey::Approval(token_id);
+        let approval = env
+            .storage()
             .persistent()
-            .get::<_, Approval>(&DataKey::Approval(token_id))
+            .get::<_, Approval>(&key);
+        if approval.is_some() {
+            bump_persistent(&env, &key);
+        }
+        approval
             .filter(|a| a.live_until_ledger >= env.ledger().sequence())
             .map(|a| a.approved)
     }
 
     /// Returns whether approved for all.
     pub fn is_approved_for_all(env: Env, owner: Address, operator: Address) -> bool {
-        env.storage()
+        let key = DataKey::ApprovalForAll((owner, operator));
+        let entry = env
+            .storage()
             .persistent()
-            .get::<_, u32>(&DataKey::ApprovalForAll((owner, operator)))
-            .is_some_and(|live_until| live_until >= env.ledger().sequence())
+            .get::<_, u32>(&key);
+        if entry.is_some() {
+            bump_persistent(&env, &key);
+        }
+        entry.is_some_and(|live_until| live_until >= env.ledger().sequence())
     }
 
     /// Executes token name.
@@ -496,6 +517,7 @@ impl LyricsFlipNFT {
         env.storage()
             .persistent()
             .set(&DataKey::TokenOwner(token_id), to);
+        bump_persistent(env, &DataKey::TokenOwner(token_id));
         Self::add_balance(env, from, -1);
         Self::add_balance(env, to, 1);
         Transfer {
@@ -507,11 +529,13 @@ impl LyricsFlipNFT {
     }
 
     fn add_balance(env: &Env, owner: &Address, delta: i32) {
+        let key = DataKey::Balance(owner.clone());
         let balance = Self::balance(env.clone(), owner.clone());
-        env.storage().persistent().set(
-            &DataKey::Balance(owner.clone()),
-            &balance.checked_add_signed(delta).unwrap(),
-        );
+        let new_balance = balance
+            .checked_add_signed(delta)
+            .unwrap_or_else(|| panic_with_error!(env, Error::InsufficientBalance));
+        env.storage().persistent().set(&key, &new_balance);
+        bump_persistent(env, &key);
     }
 
     fn assert_live_until(env: &Env, live_until_ledger: u32) {

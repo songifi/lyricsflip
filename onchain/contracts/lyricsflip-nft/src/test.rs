@@ -82,6 +82,7 @@ fn error_codes_are_stable() {
         (Error::NotOwner, 8),
         (Error::NotPendingOwner, 9),
         (Error::BaseUriTooLong, 10),
+        (Error::InsufficientBalance, 11),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);
@@ -89,7 +90,7 @@ fn error_codes_are_stable() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-012 – persistent TokenOwner entries survive a ledger advance
+// LF-012 / LF-171 – persistent TTL survival tests
 // ---------------------------------------------------------------------------
 
 /// After minting a token and advancing the ledger sequence far past Soroban's
@@ -115,6 +116,70 @@ fn ttl_survival_token_owner_survives_ledger_advance() {
         "token owner should still be readable after ledger advance"
     );
 }
+
+/// LF-171: After minting, approvals, and advancing the ledger sequence far past
+/// the default minimum TTL, balance, approval, and token owner entries are
+/// preserved so transfers and approvals still succeed without underflow panic.
+#[test]
+fn ttl_survival_transfer_survives_ledger_advance() {
+    use soroban_sdk::testutils::Ledger as _;
+
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let operator = Address::generate(&env);
+    let charlie = Address::generate(&env);
+    let dave = Address::generate(&env);
+
+    let token_1 = client.mint(&minter, &alice);
+    let token_2 = client.mint(&minter, &alice);
+    assert_eq!(client.balance(&alice), 2);
+
+    client.approve(&alice, &bob, &token_1, &200_000);
+    client.approve_for_all(&alice, &operator, &200_000);
+
+    // Advance ledger sequence past the default minimum TTL (4 096).
+    env.ledger().set_sequence_number(100_000);
+
+    // Transfer via approved spender still works and updates balances.
+    client.transfer_from(&bob, &alice, &charlie, &token_1);
+    assert_eq!(client.owner_of(&token_1), charlie);
+    assert_eq!(client.balance(&charlie), 1);
+    assert_eq!(client.balance(&alice), 1);
+
+    // Transfer via operator approved for all still works.
+    client.transfer_from(&operator, &alice, &dave, &token_2);
+    assert_eq!(client.owner_of(&token_2), dave);
+    assert_eq!(client.balance(&dave), 1);
+    assert_eq!(client.balance(&alice), 0);
+
+    // Advance again and perform direct transfer.
+    env.ledger().set_sequence_number(150_000);
+    let eve = Address::generate(&env);
+    client.transfer(&charlie, &eve, &token_1);
+    assert_eq!(client.owner_of(&token_1), eve);
+    assert_eq!(client.balance(&charlie), 0);
+    assert_eq!(client.balance(&eve), 1);
+}
+
+#[test]
+fn transfer_with_missing_balance_fails_with_insufficient_balance() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+
+    // Simulate an archived/missing balance entry.
+    env.as_contract(&client.address, || {
+        env.storage()
+            .persistent()
+            .remove(&crate::DataKey::Balance(alice.clone()));
+    });
+
+    let result = client.try_transfer(&alice, &bob, &token_id);
+    assert_eq!(result, Err(Ok(Error::InsufficientBalance.into())));
+}
+
 #[test]
 fn transfer_moves_token_and_updates_balances() {
     let (env, client, _owner, minter) = setup();
