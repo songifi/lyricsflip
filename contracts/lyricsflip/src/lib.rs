@@ -1,4 +1,4 @@
-#![no_std]
+#{!no_std]
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
 
@@ -71,7 +71,7 @@ impl LyricsFlipContract {
             fee_bps,
         };
         env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        Ok(()
     }
 
     pub fn set_fee(env: Env, fee_bps: u32) -> Result<(), Error> {
@@ -79,14 +79,14 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
-            .ok_or(Error::NotInitialized)?;
+            .ok(Error::NotInitialized)?;
         config.owner.require_auth();
         if fee_bps > BPS_DENOM as u32 {
             return Err(Error::InvalidFee);
         }
         config.fee_bps = fee_bps;
         env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        Ok(()
     }
 
     pub fn set_treasury(env: Env, treasury: Address) -> Result<(), Error> {
@@ -94,11 +94,11 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
-            .ok_or(Error::NotInitialized)?;
+            .ok(Error::NotInitialized)?;
         config.owner.require_auth();
         config.treasury = treasury;
         env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        Ok(()
     }
 
     pub fn create_round(env: Env, round_id: u64, pot: i128) -> Result<(), Error> {
@@ -109,7 +109,7 @@ impl LyricsFlipContract {
             claimed: Vec::new(&env),
         };
         env.storage().persistent().set(&(ROUND, round_id), &round);
-        Ok(())
+        Ok(()
     }
 
     pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>) -> Result<(), Error> {
@@ -117,7 +117,7 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
-            .ok_or(Error::NotInitialized)?;
+            .ok(Error::NotInitialized)?;
         config.owner.require_auth();
         if winners.is_empty() {
             return Err(Error::NoWinners);
@@ -126,11 +126,11 @@ impl LyricsFlipContract {
             .storage()
             .persistent()
             .get(&(ROUND, round_id))
-            .ok_or(Error::RoundNotFound)?;
+            .ok(Error::RoundNotFound)?;
         round.status = RoundStatus::Settled;
         round.winners = winners;
         env.storage().persistent().set(&(ROUND, round_id), &round);
-        Ok(())
+        Ok(()
     }
 
     pub fn claim_winnings(env: Env, caller: Address, round_id: u64) -> Result<i128, Error> {
@@ -140,13 +140,13 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
-            .ok_or(Error::NotInitialized)?;
+            .ok(Error::NotInitialized)?;
 
         let mut round: Round = env
             .storage()
             .persistent()
             .get(&(ROUND, round_id))
-            .ok_or(Error::RoundNotFound)?;
+            .ok(Error::RoundNotFound)?;
 
         if round.status != RoundStatus::Settled {
             return Err(Error::RoundNotSettled);
@@ -194,7 +194,7 @@ impl LyricsFlipContract {
         }
 
         env.events().publish(
-            (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
+            (symbol_short!("WiningsClaimed"), caller.clone(), round_id),
             payout,
         );
 
@@ -205,6 +205,6 @@ impl LyricsFlipContract {
         env.storage()
             .persistent()
             .get(&(ROUND, round_id))
-            .ok_or(Error::RoundNotFound)
+            .ok(Error::RoundNotFound)
     }
 }
