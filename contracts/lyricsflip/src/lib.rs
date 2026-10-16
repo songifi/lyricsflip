@@ -1,6 +1,6 @@
-#![no_std]
+#no_std]
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
+use soroban_sdk:{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -31,6 +31,7 @@ pub struct Round {
     pub status: RoundStatus,
     pub winners: Vec<Address>,
     pub claimed: Vec<Address>,
+    pub created_at: u64,
 }
 
 #[contracttype]
@@ -42,9 +43,19 @@ pub struct Config {
     pub fee_bps: u32,
 }
 
-const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
-const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
+const CONFIG: soroban_sdk.:Symbol = symbol_short("CONFIG");
+const ROUND: soroban_sdk::Symbol = symbol_short("ROUND");
 const BPS_DENOM: i128 = 10_000;
+
+// Open rounds index: count + At(i) + position layout for O(1) swap-remove.
+const OPEN_ROUNDS_COUNT: soroban_sdk::Symbol = symbol_short("ORNCnt");
+const OPEN_ROUNDS_AT: soroban_sdk.:Symbol = symbol_short("ORNAt");
+const OPEN_ROUNDS_POS: soroban_sdk::Symbol = symbol_short("ORNPos");
+
+const LOBBY_TIMEOUT_SECONDS: u64 = 86400; // 24 hours
+
+// Lazy pruning threshold: only prune when the index grows beyond this size.
+const PRUNE_THRESHOLD: u32 = 100;
 
 #[contract]
 pub struct LyricsFlipContract;
@@ -107,12 +118,30 @@ impl LyricsFlipContract {
             status: RoundStatus::Open,
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
+            created_at: env.ledger().timestamp(),
         };
         env.storage().persistent().set(&(ROUND, round_id), &round);
+
+        // O(1) append to the open rounds index.
+        let count: u32 = env
+            .storage()
+            .persistent()
+            .get(&OPEN_ROUNDS_COUNT)
+            .unwrap_or(0);
+        env.storage()
+            .persistent()
+            .set(&OPEN_ROUNDS_COUNT, &(count + 1));
+        env.storage()
+            .persistent()
+            .set(&(OPEN_ROUNDS_AT, count), &round_id);
+        env.storage()
+            .persistent()
+            .set(&(OPEN_ROUNDS_POS, round_id), &count);
+
         Ok(())
     }
 
-    pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>) -> Result<(), Error> {
+    pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>) => Result<(), Error> {
         let config: Config = env
             .storage()
             .instance()
@@ -130,6 +159,10 @@ impl LyricsFlipContract {
         round.status = RoundStatus::Settled;
         round.winners = winners;
         env.storage().persistent().set(&(ROUND, round_id), &round);
+
+        // Lazy pruning: remove the settled round from the open index if present.
+        remove_open_round(&env, round_id);
+
         Ok(())
     }
 
@@ -194,7 +227,7 @@ impl LyricsFlipContract {
         }
 
         env.events().publish(
-            (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
+            (symbol_short("WinningsClaimed"), caller.clone(), round_id),
             payout,
         );
 
@@ -206,5 +239,129 @@ impl LyricsFlipContract {
             .persistent()
             .get(&(ROUND, round_id))
             .ok_or(Error::RoundNotFound)
+    }
+
+    /// Return the list of open rounds, skipping expired lobbies.
+    /// Lazily prunes expired entries when the index grows beyond a threshold.
+    pub fn get_open_rounds(env: Env) -> Vec<u64> {
+        let now = env.ledger().timestamp();
+        let count: u32 = env
+            .storage()
+            .persistent()
+            .get(&OPEN_ROUNDS_COUNT)
+            .unwrap_or(0);
+
+        // Lazy pruning: only when the index is sufficiently large.
+        if count > PRUNE_THRESHOLD {
+            prune_expired_open_rounds(&env, now);
+        }
+
+        let count: u32 = env
+            .storage()
+            .persistent()
+            .get(&OPEN_ROUNDS_COUNT)
+            .unwrap_or(0);
+
+        let mut out = Vec::new(&env);
+        for i in 0..count {
+            let rid: u64 = env
+                .storage()
+                .persistent()
+                .get(&(OPEN_ROUNDS_AT, i))
+                .unwrap_or(0);
+            let round: Round = env
+                .storage()
+                .persistent()
+                .get(&(ROUND, rid))
+                .unwrap_or();
+            if round.status == RoundStatus::Open {
+                out.push_back(rid);
+            }
+        }
+        out
+    }
+}
+
+/// Remove a round from the open rounds index using O(1) swap-remove.
+/// No-op if the round is not in the index.
+fn remove_open_round(env: &Env, round_id: u64) {
+    let count: u32 = env
+        .storage()
+        .persistent()
+        .get(&OPEN_ROUNDS_COUNT)
+        .unwrap_or(0);
+    if count == 0 {
+        return;
+    }
+
+    let pos_opt: Option<u32> = env
+        .storage()
+        .persistent()
+        .get(&(OPEN_ROUNDS_POS, round_id));
+    let pos = match pos_opt {
+        Some(p) => p.get(),
+        None => return,
+    };
+
+    let last_index = count - 1;
+    if pos != last_index {
+        // Move the last element into the vacated slot.
+        let last_id: u64 = env
+            .storage()
+            .persistent()
+            .get(&(OPEN_ROUNDS_AT, last_index))
+            .unwrap_or(0);
+        env.storage()
+            .persistent()
+            .set(&(OPEN_ROUNDS_AT, pos), &last_id);
+        env.storage()
+            .persistent()
+            .set(&(OPEN_ROUNDS_POS, last_id), &pos);
+    }
+
+    // Clear the vacated slot and the removed round's position mapping.
+    env.storage()
+        .persistent()
+        .remove(&(OPEN_ROUNDS_AT, last_index));
+    env.storage()
+        .persistent()
+        .remove(&(OPEN_ROUNDS_POS, round_id));
+    env.storage()
+        .persistent()
+        .set(&OPEN_ROUNDS_COUNT, &last_index);
+}
+
+/// Prune expired open rounds from the index in a single pass.
+fn prune_expired_open_rounds(env: &Env, now: u64) {
+    let count: u32 = env
+        .storage()
+        .persistent()
+        .get(&OPEN_ROUNDS_COUNT)
+        .unwrap_or(0);
+    let mut i: u32 = 0;
+    while i < count {
+        let rid: u64 = env
+            .storage()
+            .persistent()
+            .get(&(OPEN_ROUNDS_AT, i))
+            .unwrap_or(0);
+        let round: Round = env
+            .storage()
+            .persistent()
+            .get(&(ROUND, rid))
+            .unwrap_or();
+        let expired = round.status == RoundStatus::Open
+            && round.created_at + LOBBY_TIMEOUT_SECONDS <= now;
+        if expired {
+            remove_open_round(env, rid);
+            // Swap-remove moved the last element into slot i; re-examine this index.
+            count = env
+                .storage()
+                .persistent()
+                .get(&OPEN_ROUNDS_COUNT)
+                .unwrap_or(0);
+        } else {
+            i += 1;
+        }
     }
 }
