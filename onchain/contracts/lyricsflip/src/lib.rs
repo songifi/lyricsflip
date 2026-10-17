@@ -44,6 +44,9 @@ pub const CARD_ANSWER_WINDOW_SECONDS: u64 = 15;
 /// `POINTS_DECAY_PER_SECOND`, down to `MIN_CORRECT_POINTS`.
 pub const MAX_CORRECT_POINTS: u64 = 100;
 pub const POINTS_DECAY_PER_SECOND: u64 = 5;
+
+/// LF-159: answers within this many seconds of the draw earn full points.
+pub const FIRST_LEDGER_GRACE_SECONDS: u64 = 6;
 pub const MIN_CORRECT_POINTS: u64 = 10;
 
 /// Seconds after creation after which anyone may cancel a round that never
@@ -1163,7 +1166,7 @@ impl LyricsFlip {
 
         let points = if is_answer_correct {
             MAX_CORRECT_POINTS
-                .saturating_sub(answer_time.saturating_mul(POINTS_DECAY_PER_SECOND))
+                .saturating_sub(answer_time.saturating_sub(FIRST_LEDGER_GRACE_SECONDS).saturating_mul(POINTS_DECAY_PER_SECOND))
                 .max(MIN_CORRECT_POINTS)
         } else {
             0
