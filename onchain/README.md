@@ -19,7 +19,16 @@ contracts:
 
 ## Round scoring and finalization
 
-Each player's round score is the number of correct answers they submitted in that round. The contract also tracks the total time spent answering in that round so tie-breaks can be resolved fairly. `get_round_scores(round_id)` returns the final per-player score map for the round.
+Each correct answer earns the time-adjusted base points multiplied by the card
+difficulty (1 = easy, 2 = medium, 3 = hard). Existing stored cards are lazily
+migrated with difficulty 2. The contract also tracks total answer time for
+tie-breaks. `get_round_scores(round_id)` returns each player's accumulated
+points.
+
+`create_round_with_filter` accepts optional genre and decade filters plus an
+optional difficulty. Decades are supplied as their first year (for example,
+1990); filtered selection checks at most 500 cards and fails if too few cards
+match. The existing `create_round` entry point retains its genre-only behavior.
 
 A round can be finalized when either:
 
@@ -30,7 +39,7 @@ A round can be finalized when either:
 
 Winner selection follows the LF-005 rule:
 
-- highest correct-answer count wins
+- highest point score wins
 - when several players are tied on score, the lowest total answer time wins
 - if the score and total answer time are both tied, the tied players are co-winners
 - if every player has a score of `0`, there are no winners
@@ -369,7 +378,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 17 | `NonExistingCard` | No card with the given id |
 | 18 | `RoundNotReady` | `finalize_round` before all answers are in or the deadline has passed |
 | 19 | `RoundAlreadyFinalized` | Round was already finalized |
-| 20 | `RoundCancelled` | Round was cancelled |
+| 20 | `NotEnoughDistinctCards` | `build_question_card` can't find 3 distinct distractors (fewer than 4 distinct values in the catalogue) |
 | 21 | `RoundFull` | Round already has `max_players` players |
 | 22 | `InvalidMaxPlayers` | `set_max_players` was called with a value below 2 |
 | 23 | `NftContractNotSet` | `claim_reward` before the owner set the NFT contract |
@@ -383,11 +392,12 @@ Every variant is currently referenced by the contract. The ones marked
 | 31 | `DuplicateCard` | Another card already has this `title` + `artist` |
 | 32 | `BatchTooLarge` | `add_cards` got more than `MAX_CARDS_PER_BATCH` cards |
 | 33 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
-| 34 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
-| 26 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
-| 18 | `RoundNotReady` | `finalize_round` called before all answers submitted and before the deadline |
-| 19 | `RoundAlreadyFinalized` | `finalize_round` called a second time on an already-finalized round |
-| 20 | `NotEnoughDistinctCards` | `build_question_card` can't find 3 distinct distractors (fewer than 4 distinct values in the catalogue) |
+| 34 | `NoMoreCards` | All cards have been drawn; call `finalize_round` |
+| 35 | `RoundCancelled` | Round was cancelled |
+| 36 | `InvalidCardDifficulty` | Card difficulty or round difficulty is not between 1 and 3 |
+| 37 | `InvalidDecade` | Round decade is not a valid decade start year |
+| 38 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
+| 39 | `AlreadyAnswered` | Player submitted more than one answer for the same card |
 
 ### `lyricsflip-nft`
 

@@ -18,6 +18,7 @@ use crate::{
     MAX_PAGE_LIMIT, MAX_ROUND_PLAYERS,
 };
 use soroban_sdk::{
+    events::Event as _,
     testutils::{Address as _, ContractEvents, Events, Ledger},
     xdr, Address, Env, Event, Map, String, Vec,
 };
@@ -46,6 +47,7 @@ fn sample_card(env: &Env, genre: Genre, artist: &str, title: &str, year: u64) ->
         artist: String::from_str(env, artist),
         title: String::from_str(env, title),
         year,
+        difficulty: 2,
         lyrics: String::from_str(env, "sample lyric line"),
     }
 }
@@ -74,6 +76,7 @@ fn seed_cards_genre(
             artist,
             title,
             year: 2000 + i,
+            difficulty: 2,
             lyrics: String::from_str(env, "sample lyric line"),
         };
         client.add_card(owner, &card);
@@ -436,6 +439,7 @@ fn seed_diverse_cards(env: &Env, client: &LyricsFlipClient, owner: &Address) {
                 artist: String::from_str(env, artist),
                 title: String::from_str(env, title),
                 year: *year,
+                difficulty: 2,
                 lyrics: String::from_str(env, "na na na na"),
             },
         );
@@ -764,8 +768,10 @@ fn get_cards_of_artist_returns_requested_amount() {
                 card_id: 0,
                 genre: Genre::Rock,
                 artist: String::from_str(&env, "The Same Artist"),
+                title: alloc_string(&env, &format_u64("Song ", i)),
                 title: String::from_str(&env, &std::format!("Song {}", i)),
                 year: 2000 + i,
+                difficulty: 2,
                 lyrics: String::from_str(&env, "lyric"),
             },
         );
@@ -790,9 +796,12 @@ fn get_cards_of_year_returns_requested_amount() {
             &Card {
                 card_id: 0,
                 genre: Genre::Jazz,
+                artist: alloc_string(&env, &format_u64("Artist ", i)),
+                title: alloc_string(&env, &format_u64("Track ", i)),
                 artist: String::from_str(&env, &std::format!("Artist {}", i)),
                 title: String::from_str(&env, &std::format!("Track {}", i)),
                 year: 1990,
+                difficulty: 2,
                 lyrics: String::from_str(&env, "lyric"),
             },
         );
@@ -1177,6 +1186,26 @@ fn error_codes_are_stable() {
         (Error::NonExistingCard, 17),
         (Error::RoundNotReady, 18),
         (Error::RoundAlreadyFinalized, 19),
+        (Error::NotEnoughDistinctCards, 20),
+        (Error::RoundCancelled, 35),
+        (Error::RoundFull, 21),
+        (Error::InvalidMaxPlayers, 22),
+        (Error::NftContractNotSet, 23),
+        (Error::MilestoneNotReached, 24),
+        (Error::MilestoneAlreadyClaimed, 25),
+        (Error::InvalidCardTitle, 26),
+        (Error::InvalidCardArtist, 27),
+        (Error::InvalidCardLyrics, 28),
+        (Error::InvalidCardYear, 29),
+        (Error::LyricsTooLong, 30),
+        (Error::DuplicateCard, 31),
+        (Error::BatchTooLarge, 32),
+        (Error::NotPendingOwner, 33),
+        (Error::NoMoreCards, 34),
+        (Error::InvalidCardDifficulty, 36),
+        (Error::InvalidDecade, 37),
+        (Error::NoActiveCard, 38),
+        (Error::AlreadyAnswered, 39),
         (Error::RoundCancelled, 20),
         (Error::NotEnoughDistinctCards, 21),
         (Error::RoundFull, 22),
@@ -1226,6 +1255,7 @@ fn get_random_numbers_worst_case_amount_equals_limit() {
             artist: soroban_sdk::String::from_str(&env, "A"),
             title,
             year: 1950 + i,
+            difficulty: 2,
             lyrics: soroban_sdk::String::from_str(&env, "lyric"),
         };
         client.add_card(&owner, &card);
@@ -1534,6 +1564,13 @@ fn add_card_rejects_invalid_cards() {
                 ..ok.clone()
             },
             Error::InvalidCardYear,
+        ),
+        (
+            Card {
+                difficulty: 0,
+                ..ok.clone()
+            },
+            Error::InvalidCardDifficulty,
         ),
         (
             Card {
@@ -2542,6 +2579,241 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
     );
 }
 
+#[test]
+fn create_round_filter_selects_decade_genre_and_difficulty_and_multiplies_points() {
+    let (env, client, owner) = setup();
+    for i in 0..3u64 {
+        let card = Card {
+            difficulty: 3,
+            ..sample_card(
+                &env,
+                Genre::RnB,
+                &std::format!("Nineties Artist {}", i),
+                &std::format!("Nineties Track {}", i),
+                1990 + i,
+            )
+        };
+        client.add_card(&owner, &card);
+    }
+    client.add_card(
+        &owner,
+        &Card {
+            difficulty: 3,
+            ..sample_card(&env, Genre::RnB, "TwoThousands Artist", "TwoThousands Track", 2000)
+        },
+    );
+    client.add_card(
+        &owner,
+        &Card {
+            difficulty: 3,
+            ..sample_card(&env, Genre::Pop, "Pop Artist", "Pop Track", 1995)
+        },
+    );
+    client.add_card(&owner, &sample_card(&env, Genre::RnB, "Medium Artist", "Medium Track", 1995));
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round_with_filter(
+        &owner,
+        &crate::RoundFilter {
+            genre: Some(Genre::RnB),
+            decade: Some(1990),
+        },
+        &Some(3),
+        &22u64,
+    );
+    let round_cards = client.get_round_cards(&round_id);
+    assert_eq!(round_cards.len(), 2);
+    for card_id in round_cards.iter() {
+        let card = client.get_card(&card_id);
+        assert_eq!(card.genre, Genre::RnB);
+        assert_eq!(card.year / 10 * 10, 1990);
+        assert_eq!(card.difficulty, 3);
+    }
+
+    client.start_round(&owner, &round_id);
+    let card = client.next_card(&round_id);
+    env.ledger().set_timestamp(NOW + 1);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title)));
+    assert_eq!(client.get_round_scores(&round_id).get(owner).unwrap(), 285);
+}
+
+#[test]
+fn invalid_round_difficulty_and_decade_are_rejected() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &1);
+    let filter = crate::RoundFilter {
+        genre: Some(Genre::Pop),
+        decade: None,
+    };
+
+    assert_eq!(
+        client.try_create_round_with_filter(&owner, &filter, &Some(4), &1u64),
+        Err(Ok(Error::InvalidCardDifficulty.into()))
+    );
+    assert_eq!(
+        client.try_create_round_with_filter(
+            &owner,
+            &crate::RoundFilter {
+                genre: Some(Genre::Pop),
+                decade: Some(1995),
+            },
+            &None,
+            &1u64,
+        ),
+        Err(Ok(Error::InvalidDecade.into()))
+    );
+}
+
+#[derive(Clone, Copy)]
+enum Simulation {
+    AllCorrect,
+    ExactTie,
+    AllWrong,
+    Abandoned,
+}
+
+fn simulate_eight_player_round(scenario: Simulation) {
+    let (env, client, owner) = setup();
+    if matches!(scenario, Simulation::AllCorrect) {
+        client.add_card(
+            &owner,
+            &Card {
+                difficulty: 3,
+                ..sample_card(&env, Genre::Pop, "Hard Artist", "Hard Song", 1994)
+            },
+        );
+        client.add_card(
+            &owner,
+            &Card {
+                difficulty: 1,
+                ..sample_card(&env, Genre::Pop, "Easy Artist", "Easy Song", 1996)
+            },
+        );
+        client.set_cards_per_round(&owner, &2);
+    } else {
+        seed_cards(&env, &client, &owner, 8);
+        client.set_cards_per_round(&owner, &1);
+    }
+
+    let mut players = std::vec![owner.clone()];
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &123u64);
+    for _ in 1..MAX_ROUND_PLAYERS {
+        let player = Address::generate(&env);
+        client.join_round(&player, &round_id);
+        players.push(player);
+    }
+    for player in players.iter() {
+        client.start_round(player, &round_id);
+    }
+
+    env.ledger().set_timestamp(NOW + 10);
+    let card = client.next_card(&round_id);
+    match scenario {
+        Simulation::AllCorrect => {
+            let answer_card = |card: &Card, start: u64| {
+                for (i, player) in players.iter().enumerate() {
+                    let delay = match (card.difficulty, i) {
+                        (3, 0) => 1,
+                        (3, 1) => 2,
+                        (1, 0) => 3,
+                        (1, 1) => 0,
+                        _ => 3,
+                    };
+                    env.ledger().set_timestamp(start + delay);
+                    assert!(client.submit_answer(
+                        player,
+                        &round_id,
+                        &Answer::Title(card.title.clone())
+                    ));
+                }
+            };
+            answer_card(&card, NOW + 10);
+            let second_start = env.ledger().timestamp();
+            let second_card = client.next_card(&round_id);
+            answer_card(&second_card, second_start);
+            let score_tie = client.get_round_scores(&round_id);
+            assert_eq!(score_tie.get(owner.clone()).unwrap(), 370);
+            assert_eq!(score_tie.get(players[1].clone()).unwrap(), 370);
+            assert!(score_tie.get(players[2].clone()).unwrap() < 370);
+            let times = env.as_contract(&client.address, || {
+                env.storage()
+                    .persistent()
+                    .get::<_, Map<Address, u64>>(&crate::DataKey::RoundAnswerTimes(round_id))
+                    .unwrap()
+            });
+            assert_eq!(times.get(owner.clone()).unwrap(), 4);
+            assert_eq!(times.get(players[1].clone()).unwrap(), 2);
+        }
+        Simulation::ExactTie => {
+            env.ledger().set_timestamp(NOW + 12);
+            for player in players.iter() {
+                assert!(client.submit_answer(
+                    player,
+                    &round_id,
+                    &Answer::Title(card.title.clone())
+                ));
+            }
+        }
+        Simulation::AllWrong => {
+            env.ledger().set_timestamp(NOW + 12);
+            for player in players.iter() {
+                assert!(!client.submit_answer(
+                    player,
+                    &round_id,
+                    &Answer::Title(String::from_str(&env, "wrong"))
+                ));
+            }
+        }
+        Simulation::Abandoned => {
+            env.ledger().set_timestamp(NOW + 11);
+            assert!(client.submit_answer(
+                &owner,
+                &round_id,
+                &Answer::Title(card.title.clone())
+            ));
+            env.ledger()
+                .set_timestamp(client.get_round(&round_id).end_time + 1);
+            client.finalize_round(&players[1], &round_id);
+        }
+    }
+
+    if !matches!(scenario, Simulation::Abandoned) {
+        client.finalize_round(&owner, &round_id);
+    }
+    let scores = client.get_round_scores(&round_id);
+    let mut winners = soroban_sdk::Vec::new(&env);
+    match scenario {
+        Simulation::AllCorrect => winners.push_back(players[1].clone()),
+        Simulation::Abandoned => winners.push_back(owner.clone()),
+        Simulation::ExactTie => {
+            for player in players.iter() {
+                winners.push_back(player.clone());
+            }
+        }
+        Simulation::AllWrong => {}
+    }
+    let events = env.events().all();
+    assert_round_completed_event(
+        &env,
+        &events,
+        &client.address,
+        round_id,
+        &winners,
+        &scores,
+    );
+
+    for player in players.iter() {
+        let stats = client.get_player_stat(player);
+        assert_eq!(stats.total_rounds, 1);
+        assert_eq!(
+            stats.rounds_won,
+            if winners.first_index_of(player).is_some() {
+                1
+            } else {
+                0
+            }
+        );
 
 // LF-159: a first-ledger answer earns MAX_CORRECT_POINTS
 #[test]
@@ -2609,6 +2881,89 @@ fn lf161_artist_index_is_case_insensitive() {
 }
 
 #[test]
+fn eight_player_all_correct_round_uses_answer_timing() {
+    simulate_eight_player_round(Simulation::AllCorrect);
+}
+
+#[test]
+fn eight_player_exact_tie_splits_the_winner_set() {
+    simulate_eight_player_round(Simulation::ExactTie);
+}
+
+#[test]
+fn eight_player_all_wrong_round_has_no_winner() {
+    simulate_eight_player_round(Simulation::AllWrong);
+}
+
+#[test]
+fn eight_player_abandoned_round_can_be_finalized_by_a_keeper() {
+    simulate_eight_player_round(Simulation::Abandoned);
+}
+
+#[test]
+fn legacy_cards_default_to_medium_difficulty_when_read() {
+    let (env, client, owner) = setup();
+    let card_id = client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Legacy Artist", "Legacy Song", 1999),
+    );
+    env.as_contract(&client.address, || {
+        env.storage().persistent().set(
+            &crate::DataKey::Card(card_id),
+            &crate::LegacyCard {
+                card_id,
+                genre: Genre::Pop,
+                artist: String::from_str(&env, "Legacy Artist"),
+                title: String::from_str(&env, "Legacy Song"),
+                year: 1999,
+                lyrics: String::from_str(&env, "sample lyric line"),
+            },
+        );
+    });
+
+    assert_eq!(client.get_card(&card_id).difficulty, 2);
+}
+
+#[test]
+fn seeded_card_removals_preserve_genre_indexes() {
+    let (env, client, owner) = setup();
+    let mut cards = std::vec::Vec::new();
+    for i in 0..20u64 {
+        let genre = if i % 2 == 0 {
+            Genre::Pop
+        } else {
+            Genre::Rock
+        };
+        let id = client.add_card(
+            &owner,
+            &sample_card(
+                &env,
+                genre,
+                &std::format!("Seeded Artist {i}"),
+                &std::format!("Seeded Title {i}"),
+                1990 + i % 5,
+            ),
+        );
+        cards.push((id, genre));
+    }
+
+    for step in 0..cards.len() {
+        let remove_idx = (step * 7) % cards.len();
+        let (card_id, _) = cards.remove(remove_idx);
+        client.remove_card(&owner, &card_id);
+        assert_eq!(client.get_cards_count(), cards.len() as u64);
+
+        for genre in [Genre::Pop, Genre::Rock] {
+            let expected: std::vec::Vec<u64> = cards
+                .iter()
+                .filter(|(_, card_genre)| *card_genre == genre)
+                .map(|(id, _)| *id)
+                .collect();
+            if !expected.is_empty() {
+                assert_eq!(genre_ids(&client, &owner, genre), expected);
+            } else {
+                assert_eq!(client.get_genre_card_count(&genre), 0);
+            }
 fn lf161_rejects_leading_or_trailing_whitespace() {
     let (env, client, owner) = setup();
     let base = sample_card(&env, Genre::Pop, "Artist", "Title", 2000);

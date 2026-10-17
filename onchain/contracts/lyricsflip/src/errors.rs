@@ -76,6 +76,15 @@ pub enum Error {
     BatchTooLarge = 32,
     /// The caller is not the pending owner of the contract.
     NotPendingOwner = 33,
+    /// All cards in the round have been drawn; call `finalize_round` to
+    /// complete the round.
+    NoMoreCards = 34,
+    /// The calling player has already submitted an answer for this card in
+    /// this round. A player may answer each card at most once.
+    AlreadyAnswered = 39,
+    NoActiveCard = 38,
+    InvalidCardDifficulty = 36,
+    InvalidDecade = 37,
     /// Round was cancelled and cannot accept further actions.
     RoundCancelled = 20,
     NotEnoughDistinctCards = 21,
