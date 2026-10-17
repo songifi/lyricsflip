@@ -1,6 +1,9 @@
-#![no_std]
+#`![no_std]
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
+mod types;
+
+use soroban_sdk:{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
+use types:{PlayerResult, PlayerStats};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -42,8 +45,9 @@ pub struct Config {
     pub fee_bps: u32,
 }
 
-const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
+const CONFIG: soroban_sdk:Symbol = symbol_short!("CONFIG");
 const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
+const PLAYERS: soroban_sdk:Symbol = symbol_short!("PLAYERS");
 const BPS_DENOM: i128 = 10_000;
 
 #[contract]
@@ -109,6 +113,53 @@ impl LyricsFlipContract {
             claimed: Vec::new(&env),
         };
         env.storage().persistent().set(&(ROUND, round_id), &round);
+        Ok(())
+    }
+
+    /// Record or update a player's stats for a round. Owner-authorized.
+    pub fn record_player(
+        env: Env,
+        round_id: u64,
+        player: Address,
+        points: u32,
+        correct: u32,
+        total_time: u64,
+    ) -> Result<(), Error> {
+        let config: Config = env
+            .storage()
+            .instance()
+            .get(&CONFIG)
+            .ok_or(Error::NotInitialized)?;
+        config.owner.require_auth();
+        if !env.storage().persistent().has(&(ROUND, round_id)) {
+            return Err(Error::RoundNotFound);
+        }
+        let mut stats: Vec<PlayerStats> = env
+            .storage()
+            .persistent()
+            .get(&(PLAYERS, round_id))
+            .unwrap_or(Vec::new(&env));
+        let mut found = false;
+        for i in 0..stats.len() {
+            let mut s: PlayerStats = stats.get(i).unwrap();
+            if s.player == player {
+                s.points = points;
+                s.correct = correct;
+                s.total_time = total_time;
+                stats.set(i, s);
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            stats.push_back(PlayerStats {
+                player,
+                points,
+                correct,
+                total_time,
+            });
+        }
+        env.storage().persistent().set(&(PLAYERS, round_id), &stats);
         Ok(())
     }
 
@@ -207,4 +258,73 @@ impl LyricsFlipContract {
             .get(&(ROUND, round_id))
             .ok_or(Error::RoundNotFound)
     }
+
+    /// Return per-player results for a round, sorted by rank using the same
+    /// tie-break as `determine_round_winners`: higher points, then more correct,
+    /// then lower total time, then address ascending for determinism.
+    pub fn get_round_results(env: Env, round_id: u64) -> Result<Vec<PlayerResult>, Error> {
+        let round: Round = env
+            .storage()
+            .persistent()
+            .get(&(ROUND, round_id))
+            .ok_or(Error::RoundNotFound)?;
+
+        let stats: Vec<PlayerStats> = env
+            .storage()
+            .persistent()
+            .get(&(PLAYERS, round_id))
+            .unwrap_or(Vec::new(&env));
+
+        // Insertion sort by the winner tie-break.
+        let mut ordered: Vec<PlayerStats> = Vec::new(&env);
+        for i in 0..stats.len() {
+            let current = stats.get(i).unwrap();
+            let mut insert_at = ordered.len();
+            for j in 0..ordered.len() {
+                let existing = ordered.get(j).unwrap();
+                if stats_before(&current, &existing) {
+                    insert_at = j;
+                    break;
+                }
+            }
+            ordered.insert(insert_at, current);
+        }
+
+        let mut results: Vec<PlayerResult> = Vec::new(&env);
+        for i in 0..ordered.len() {
+            let s = ordered.get(i).unwrap();
+            let mut claimed = false;
+            for k in 0..round.claimed.len() {
+                if round.claimed.get(k).unwrap() == s.player {
+                    claimed = true;
+                    break;
+                }
+            }
+            results.push_back(PlayerResult {
+                player: s.player,
+                points: s.points,
+                correct: s.correct,
+                total_time: s.total_time,
+                rank: i + 1,
+                claimed,
+            });
+        }
+        Ok(results)
+    }
+}
+
+/// Returns true if `should_come_before` should sort before `existing` under the
+/// winner tie-break: higher points, then more correct, then lower total time,
+/// then address ascending.
+fn stats_before(should_come_before: &PlayerStats, existing: &PlayerStats) -> bool {
+    if should_come_before.points != existing.points {
+        return should_come_before.points > existing.points;
+    }
+    if should_come_before.correct != existing.correct {
+        return should_come_before.correct > existing.correct;
+    }
+    if should_come_before.total_time != existing.total_time {
+        return should_come_before.total_time < existing.total_time;
+    }
+    should_come_before.player < existing.player
 }
