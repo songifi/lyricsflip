@@ -2,7 +2,7 @@
 import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import { LyricCard } from '@/components/organisms/LyricCard';
-import BadgeModal from '@/components/organisms/newbadgemodal';
+import BadgeModal from '@/components/organisms/new-badge-modal';
 import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
 import { fireConfetti } from '@/lib/confetti';
 import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
@@ -20,8 +20,6 @@ import {
   type QuestionCard,
   type Round,
 } from '@/lib/stellar/types';
-import { useCallback, useEffect, useState } from 'react';
-import { Answer, type Card, type QuestionCard, type Round } from '@/lib/stellar/types';
 import { useGameTimer } from '@/features/game/hooks/useGameTimer';
 
 interface SongOption {
@@ -41,11 +39,7 @@ export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundId = searchParams?.get('roundId') ?? null;
-  const roundId = searchParams.get('roundId');
   const { account, systemCalls } = useStellar();
-
-  // ── Round state ───────────────────────────────────────────────────────────
-  const { systemCalls } = useStellar();
 
   // Use the single shared timer — no local setInterval here.
   const { timeLeft, startTimer, stopTimer, resetTimer } = useGameTimer();
@@ -70,9 +64,6 @@ export default function SinglePlayerGame() {
       stopTimer();
     };
   }, [stopTimer]);
-
-  // Round-level countdown (5-min) displayed in StatisticsPanel
-  const [roundTimeLeft, setRoundTimeLeft] = useState(300);
 
   // Badge modal state (Issue #476)
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
@@ -167,17 +158,7 @@ export default function SinglePlayerGame() {
       }
     };
     fetchRoundData();
-  }, [roundId, systemCalls, loadNextCard]);
-
-  // Round-level timer (5 min)
-  useEffect(() => {
-    if (isGameStarted && roundTimeLeft > 0) {
-      const timer = setInterval(() => setRoundTimeLeft((p) => p - 1), 1000);
-      return () => clearInterval(timer);
-    }
-  }, [isGameStarted, roundTimeLeft]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roundId, systemCalls]);
+  }, [roundId, systemCalls, loadNextCard, resetTimer, startTimer]);
 
   // ── Milestone / badge check ───────────────────────────────────────────────
   const checkMilestoneAndShowBadge = useCallback(
@@ -218,239 +199,132 @@ export default function SinglePlayerGame() {
 
   const isRoundFinished = totalCards > 0 && answeredCount >= totalCards;
 
-  // ── Answer handler ────────────────────────────────────────────────────────
-  const handleSongSelect = async (option: SongOption) => {
-    if (!round || !card || !systemCalls || selectedOption) return;
-
-    setSelectedOption(option);
-    try {
-      setTxStatus('Submitting answer…');
-      const isCorrect = await systemCalls.submitAnswer(
-        round.round_id,
-        Answer.title(option.title),
-      );
-      const newScore = isCorrect ? score + 1 : score;
-      setCorrectOption(isCorrect ? option : { title: card.title, artist: card.artist });
-
-      if (isCorrect) {
-        setScore(newScore);
-        // Fire confetti (respects prefers-reduced-motion internally)
-        fireConfetti().catch(() => {/* non-critical */});
-      }
-
-      const newAnswered = answeredCount + 1;
-      setAnsweredCount(newAnswered);
+  // ── Answer handling ───────────────────────────────────────────────────────
+  const handleAnswer = useCallback(
+    async (option: SongOption) => {
+      if (!systemCalls || !roundId || !card || selectedOption !== null) return;
+      setSelectedOption(option);
       setIsCardFlipped(true);
+      setCorrectOption({ title: card.title, artist: card.artist });
 
-      // Check for milestone NFTs when the last card is answered
-      if (newAnswered >= totalCards) {
-        await checkMilestoneAndShowBadge(newScore, totalCards);
+      const isCorrect = option.title === card.title;
+      if (isCorrect) {
+        setScore((prev) => prev + 1);
+        fireConfetti();
       }
-    } catch (err) {
-      setSelectedOption(null);
-      setError(err instanceof Error ? err.message : 'Failed to submit answer');
-    } finally {
-      setTxStatus(null);
+
+      try {
+        const id = BigInt(roundId);
+        setTxStatus('Submitting answer…');
+        await systemCalls.submitAnswer(id, isCorrect ? Answer.Correct : Answer.Wrong);
+        setAnsweredCount((prev) => prev + 1);
+        setTxStatus(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to submit answer');
+        setTxStatus(null);
+      }
+    },
+    [card, roundId, selectedOption, systemCalls],
+  );
+
+  const handleNextCard = useCallback(async () => {
+    if (isRoundFinished) {
+      await checkMilestoneAndShowBadge(score, totalCards);
+      return;
     }
-  };
+    await loadNextCard();
+  }, [checkMilestoneAndShowBadge, isRoundFinished, loadNextCard, score, totalCards]);
 
-  const handleNextCard = async () => {
-    try {
-      await loadNextCard();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load next card');
-      setTxStatus(null);
+  // ── Screen-reader status updates ──────────────────────────────────────────
+  useEffect(() => {
+    if (statusRef.current) {
+      statusRef.current.textContent = txStatus ?? '';
     }
-  };
+  }, [txStatus]);
 
-  const handleBack = () => router.push('/');
-
-  // ── Render: loading ───────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
-        <p>{txStatus || 'Loading game...'}</p>
-      </div>
-      <main
-        className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
-        aria-label="Loading game"
-      >
-        <p aria-live="polite" aria-busy="true">
-          {txStatus || 'Loading game...'}
-        </p>
+      <main className="flex min-h-screen items-center justify-center">
+        <p>Loading round…</p>
       </main>
     );
   }
 
-  // ── Render: error ─────────────────────────────────────────────────────────
-  if (error || !round) {
+  if (error) {
     return (
-      <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
-        <p>{error || 'No round found'}</p>
-      <main
-        className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
-        aria-label="Game error"
-      >
-        <p role="alert">{error || 'No round found'}</p>
-        <button
-          onClick={handleBack}
-          className="mt-4 px-4 py-2 bg-purple-500 text-white rounded focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-700"
-        >
-          Return to Home
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4">
+        <p role="alert" className="text-red-500">
+          {error}
+        </p>
+        <button onClick={() => router.back()} className="underline">
+          Go back
         </button>
       </main>
     );
   }
 
-  // ── Render: game ──────────────────────────────────────────────────────────
   return (
-    <div className="container mt-20 mx-auto h-fit w-full mb-24 md:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32">
-      <div className="mb-6">
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
+      <header className="flex items-center justify-between">
         <button
-          onClick={handleBack}
-          className="flex items-center text-gray-600 mb-4"
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+          <ArrowLeft className="h-4 w-4" /> Back
         </button>
-        <h1 className="text-2xl font-bold">Wager (Single Player)</h1>
-        <p className="text-gray-600 text-sm">
-          {`${getGenreDisplayName(round.genre)} Genre | Expert Difficulty`}
+        <p className="text-sm text-gray-500">
+          {round ? getGenreDisplayName(round.genre) : ''}
         </p>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-start-2 lg:col-span-1 order-1 lg:order-2">
+      <p ref={statusRef} aria-live="polite" className="sr-only" />
+
+      <StatisticsPanel
+        score={score}
+        answeredCount={answeredCount}
+        totalCards={totalCards}
+        timeLeft={timeLeft}
+        wagerLabel={`${formatAmount(round?.wager ?? 0)} ${WAGER_ASSET_CODE}`}
+      />
+
+      {question && (
+        <section className="flex flex-col gap-4">
           <LyricCard
-            lyrics={[
-              {
-                text: question?.lyric || 'Loading...',
-                title: card?.title || '',
-                artist: card?.artist || '',
-              }
-            ]}
+            card={card}
+            question={question}
             isFlipped={isCardFlipped}
-    <>
-      <main
-        className="container mt-4 mx-auto h-fit w-full mb-20 lg:mb-12 p-4 lg:p-0 md:mt-24 lg:mt-32"
-        aria-label="Single player game"
-      >
-        {/* Skip-to-content */}
-        <a
-          href="#game-options"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-purple-600 focus:text-white focus:rounded"
-        >
-          Skip to answer options
-        </a>
-
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={handleBack}
-            className="flex items-center text-gray-600 mb-4 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-500 rounded"
-            aria-label="Back to home"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" aria-hidden="true" />
-            Back
-          </button>
-          <h1 className="text-2xl font-bold">Wager (Single Player)</h1>
-          <p className="text-gray-600 text-sm">
-            {`${round.genre.toString()} Genre | Expert Difficulty`}
-          </p>
-        </div>
-
-        {txStatus && (
-          <p ref={statusRef} role="status" aria-live="polite" className="mt-2 text-sm text-gray-600">
-            {txStatus}
-          </p>
-        )}
-
-        {/* ── Per-card 15-second timer bar (Issue #472) ─────────────────────── */}
-        <div
-          className="w-full bg-gray-200 rounded-full h-2 mb-4"
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={CARD_TIMEOUT_SECONDS}
-          aria-valuenow={cardTimeLeft}
-          aria-label={`Card timer: ${cardTimeLeft} seconds remaining`}
-        >
-          <div
-            className={[
-              'h-2 rounded-full transition-all',
-              // Colour shifts to red in the final 5 seconds
-              cardTimeLeft <= 5 ? 'bg-red-500' : 'bg-purple-500',
-              // Don't animate width when reduced-motion is preferred
-              'motion-safe:transition-[width] motion-safe:duration-1000 motion-safe:ease-linear',
-            ].join(' ')}
-            style={{ width: `${(cardTimeLeft / CARD_TIMEOUT_SECONDS) * 100}%` }}
+            correctOption={correctOption}
+            selectedOption={selectedOption}
+            timeLeft={cardTimeLeft}
+            timeoutSeconds={CARD_TIMEOUT_SECONDS}
           />
-        </div>
-        <p className="text-sm text-gray-600 mb-4" aria-live="polite" aria-atomic="true">
-          {selectedOption || isCardFlipped
-            ? ''
-            : `${cardTimeLeft}s to answer`}
-        </p>
 
-        {/* Game grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-start-2 lg:col-span-1 order-1 lg:order-2">
-            <LyricCard
-              lyrics={[
-                {
-                  text: question?.lyric || 'Loading...',
-                  title: card?.title || '',
-                  artist: card?.artist || '',
-                },
-              ]}
-              isFlipped={isCardFlipped}
-            />
-          </div>
-          <div className="lg:col-start-3 lg:col-span-1 order-2 lg:order-3">
-            <StatisticsPanel
-              time={`${roundTimeLeft}`}
-              potWin={`${formatAmount(round.wager_amount)} ${WAGER_ASSET_CODE}`}
-              scores={`${score} / ${totalCards}`}
-            />
-          </div>
-        </div>
-
-        {/* Answer options */}
-        <div id="game-options">
           <SongOptions
             options={options}
-            onSelect={handleSongSelect}
             selectedOption={selectedOption}
             correctOption={correctOption}
+            disabled={selectedOption !== null}
+            onSelect={handleAnswer}
           />
-        </div>
 
-        {/* Navigation after flip */}
-        {isCardFlipped && (
-          <div className="mt-6 flex justify-center" role="region" aria-label="Round navigation">
-            {isRoundFinished ? (
-              <p className="font-semibold" role="status">
-                {`Round complete: ${score} / ${totalCards} correct`}
-              </p>
-            ) : (
-              <button
-                onClick={handleNextCard}
-                disabled={!!txStatus}
-                className="px-4 py-2 bg-purple-500 text-white rounded disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-700"
-                aria-disabled={!!txStatus}
-              >
-                Next card
-              </button>
-            )}
-          </div>
-        )}
-      </main>
+          {selectedOption !== null && (
+            <button
+              onClick={handleNextCard}
+              className="self-end rounded bg-black px-4 py-2 text-white"
+            >
+              {isRoundFinished ? 'Finish round' : 'Next card'}
+            </button>
+          )}
+        </section>
+      )}
 
-      {/* Badge modal (Issue #476) */}
+      {txStatus && <p className="text-sm text-gray-500">{txStatus}</p>}
+
       <BadgeModal
         isOpen={isBadgeModalOpen}
-        onClose={() => setIsBadgeModalOpen(false)}
         badgeName={earnedBadgeName}
+        onClose={() => setIsBadgeModalOpen(false)}
       />
-    </>
+    </main>
   );
 }
