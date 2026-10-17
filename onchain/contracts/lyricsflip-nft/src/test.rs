@@ -122,13 +122,13 @@ fn transfer_moves_token_and_updates_balances() {
     let bob = Address::generate(&env);
     let token_id = client.mint(&minter, &alice);
     client.mint(&minter, &alice);
-    assert_eq!(client.balance(&alice), 2);
+    assert_eq!(client.balance(&alice), 2i128);
 
     client.transfer(&alice, &bob, &token_id);
 
     assert_eq!(client.owner_of(&token_id), bob);
-    assert_eq!(client.balance(&alice), 1);
-    assert_eq!(client.balance(&bob), 1);
+    assert_eq!(client.balance(&alice), 1i128);
+    assert_eq!(client.balance(&bob), 1i128);
 }
 
 #[test]
@@ -143,7 +143,7 @@ fn transfer_by_non_owner_is_rejected() {
     let result = client.try_transfer_from(&mallory, &alice, &mallory, &token_id);
     assert_eq!(result, Err(Ok(Error::InsufficientApproval.into())));
     assert_eq!(client.owner_of(&token_id), alice);
-    assert_eq!(client.balance(&alice), 1);
+    assert_eq!(client.balance(&alice), 1i128);
 }
 
 #[test]
@@ -159,8 +159,8 @@ fn approved_spender_can_transfer_once() {
 
     client.transfer_from(&spender, &alice, &bob, &token_id);
     assert_eq!(client.owner_of(&token_id), bob);
-    assert_eq!(client.balance(&alice), 0);
-    assert_eq!(client.balance(&bob), 1);
+    assert_eq!(client.balance(&alice), 0i128);
+    assert_eq!(client.balance(&bob), 1i128);
     // The per-token approval is cleared on transfer.
     assert_eq!(client.get_approved(&token_id), None);
     let result = client.try_transfer_from(&spender, &bob, &alice, &token_id);
@@ -341,6 +341,124 @@ fn pause_and_unpause_are_owner_only() {
         Err(Ok(Error::NotOwner.into()))
     );
     assert!(client.paused());
+// LF-173 – Stellar NFT standard (SEP-50) interface compatibility
+// ---------------------------------------------------------------------------
+
+/// The standard exposes `name`/`symbol` (not `token_name`/`token_symbol`).
+#[test]
+fn standard_metadata_getters_are_exposed() {
+    let (env, client, _owner, _minter) = setup();
+    assert_eq!(client.name(), String::from_str(&env, "LyricsFlip"));
+    assert_eq!(client.symbol(), String::from_str(&env, "LFLIP"));
+}
+
+/// `balance` returns `i128` per the standard, and `balance_of` is an alias.
+#[test]
+fn balance_returns_i128_and_matches_balance_of() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    client.mint(&minter, &alice);
+    client.mint(&minter, &alice);
+
+    let balance: i128 = client.balance(&alice);
+    assert_eq!(balance, 2i128);
+    assert_eq!(client.balance_of(&alice), balance);
+    assert_eq!(client.balance(&Address::generate(&env)), 0i128);
+}
+
+/// `mint` emits the standard `mint` event with `(to, token_id)` topics.
+#[test]
+fn mint_emits_standard_event() {
+    use soroban_sdk::{testutils::Events as _, symbol_short, IntoVal, TryFromVal};
+
+    let (env, client, _owner, minter) = setup();
+    let recipient = Address::generate(&env);
+
+    let token_id = client.mint(&minter, &recipient);
+
+    let events = env.events().all();
+    let last = events.last().unwrap();
+    assert_eq!(last.0, client.address);
+    assert_eq!(
+        last.1,
+        (symbol_short!("mint"), recipient.clone(), token_id).into_val(&env)
+    );
+    let _ = <Address as TryFromVal<Env, soroban_sdk::Val>>::try_from_val;
+}
+
+/// `transfer` emits the standard `transfer` event with
+/// `(from, to, token_id)` topics.
+#[test]
+fn transfer_emits_standard_event() {
+    use soroban_sdk::{testutils::Events as _, symbol_short, IntoVal};
+
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+
+    client.transfer(&alice, &bob, &token_id);
+
+    let events = env.events().all();
+    let last = events.last().unwrap();
+    assert_eq!(last.0, client.address);
+    assert_eq!(
+        last.1,
+        (symbol_short!("transfer"), alice.clone(), bob.clone(), token_id).into_val(&env)
+    );
+}
+
+/// `burn` removes the token and decrements the owner's balance.
+#[test]
+fn burn_removes_token_and_updates_balance() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+    assert_eq!(client.balance(&alice), 1i128);
+
+    client.burn(&alice, &token_id);
+
+    assert_eq!(client.balance(&alice), 0i128);
+    assert_eq!(
+        client.try_owner_of(&token_id),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+}
+
+/// `burn` by a non-owner is rejected.
+#[test]
+fn burn_by_non_owner_is_rejected() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let mallory = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+
+    assert_eq!(
+        client.try_burn(&mallory, &token_id),
+        Err(Ok(Error::IncorrectOwner.into()))
+    );
+    assert_eq!(client.owner_of(&token_id), alice);
+}
+
+/// Enumerable extension: `total_supply` and `token_by_index` track mints and
+/// burns.
+#[test]
+fn enumerable_extension_tracks_supply_and_indices() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+
+    assert_eq!(client.total_supply(), 0u32);
+
+    let first = client.mint(&minter, &alice);
+    let second = client.mint(&minter, &bob);
+    assert_eq!(client.total_supply(), 2u32);
+    assert_eq!(client.token_by_index(&0), first);
+    assert_eq!(client.token_by_index(&1), second);
+
+    client.burn(&alice, &first);
+    assert_eq!(client.total_supply(), 1u32);
+    assert_eq!(client.token_by_index(&0), second);
 }
 
 #[test]

@@ -3,9 +3,8 @@ name: Frontend CI
 on:
   push:
     branches: [main]
-    paths: ['frontend/**', '.github/workflows/frontend.yml']
+    paths: ["frontend/**", ".github/workflows/frontend.yml"]
   pull_request:
-    paths: ['frontend/**', '.github/workflows/frontend.yml']
 
 concurrency:
   group: frontend-${{ github.ref }}
@@ -13,7 +12,7 @@ concurrency:
 
 jobs:
   frontend:
-    name: Frontend CI
+    name: Frontend tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,3 +40,16 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm test -- --ci
       - run: npm run build
+
+  ci-summary:
+    name: Frontend CI
+    if: always()
+    needs: [frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require frontend checks
+        run: |
+          if [[ "${{ needs.frontend.result }}" != "success" ]]; then
+            echo "Frontend checks did not pass."
+            exit 1
+          fi

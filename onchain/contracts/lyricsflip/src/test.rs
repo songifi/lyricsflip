@@ -19,38 +19,11 @@ use crate::{
 };
 use soroban_sdk::{
     testutils::{Address as _, ContractEvents, Events, Ledger},
-    Address, Env, Event, Map, String, Vec,
+    xdr, Address, Env, Event, Map, String, Vec,
 };
 
 /// 2026-05-28, so cards up to year 2026 pass validation.
 const NOW: u64 = 1_780_000_000;
-use crate::{
-    Answer, Card, Error, Genre, LyricsFlip, LyricsFlipClient, Milestone, Role, RoleUpdated,
-    RoundCancelled, RoundCompleted, RoundLeft, CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS,
-    LOBBY_TIMEOUT_SECONDS, MAX_PAGE_LIMIT,
-};
-use soroban_sdk::{
-    events::Event as _,
-    testutils::{Address as _, ContractEvents, Events, Ledger},
-    Address, Env, Map, String,
-};
-//! Unit tests for the `lyricsflip` contract.
-//!
-//! Coverage targets:
-//! - Every public function (happy path + key error paths).
-//! - Every `Error` variant.
-//! - `build_question_card` with all three `QuestionKind` values (LF-029)
-//!   plus the LF-010 small-card-set edge cases.
-//!
-//! Run with `cargo test` inside `onchain/`.
-
-use crate::{
-    Answer, Card, Error, Genre, LyricsFlip, LyricsFlipClient, QuestionKind, Role, MAX_PAGE_LIMIT,
-};
-use soroban_sdk::{
-    testutils::{Address as _, Ledger as _},
-    xdr, Address, Env, String,
-};
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -407,7 +380,7 @@ fn next_card_advances_index_and_completes_round() {
     assert!(!round.is_completed);
     assert_eq!(
         client.try_next_card(&round_id),
-        Err(Ok(Error::RoundCompleted.into()))
+        Err(Ok(Error::NoMoreCards.into()))
     );
 }
 
@@ -792,7 +765,6 @@ fn get_cards_of_artist_returns_requested_amount() {
                 genre: Genre::Rock,
                 artist: String::from_str(&env, "The Same Artist"),
                 title: String::from_str(&env, &std::format!("Song {}", i)),
-                title: alloc_string(&env, &format_u64("Song ", i)),
                 year: 2000 + i,
                 lyrics: String::from_str(&env, "lyric"),
             },
@@ -820,8 +792,6 @@ fn get_cards_of_year_returns_requested_amount() {
                 genre: Genre::Jazz,
                 artist: String::from_str(&env, &std::format!("Artist {}", i)),
                 title: String::from_str(&env, &std::format!("Track {}", i)),
-                artist: alloc_string(&env, &format_u64("Artist ", i)),
-                title: alloc_string(&env, &format_u64("Track ", i)),
                 year: 1990,
                 lyrics: String::from_str(&env, "lyric"),
             },
@@ -1207,21 +1177,24 @@ fn error_codes_are_stable() {
         (Error::NonExistingCard, 17),
         (Error::RoundNotReady, 18),
         (Error::RoundAlreadyFinalized, 19),
-        (Error::NotEnoughDistinctCards, 20),
         (Error::RoundCancelled, 20),
-        (Error::RoundFull, 21),
-        (Error::InvalidMaxPlayers, 22),
-        (Error::NftContractNotSet, 23),
-        (Error::MilestoneNotReached, 24),
-        (Error::MilestoneAlreadyClaimed, 25),
-        (Error::InvalidCardTitle, 26),
-        (Error::InvalidCardArtist, 27),
-        (Error::InvalidCardLyrics, 28),
-        (Error::InvalidCardYear, 29),
-        (Error::LyricsTooLong, 30),
-        (Error::DuplicateCard, 31),
-        (Error::BatchTooLarge, 32),
-        (Error::NotPendingOwner, 33),
+        (Error::NotEnoughDistinctCards, 21),
+        (Error::RoundFull, 22),
+        (Error::InvalidMaxPlayers, 23),
+        (Error::NftContractNotSet, 24),
+        (Error::MilestoneNotReached, 25),
+        (Error::MilestoneAlreadyClaimed, 26),
+        (Error::InvalidCardTitle, 27),
+        (Error::InvalidCardArtist, 28),
+        (Error::InvalidCardLyrics, 29),
+        (Error::InvalidCardYear, 30),
+        (Error::LyricsTooLong, 31),
+        (Error::DuplicateCard, 32),
+        (Error::BatchTooLarge, 33),
+        (Error::NotPendingOwner, 34),
+        (Error::NoMoreCards, 35),
+        (Error::AlreadyAnswered, 36),
+        (Error::NoActiveCard, 37),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);
@@ -2349,7 +2322,7 @@ fn lf004_second_answer_for_same_card_fails_with_already_answered() {
         .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, crate::Error::AlreadyAnswered);
+    assert_eq!(err, crate::Error::AlreadyAnswered.into());
 }
 
 /// Repeated wrong-then-correct guessing is blocked: each successive call
@@ -2383,7 +2356,7 @@ fn lf004_cannot_guess_until_correct_by_resubmitting() {
         .unwrap();
     assert_eq!(
         err,
-        crate::Error::AlreadyAnswered,
+        crate::Error::AlreadyAnswered.into(),
         "second answer attempt must be rejected even if the first was wrong"
     );
 }
@@ -2392,6 +2365,72 @@ fn lf004_cannot_guess_until_correct_by_resubmitting() {
 /// N cards correctly has a streak of exactly N (not N*2 from double-answers).
 #[test]
 fn lf004_streak_cannot_grow_more_than_one_per_card() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &3);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &13u64);
+    client.start_round(&owner, &round_id);
+
+    // Draw and answer cards 1, 2, and 3 — one answer per card.
+    for i in 0..3u64 {
+        env.ledger().set_timestamp(NOW + 5 + i * 30);
+        let card = client.next_card(&round_id);
+        env.ledger().set_timestamp(NOW + 8 + i * 30);
+        client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+
+        // Attempt a second answer; it must fail, not add to the streak.
+        env.ledger().set_timestamp(NOW + 10 + i * 30);
+        let _ = client.try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+    }
+
+    let stats = client.get_player_stat(&owner);
+    // Answered 3 cards correctly, 1 answer per card → streak must be exactly 3.
+    assert_eq!(
+        stats.current_streak, 3,
+        "streak must equal the number of cards answered, not double from re-submissions"
+    );
+    assert_eq!(stats.max_streak, 3);
+}
+
+/// Other players can still answer the same card — AlreadyAnswered is
+/// per-player, not per-card.
+#[test]
+fn lf004_other_players_can_still_answer_same_card() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &99u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&round_id);
+
+    // Owner answers first.
+    env.ledger().set_timestamp(NOW + 8);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+
+    // player2 can still answer the same card — AlreadyAnswered is per-player.
+    env.ledger().set_timestamp(NOW + 10);
+    assert!(
+        client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone())),
+        "player2 must be allowed to answer a card that owner has already answered"
+    );
+
+    // But owner cannot answer again.
+    env.ledger().set_timestamp(NOW + 11);
+    let err = client
+        .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, crate::Error::AlreadyAnswered.into());
+}
+
+// ---------------------------------------------------------------------------
 // LF-003 — Last card of a round can be answered (#420)
 // ---------------------------------------------------------------------------
 
@@ -2436,10 +2475,6 @@ fn lf003_three_card_round_last_card_is_answerable() {
     client.set_cards_per_round(&owner, &3);
 
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64);
-    client.start_round(&owner, &round_id);
-
-    for i in 0..3u64 {
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &13u64);
     let player2 = Address::generate(&env);
     client.join_round(&player2, &round_id);
     client.start_round(&owner, &round_id);
@@ -2451,25 +2486,6 @@ fn lf003_three_card_round_last_card_is_answerable() {
         let card = client.next_card(&round_id);
         env.ledger().set_timestamp(NOW + 8 + i * 30);
         client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
-
-        // Attempt a second answer; it must fail, not add to the streak.
-        env.ledger().set_timestamp(NOW + 10 + i * 30);
-        let _ = client.try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
-    }
-
-    let stats = client.get_player_stat(&owner);
-    // Answered 3 cards correctly, 1 answer per card → streak must be exactly 3.
-    assert_eq!(
-        stats.current_streak, 3,
-        "streak must equal the number of cards answered, not double from re-submissions"
-    );
-    assert_eq!(stats.max_streak, 3);
-}
-
-/// Other players can still answer the same card — AlreadyAnswered is
-/// per-player, not per-card.
-#[test]
-fn lf004_other_players_can_still_answer_same_card() {
         client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone()));
     }
 
@@ -2507,33 +2523,6 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &88u64);
-    let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
-    client.start_round(&owner, &round_id);
-    client.start_round(&player2, &round_id);
-
-    env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&round_id);
-
-    // Owner answers first.
-    env.ledger().set_timestamp(NOW + 8);
-    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
-
-    // player2 can still answer the same card — AlreadyAnswered is per-player.
-    env.ledger().set_timestamp(NOW + 10);
-    assert!(
-        client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone())),
-        "player2 must be allowed to answer a card that owner has already answered"
-    );
-
-    // But owner cannot answer again.
-    env.ledger().set_timestamp(NOW + 11);
-    let err = client
-        .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
-        .unwrap_err()
-        .unwrap();
-    assert_eq!(err, crate::Error::AlreadyAnswered);
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &21u64);
     client.start_round(&owner, &round_id);
 
@@ -2548,7 +2537,7 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
     let err = client.try_next_card(&round_id).unwrap_err().unwrap();
     assert_eq!(
         err,
-        crate::Error::NoMoreCards,
+        crate::Error::NoMoreCards.into(),
         "exhausted deck must return NoMoreCards, not RoundCompleted"
     );
 }
