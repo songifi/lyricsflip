@@ -4,22 +4,27 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { Button } from '@/components/atoms/button';
 import { LyricCard } from '@/components/organisms/LyricCard';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import { SongOptions } from '@/components/molecules/song-options';
 import ChallengeInvite from '@/components/organisms/challangeInvite';
-import { Button } from '@/components/atoms/button';
 import { useMultiplayerRoom } from '@/hooks/use-multiplayer-room';
 import { useRoundEvents } from '@/hooks/useRoundEvents';
 import { useStellar } from '@/lib/stellar/hooks/useStellar';
 import type { Round } from '@/lib/stellar/types';
+import { ArrowLeft } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 
 export default function MultiplayerRoundPage() {
   const router = useRouter();
-  const params = useParams<{ roundId: string }>();
-  const rawRoundId = params?.roundId ?? '';
-  const isValidId = /^\d+$/.test(rawRoundId);
-  const roundId = isValidId ? BigInt(rawRoundId) : null;
+  const params = useParams<{ roundId?: string | string[] }>();
+  const rawRoundId = Array.isArray(params?.roundId)
+    ? params.roundId[0]
+    : params?.roundId ?? '';
+  const roundId = parseRoundId(rawRoundId);
+  const isValidId = roundId !== null;
 
   const { systemCalls, account, connect } = useStellar();
   const [round, setRound] = useState<Round | null>(null);
@@ -105,6 +110,26 @@ export default function MultiplayerRoundPage() {
 
   const shell = (content: ReactNode) => (
     <div className="container mx-auto mt-16 px-4 py-8 md:mt-20">
+    void loadRound();
+  }, [systemCalls, roundId, loadRound]);
+
+  const handleReady = useCallback(async () => {
+    if (!systemCalls || roundId === null || !account) return;
+    setIsBusy(true);
+    try {
+      await systemCalls.readyUp(roundId);
+      await events.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to ready up');
+    } finally {
+      setIsBusy(false);
+    }
+  }, [systemCalls, roundId, account, events]);
+
+  const handleBack = () => router.push('/multiplayer');
+
+  const shell = (content: React.ReactNode) => (
+    <div className="container mx-auto px-4 py-8 mt-16 md:mt-20">
       <button
         onClick={handleBack}
         className="mb-4 flex min-h-[44px] items-center text-gray-600"
@@ -122,6 +147,19 @@ export default function MultiplayerRoundPage() {
 
   if (isLoading || !round) {
     return shell(<p>Loading round…</p>);
+      <h1 className="text-3xl font-bold mb-4">Multiplayer Round</h1>
+      <p className="text-gray-600 mb-4">Round ID: {rawRoundId || 'unknown'}</p>
+
+      {content}
+    </div>
+  );
+
+  if (!isValidId) {
+    return shell(
+      <div className="max-w-md mx-auto text-center">
+        <p className="text-red-500">{error}</p>
+      </div>,
+    );
   }
 
   if (!account) {
@@ -133,6 +171,10 @@ export default function MultiplayerRoundPage() {
         </Button>
       </div>,
     );
+  }
+
+  if (isLoading) {
+    return shell(<p className="text-gray-600">Loading round…</p>);
   }
 
   if (!isStarted) {
@@ -186,6 +228,7 @@ export default function MultiplayerRoundPage() {
           <StatisticsPanel
             time={roomData?.timeLeft || '00:00'}
             potWin={round.wager_amount.toString()}
+            potWin={`${round?.wager_amount.toString() ?? '0'}`}
             scores={`${roomData?.scores || 0}`}
           />
         </div>
