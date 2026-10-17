@@ -2156,7 +2156,7 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
             round_id,
             player: fast.clone(),
             correct: true,
-            points: 90,
+            points: 100,
         },
     );
     assert!(!client.submit_answer(
@@ -2182,8 +2182,8 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
     let scores = client.get_round_scores(&round_id);
     let fast_points = scores.get(fast.clone()).unwrap();
     let slow_points = scores.get(slow.clone()).unwrap();
-    assert_eq!(fast_points, 90);
-    assert_eq!(slow_points, 25);
+    assert_eq!(fast_points, 100);
+    assert_eq!(slow_points, 55);
     assert!(fast_points > slow_points);
     assert_eq!(scores.get(wrong.clone()).unwrap(), 0);
     assert_eq!(scores.get(owner.clone()).unwrap(), 0);
@@ -2421,3 +2421,22 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
         "exhausted deck must return NoMoreCards, not RoundCompleted"
     );
 }
+
+
+// LF-159: a first-ledger answer earns MAX_CORRECT_POINTS
+#[test]
+fn lf159_first_ledger_answer_gets_max_points() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &1);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    client.start_round(&owner, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&round_id);
+    env.ledger().set_timestamp(NOW + 6);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+
+    assert_eq!(client.get_round_scores(&round_id).get(owner.clone()), Some(100));
+}
+
