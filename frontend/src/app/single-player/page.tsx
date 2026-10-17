@@ -2,7 +2,7 @@
 import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import { LyricCard } from '@/components/organisms/LyricCard';
-import BadgeModal from '@/components/organisms/newbadgemodal';
+import BadgeModal from '@/components/organisms/new-badge-modal';
 import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
 import { fireConfetti } from '@/lib/confetti';
 import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
