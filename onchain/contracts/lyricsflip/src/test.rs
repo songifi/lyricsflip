@@ -2541,3 +2541,84 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
         "exhausted deck must return NoMoreCards, not RoundCompleted"
     );
 }
+
+// ---------------------------------------------------------------------------
+// LF-161 – normalize title/artist before duplicate checks
+// ---------------------------------------------------------------------------
+
+#[test]
+fn lf161_case_variant_duplicate_rejected() {
+    let (env, client, owner) = setup();
+    client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Drake", "Hotline Bling", 2015),
+    );
+    let dup = sample_card(&env, Genre::Pop, "drake", "hotline bling", 2015);
+    assert_eq!(
+        client.try_add_card(&owner, &dup),
+        Err(Ok(Error::DuplicateCard.into()))
+    );
+}
+
+#[test]
+fn lf161_display_value_preserved() {
+    let (env, client, owner) = setup();
+    let id = client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Drake", "Hotline Bling", 2015),
+    );
+    let stored = client.get_card(&id);
+    assert_eq!(stored.artist, String::from_str(&env, "Drake"));
+    assert_eq!(stored.title, String::from_str(&env, "Hotline Bling"));
+}
+
+#[test]
+fn lf161_artist_index_is_case_insensitive() {
+    let (env, client, owner) = setup();
+    client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Drake", "Hotline Bling", 2015),
+    );
+    client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Drake", "God's Plan", 2018),
+    );
+    client.set_cards_per_round(&owner, &2);
+    for lookup in ["Drake", "drake", "DRAKE"] {
+        let cards = client.get_cards_of_artist(&String::from_str(&env, lookup), &1);
+        assert_eq!(cards.len(), 2, "lookup {lookup} should match both cards");
+    }
+}
+
+#[test]
+fn lf161_rejects_leading_or_trailing_whitespace() {
+    let (env, client, owner) = setup();
+    let base = sample_card(&env, Genre::Pop, "Artist", "Title", 2000);
+    let cases = [
+        (String::from_str(&env, " Title"), base.artist.clone(), Error::InvalidCardTitle),
+        (String::from_str(&env, "Title "), base.artist.clone(), Error::InvalidCardTitle),
+        (base.title.clone(), String::from_str(&env, " Artist"), Error::InvalidCardArtist),
+        (base.title.clone(), String::from_str(&env, "Artist "), Error::InvalidCardArtist),
+    ];
+    for (title, artist, err) in cases {
+        let card = Card { title, artist, ..base.clone() };
+        assert_eq!(client.try_add_card(&owner, &card), Err(Ok(err.into())));
+    }
+    assert_eq!(client.get_cards_count(), 0);
+}
+
+#[test]
+fn lf161_rejects_control_characters() {
+    let (env, client, owner) = setup();
+    let base = sample_card(&env, Genre::Pop, "Artist", "Title", 2000);
+    let title_with_tab = String::from_str(&env, "Ti\ttle");
+    let artist_with_nl = String::from_str(&env, "Art\nist");
+    assert_eq!(
+        client.try_add_card(&owner, &Card { title: title_with_tab, ..base.clone() }),
+        Err(Ok(Error::InvalidCardTitle.into()))
+    );
+    assert_eq!(
+        client.try_add_card(&owner, &Card { artist: artist_with_nl, ..base.clone() }),
+        Err(Ok(Error::InvalidCardArtist.into()))
+    );
+}

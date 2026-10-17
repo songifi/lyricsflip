@@ -126,11 +126,11 @@ enum Index {
 }
 
 impl Index {
-    fn of(card: &Card) -> [Index; 4] {
+    fn of(env: &Env, card: &Card) -> [Index; 4] {
         [
             Index::All,
             Index::Genre(card.genre),
-            Index::Artist(card.artist.clone()),
+            Index::Artist(ascii_lower_string(env, &card.artist)),
             Index::Year(card.year),
         ]
     }
@@ -162,6 +162,37 @@ fn pos<'a>(&self, pos: &'a mut CardPos) -> &'a mut u32 {
         }
     }
 }
+fn ascii_lower_string(env: &Env, value: &String) -> String {
+    let bytes = value.to_bytes();
+    let mut buf = [0u8; 256];
+    let len = bytes.len().min(256) as usize;
+    for i in 0..len {
+        let b = bytes.get(i as u32).unwrap();
+        buf[i] = if b >= b'A' && b <= b'Z' { b + 32 } else { b };
+    }
+    String::from_bytes(env, &buf[..len])
+}
+
+fn ascii_lower_bytes(env: &Env, value: &String) -> Bytes {
+    let bytes = value.to_bytes();
+    let mut out = Bytes::new(env);
+    for b in bytes.iter() {
+        if b >= b'A' && b <= b'Z' { out.push_back(b + 32) } else { out.push_back(b) }
+    }
+    out
+}
+
+fn assert_clean_text(env: &Env, value: &String, err: Error) {
+    let bytes = value.to_bytes();
+    let len = bytes.len();
+    for i in 0..len {
+        let b = bytes.get(i).unwrap();
+        let control = b < 0x20 || b == 0x7F;
+        let edge_space = (i == 0 || i + 1 == len) && (b == b' ' || b == b'\t' || b == b'\n' || b == b'\r');
+        if control || edge_space { panic_with_error!(env, err); }
+    }
+}
+
 #[contract]
 pub struct LyricsFlip;
 
@@ -451,7 +482,8 @@ impl LyricsFlip {
 
     /// Returns the cards of artist.
     pub fn get_cards_of_artist(env: Env, artist: String, seed: u64) -> Vec<Card> {
-        Self::draw_cards(&env, &Index::Artist(artist), seed, Error::ArtistCardsIsZero)
+        let normalized = ascii_lower_string(&env, &artist);
+        Self::draw_cards(&env, &Index::Artist(normalized), seed, Error::ArtistCardsIsZero)
     }
 
     /// Returns the cards of a year.
@@ -923,7 +955,7 @@ impl LyricsFlip {
         }
 
         let mut pos = Self::read_card_pos(&env, card_id);
-        for index in Index::of(&old).iter().skip(1) {
+        for index in Index::of(&env, &old).iter().skip(1) {
             Self::index_remove(&env, index, *index.pos(&mut pos));
         }
         env.storage()
@@ -931,7 +963,7 @@ impl LyricsFlip {
             .remove(&DataKey::CardKey(Self::card_key(&env, &old)));
 
         let card = Card { card_id, ..card };
-        for index in Index::of(&card).iter().skip(1) {
+        for index in Index::of(&env, &card).iter().skip(1) {
             *index.pos(&mut pos) = Self::index_push(&env, index, card_id);
         }
         env.storage()
@@ -958,7 +990,7 @@ impl LyricsFlip {
         let card = Self::get_card(env.clone(), card_id);
 
         let mut pos = Self::read_card_pos(&env, card_id);
-        for index in Index::of(&card).iter() {
+        for index in Index::of(&env, &card).iter() {
             Self::index_remove(&env, index, *index.pos(&mut pos));
         }
         env.storage()
@@ -1314,7 +1346,11 @@ impl LyricsFlip {
             while false_answers.len() < 3 && seen < sample {
                 let id = candidates.get((start + seen) as u32).unwrap();
                 let value = get_value(&Self::get_card(env.clone(), id));
-                if value != correct && !Self::contains_string(&false_answers, &value) {
+                let norm_value = ascii_lower_string(env, &value);
+                let norm_correct = ascii_lower_string(env, &correct);
+                if norm_value != norm_correct
+                    && !Self::contains_string(&false_answers, &value)
+                {
                     false_answers.push_back(value);
                 }
                 seen += 1;
@@ -1439,6 +1475,8 @@ impl LyricsFlip {
         if card.artist.is_empty() {
             panic_with_error!(env, Error::InvalidCardArtist);
         }
+        assert_clean_text(env, &card.title, Error::InvalidCardTitle);
+        assert_clean_text(env, &card.artist, Error::InvalidCardArtist);
         if card.lyrics.is_empty() {
             panic_with_error!(env, Error::InvalidCardLyrics);
         }
@@ -1453,9 +1491,9 @@ impl LyricsFlip {
 
     /// Identity of a card for duplicate detection: sha256(title, 0x00, artist).
     fn card_key(env: &Env, card: &Card) -> BytesN<32> {
-        let mut buf = card.title.to_bytes();
+        let mut buf = ascii_lower_bytes(env, &card.title);
         buf.push_back(0);
-        buf.append(&card.artist.to_bytes());
+        buf.append(&ascii_lower_bytes(env, &card.artist));
         env.crypto().sha256(&buf).into()
     }
 
@@ -1485,7 +1523,7 @@ impl LyricsFlip {
             artist: 0,
             year: 0,
         };
-        for index in Index::of(&card).iter() {
+        for index in Index::of(&env, &card).iter() {
             *index.pos(&mut pos) = Self::index_push(env, index, card_id);
         }
         env.storage()
