@@ -15,6 +15,10 @@ pub enum Error {
     NotAWinner = 7,
     InvalidFee = 8,
     NoWinners = 9,
+    InvalidCard = 10,
+    InvalidOption = 11,
+    CardAlreadyDrawn = 12,
+    CardNotDrawn = 13,
 }
 
 #[contracttype]
@@ -31,6 +35,7 @@ pub struct Round {
     pub status: RoundStatus,
     pub winners: Vec<Address>,
     pub claimed: Vec<Address>,
+    pub card_count: u32,
 }
 
 #[contracttype]
@@ -42,9 +47,27 @@ pub struct Config {
     pub fee_bps: u32,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QuestionCard {
+    pub card_index: u32,
+    pub question: soroban_sdk::String,
+    pub options: Vec<soroban_sdk::String>,
+    pub correct_index: u32,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    RoundCardOptions((u64, u32)),
+    RoundCard((u64, u32)),
+    RoundCardCount(u64),
+}
+
 const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
 const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
 const BPS_DENOM: i128 = 10_000;
+const OPTION_COUNT: u32 = 4;
 
 #[contract]
 pub struct LyricsFlipContract;
@@ -71,7 +94,7 @@ impl LyricsFlipContract {
             fee_bps,
         };
         env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        Ok()
     }
 
     pub fn set_fee(env: Env, fee_bps: u32) -> Result<(), Error> {
@@ -79,14 +102,14 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
-            .ok_or(Error::NotInitialized)?;
+            .ok_(Error::NotInitialized)?;
         config.owner.require_auth();
         if fee_bps > BPS_DENOM as u32 {
             return Err(Error::InvalidFee);
         }
         config.fee_bps = fee_bps;
         env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        Ok(()
     }
 
     pub fn set_treasury(env: Env, treasury: Address) -> Result<(), Error> {
@@ -98,18 +121,110 @@ impl LyricsFlipContract {
         config.owner.require_auth();
         config.treasury = treasury;
         env.storage().instance().set(&CONFIG, &config);
-        Ok(())
+        Ok()
     }
 
-    pub fn create_round(env: Env, round_id: u64, pot: i128) -> Result<(), Error> {
+    pub fn create_round(env: Env, round_id: u64, pot: i128, card_count: u32) -> Result<(), Error> {
         let round = Round {
             pot,
             status: RoundStatus::Open,
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
+            card_count,
         };
         env.storage().persistent().set(&(ROUND, round_id), &round);
-        Ok(())
+        env.storage()
+            .persistent()
+            .set(&DataKey::RoundCardCount(round_id), &card_count);
+        Ok(()
+    }
+
+    /// Generate and store the options for a card once per round.
+    /// Subsequent calls return the already-stored options so every player
+    /// sees identical choices.
+    pub fn draw_card(
+        env: Env,
+        round_id: u64,
+        card_index: u32,
+        question: soroban_sdk::String,
+        options: Vec<soroban_sdk::String>,
+        correct_index: u32,
+    ) -> Result<QuestionCard, Error> {
+        let round: Round = env
+            .storage()
+            .persistent()
+            .get(&(ROUND, round_id))
+            .ok_(Error::RoundNotFound)?;
+        if card_index >= round.card_count {
+            return Err(Error::InvalidCard);
+        }
+        if options.len() != OPTION_COUNT || correct_index >= OPTION_COUNT {
+            return Err(Error::InvalidOption);
+        }
+
+        let key = DataKey::RoundCardOptions((round_id, card_index));
+        if env.storage().persistent().has(&key) {
+            return Err(Error::CardAlreadyDrawn);
+        }
+
+        let card = QuestionCard {
+            card_index,
+            question,
+            options,
+            correct_index,
+        };
+        env.storage().persistent().set(&key, &card);
+        env.storage()
+            .persistent()
+            .set(&DataKey::RoundCard((round_id, card_index)), &card);
+        Ok(card)
+    }
+
+    /// Return the stored options for a card.
+    pub fn get_question(
+        env: Env,
+        round_id: u64,
+        card_index: u32,
+    ) -> Result<QuestionCard, Error> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::RoundCardOptions((round_id, card_index)))
+            .ok_or(Error::CardNotDrawn)
+    }
+
+    /// Submit an answer by option index (0-3), resolved against the
+    /// stored options. Returns true if the selected option is correct.
+    pub fn submit_answer(
+        env: Env,
+        player: Address,
+        round_id: u64,
+        card_index: u32,
+        option_index: u32,
+    ) -> Result<bool, Error> {
+        player.require_auth();
+        if option_index >= OPTION_COUNT {
+            return Err(Error::InvalidOption);
+        }
+        let card: QuestionCard = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundCardOptions((round_id, card_index)))
+            .ok_(Error::CardNotDrawn)?;
+        // Reject any submission that isn't one of the stored options.
+        if option_index >= card.options.len() {
+            return Err(Error::InvalidOption);
+        }
+        Ok(option_index == card.correct_index)
+    }
+
+    pub fn submit_choice(
+        env: Env,
+        player: Address,
+        round_id: u64,
+        card_index: u32,
+        option_index: u32,
+    ) -> Result<bool, Error> {
+        Self::submit_answer(env, player, round_id, card_index, option_index)
     }
 
     pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>) -> Result<(), Error> {
@@ -117,7 +232,7 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
-            .ok_or(Error::NotInitialized)?;
+            .ok_(Error::NotInitialized)?;
         config.owner.require_auth();
         if winners.is_empty() {
             return Err(Error::NoWinners);
@@ -130,7 +245,7 @@ impl LyricsFlipContract {
         round.status = RoundStatus::Settled;
         round.winners = winners;
         env.storage().persistent().set(&(ROUND, round_id), &round);
-        Ok(())
+        Ok()
     }
 
     pub fn claim_winnings(env: Env, caller: Address, round_id: u64) -> Result<i128, Error> {
@@ -159,7 +274,7 @@ impl LyricsFlipContract {
                 break;
             }
         }
-        let index = winner_index.ok_or(Error::NotAWinner)?;
+        let index = winner_index.ok_(Error::NotAWinner)?;
 
         for i in 0..round.claimed.len() {
             if round.claimed.get(i).unwrap() == caller {
