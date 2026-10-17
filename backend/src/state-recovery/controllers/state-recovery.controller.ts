@@ -1,15 +1,17 @@
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { StateRecoveryService } from '../services/state-recovery.service';
+import { CreateStateRecoveryDto } from '../dto/create-state-recovery.dto';
+
 @Controller('state-recovery')
 export class StateRecoveryController {
-  constructor(
-    private readonly stateRecoveryService: StateRecoveryService
-  ) {}
+  constructor(private readonly stateRecoveryService: StateRecoveryService) {}
 
   @Post('snapshot')
-  async createSnapshot(@Body() createSnapshotDto: CreateSnapshotDto) {
+  async createSnapshot(@Body() createSnapshotDto: CreateStateRecoveryDto) {
     return this.stateRecoveryService.createSnapshot(
       createSnapshotDto.gameId,
       createSnapshotDto.playerId,
-      createSnapshotDto.state
+      createSnapshotDto.state,
     );
   }
 
@@ -19,10 +21,10 @@ export class StateRecoveryController {
   }
 
   @Post('rollback')
-  async rollback(@Body() rollbackDto: RollbackDto) {
+  async rollback(@Body() rollbackDto: { gameId: string; version: number }) {
     return this.stateRecoveryService.rollbackToVersion(
       rollbackDto.gameId,
-      rollbackDto.version
+      rollbackDto.version,
     );
   }
 }

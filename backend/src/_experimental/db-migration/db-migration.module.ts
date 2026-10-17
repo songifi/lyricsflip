@@ -9,22 +9,26 @@ import { RollbackService } from './services/rollback.service';
 import { ValidatorService } from './services/validator.service';
 import { BackupService } from './services/backup.service';
 import { TestingService } from './services/testing.service';
-import { DB_MIGRATION_DIR, DB_MIGRATION_BACKUP_DIR, DB_MIGRATION_DEFAULT_PROVIDER } from './db-migration.constants';
-import { 
-  MigrationStatusCommand, 
-  MigrationRunCommand, 
-  MigrationApplyCommand, 
-  MigrationTestCommand 
+import {
+  DB_MIGRATION_DIR,
+  DB_MIGRATION_BACKUP_DIR,
+  DB_MIGRATION_DEFAULT_PROVIDER,
+} from './db-migration.constants';
+import {
+  MigrationStatusCommand,
+  MigrationRunCommand,
+  MigrationApplyCommand,
+  MigrationTestCommand,
 } from './commands/migration.commands';
-import { 
-  MigrationRollbackCommand, 
-  MigrationRollbackToCommand 
+import {
+  MigrationRollbackCommand,
+  MigrationRollbackToCommand,
 } from './commands/rollback.commands';
-import { 
-  BackupCreateCommand, 
-  BackupRestoreCommand, 
-  BackupListCommand, 
-  BackupDeleteCommand 
+import {
+  BackupCreateCommand,
+  BackupRestoreCommand,
+  BackupListCommand,
+  BackupDeleteCommand,
 } from './commands/backup.commands';
 import { MigrationTestSequenceCommand } from './commands/test.commands';
 
@@ -44,7 +48,7 @@ export class DbMigrationModule {
       defaultBackupProvider = 'filesystem',
       enableCli = true,
     } = options;
-    
+
     const providers: Provider[] = [
       {
         provide: DB_MIGRATION_DIR,
@@ -64,7 +68,7 @@ export class DbMigrationModule {
       BackupService,
       TestingService,
     ];
-    
+
     if (enableCli) {
       providers.push(
         MigrationStatusCommand,
@@ -80,7 +84,7 @@ export class DbMigrationModule {
         MigrationTestSequenceCommand,
       );
     }
-    
+
     return {
       module: DbMigrationModule,
       imports: [
@@ -117,7 +121,7 @@ import { DbMigrationModule } from './db-migration/db-migration.module';
       username: 'postgres',
       password: 'postgres',
       database: 'my_database',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      entities: [__dirname + '/entities/*.entity{.ts,.js}'],
       synchronize: false, // Important: set to false when using migrations
     }),
     DbMigrationModule.register({

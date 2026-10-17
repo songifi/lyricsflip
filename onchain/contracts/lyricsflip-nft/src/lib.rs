@@ -44,14 +44,31 @@ pub struct OwnershipTransferred {
     pub new_owner: Address,
 }
 
+/// SEP-0050 `mint` event, emitted by `mint`.
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct NftMinted {
+pub struct Mint {
     #[topic]
     pub token_id: u128,
     /// The milestone / achievement kind this token represents (LF-168).
     pub kind: u32,
     pub recipient: Address,
+    #[topic]
+    pub token_id: u128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Paused {
+    #[topic]
+    pub owner: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Unpaused {
+    #[topic]
+    pub owner: Address,
 }
 
 /// SEP-0050 `transfer` event, emitted by `transfer` and `transfer_from`.
@@ -85,6 +102,15 @@ pub struct ApproveForAll {
     pub owner: Address,
     pub operator: Address,
     pub live_until_ledger: u32,
+}
+
+/// Event emitted when a token is burned or revoked.
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Burn {
+    #[topic]
+    pub token_id: u128,
+    pub owner: Address,
 }
 
 /// An approval that is valid up to and including `live_until_ledger`.
@@ -128,6 +154,10 @@ pub enum Error {
     /// LF-169: Achievement NFTs are soulbound and cannot be transferred or
     /// approved.
     NonTransferable = 11,
+    /// Balance is insufficient or missing.
+    InsufficientBalance = 11,
+    /// The contract is paused; the requested operation is blocked.
+    Paused = 11,
 }
 
 #[contracttype]
@@ -153,6 +183,7 @@ pub enum DataKey {
     OwnerTokenAt((Address, u32)),
     /// LF-170: position of token_id in the owner's index, for O(1) removal.
     OwnerTokenPosition((Address, u128)),
+    Paused,
 }
 
 // ---------------------------------------------------------------------------
@@ -186,8 +217,8 @@ impl LyricsFlipNFT {
         env: Env,
         owner: Address,
         minter: Address,
-        token_name: String,
-        token_symbol: String,
+        name: String,
+        symbol: String,
         base_uri: String,
     ) {
         if env.storage().instance().has(&DataKey::Owner) {
@@ -196,12 +227,8 @@ impl LyricsFlipNFT {
         Self::assert_base_uri_len(&env, &base_uri);
         env.storage().instance().set(&DataKey::Owner, &owner);
         env.storage().instance().set(&DataKey::Minter, &minter);
-        env.storage()
-            .instance()
-            .set(&DataKey::TokenName, &token_name);
-        env.storage()
-            .instance()
-            .set(&DataKey::TokenSymbol, &token_symbol);
+        env.storage().instance().set(&DataKey::TokenName, &name);
+        env.storage().instance().set(&DataKey::TokenSymbol, &symbol);
         env.storage().instance().set(&DataKey::BaseUri, &base_uri);
         env.storage().instance().set(&DataKey::TokenCount, &0u128);
         bump_instance(&env);
@@ -220,6 +247,9 @@ impl LyricsFlipNFT {
     /// `base_uri/{kind}.json` so every badge kind points to its own metadata
     /// file.
     pub fn mint(env: Env, caller: Address, recipient: Address, kind: u32) -> u128 {
+    /// Mints a new token.
+    pub fn mint(env: Env, caller: Address, recipient: Address) -> u128 {
+        Self::require_not_paused(&env);
         caller.require_auth();
 
         let minter: Address = env.storage().instance().get(&DataKey::Minter).unwrap();
@@ -266,7 +296,9 @@ impl LyricsFlipNFT {
         NftMinted {
             token_id,
             kind,
+        Mint {
             recipient,
+            token_id,
         }
         .publish(&env);
 
@@ -299,10 +331,19 @@ impl LyricsFlipNFT {
 
     /// Executes balance.
     pub fn balance(env: Env, owner: Address) -> u32 {
+        let key = DataKey::Balance(owner);
+        let balance = env
+            .storage()
+    /// Returns the number of tokens owned by `owner`.
+    pub fn balance(env: Env, owner: Address) -> i128 {
         env.storage()
             .persistent()
-            .get(&DataKey::Balance(owner))
-            .unwrap_or(0)
+            .get(&key)
+            .unwrap_or(0);
+        if env.storage().persistent().has(&key) {
+            bump_persistent(&env, &key);
+        }
+        balance
     }
 
     // -------------------------------------------------------------------------
@@ -340,6 +381,55 @@ impl LyricsFlipNFT {
     }
 
     /// Always panics with `NonTransferable` (LF-169).
+    /// Transfers a token.
+    pub fn transfer(env: Env, from: Address, to: Address, token_id: u128) {
+        Self::require_not_paused(&env);
+        from.require_auth();
+        Self::do_transfer(&env, &from, &to, token_id);
+    }
+
+    /// Transfers on behalf of `from` by a `spender` approved for the token
+    /// or for all of `from`'s tokens.
+    pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, token_id: u128) {
+        Self::require_not_paused(&env);
+        spender.require_auth();
+        let is_token_approved = Self::get_approved(env.clone(), token_id) == Some(spender.clone());
+        if spender != from
+            && !is_token_approved
+            && !Self::is_approved_for_all(env.clone(), from.clone(), spender)
+        {
+            panic_with_error!(env, Error::InsufficientApproval);
+        }
+        Self::do_transfer(&env, &from, &to, token_id);
+    }
+
+    /// Burns `token_id` owned by `owner`. The caller must authenticate as `owner`.
+    pub fn burn(env: Env, owner: Address, token_id: u128) {
+        owner.require_auth();
+        Self::do_burn(&env, &owner, token_id);
+    }
+
+    /// Burns `token_id` owned by `owner` on behalf of `owner`.
+    /// The caller must authenticate as `spender`. Spender must be `owner`,
+    /// the contract owner (allowing badge revocation), an approved spender
+    /// for the token, or an approved operator for all of `owner`'s tokens.
+    pub fn burn_from(env: Env, spender: Address, owner: Address, token_id: u128) {
+        spender.require_auth();
+        let contract_owner: Address = env.storage().instance().get(&DataKey::Owner).unwrap();
+        let is_contract_owner = spender == contract_owner;
+        let is_token_approved = Self::get_approved(env.clone(), token_id) == Some(spender.clone());
+        let is_approved_for_all =
+            Self::is_approved_for_all(env.clone(), owner.clone(), spender.clone());
+
+        if spender != owner && !is_contract_owner && !is_token_approved && !is_approved_for_all {
+            panic_with_error!(env, Error::InsufficientApproval);
+        }
+
+        Self::do_burn(&env, &owner, token_id);
+    }
+
+    /// Approves `approved` to transfer `token_id` until `live_until_ledger`.
+    /// `approver` must be the owner or an operator approved for all.
     pub fn approve(
         _env: Env,
         _approver: Address,
@@ -364,16 +454,90 @@ impl LyricsFlipNFT {
     /// Returns `false` because operator approvals are disabled (LF-169).
     pub fn is_approved_for_all(_env: Env, _owner: Address, _operator: Address) -> bool {
         false
+        approver.require_auth();
+        let owner = Self::owner_of(env.clone(), token_id);
+        if approver != owner && !Self::is_approved_for_all(env.clone(), owner, approver.clone()) {
+            panic_with_error!(env, Error::InsufficientApproval);
+        }
+        let key = DataKey::Approval(token_id);
+        if live_until_ledger == 0 {
+            env.storage().persistent().remove(&key);
+        } else {
+            Self::assert_live_until(&env, live_until_ledger);
+            env.storage().persistent().set(
+                &key,
+                &Approval {
+                    approved: approved.clone(),
+                    live_until_ledger,
+                },
+            );
+            bump_persistent(&env, &key);
+        }
+        Approve {
+            approver,
+            token_id,
+            approved,
+            live_until_ledger,
+        }
+        .publish(&env);
     }
 
-    /// Executes token name.
-    pub fn token_name(env: Env) -> String {
+    /// Approves `operator` for all of `owner`'s tokens until
+    /// `live_until_ledger`; 0 revokes.
+    pub fn approve_for_all(env: Env, owner: Address, operator: Address, live_until_ledger: u32) {
+        owner.require_auth();
+        let key = DataKey::ApprovalForAll((owner.clone(), operator.clone()));
+        if live_until_ledger == 0 {
+            env.storage().persistent().remove(&key);
+        } else {
+            Self::assert_live_until(&env, live_until_ledger);
+            env.storage().persistent().set(&key, &live_until_ledger);
+            bump_persistent(&env, &key);
+        }
+        ApproveForAll {
+            owner,
+            operator,
+            live_until_ledger,
+        }
+        .publish(&env);
+    }
+
+    /// Returns the approved.
+    pub fn get_approved(env: Env, token_id: u128) -> Option<Address> {
+        let key = DataKey::Approval(token_id);
+        let approval = env
+            .storage()
+            .persistent()
+            .get::<_, Approval>(&key);
+        if approval.is_some() {
+            bump_persistent(&env, &key);
+        }
+        approval
+            .filter(|a| a.live_until_ledger >= env.ledger().sequence())
+            .map(|a| a.approved)
+    }
+
+    /// Returns whether approved for all.
+    pub fn is_approved_for_all(env: Env, owner: Address, operator: Address) -> bool {
+        let key = DataKey::ApprovalForAll((owner, operator));
+        let entry = env
+            .storage()
+            .persistent()
+            .get::<_, u32>(&key);
+        if entry.is_some() {
+            bump_persistent(&env, &key);
+        }
+        entry.is_some_and(|live_until| live_until >= env.ledger().sequence())
+    }
+
+    /// Returns the token collection name.
+    pub fn name(env: Env) -> String {
         bump_instance(&env);
         env.storage().instance().get(&DataKey::TokenName).unwrap()
     }
 
-    /// Executes token symbol.
-    pub fn token_symbol(env: Env) -> String {
+    /// Returns the token collection symbol.
+    pub fn symbol(env: Env) -> String {
         bump_instance(&env);
         env.storage()
             .instance()
@@ -497,6 +661,14 @@ impl LyricsFlipNFT {
         VERSION
     }
 
+    /// Returns whether the contract is paused.
+    pub fn is_paused(env: Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
+    }
+
     // ---- Owner-only administration ----
 
     /// Sets the base uri.
@@ -556,11 +728,31 @@ impl LyricsFlipNFT {
     }
 
     // ---- Private helpers ----
+    /// Pauses the contract, blocking `mint`, `transfer` and `transfer_from`.
+    /// Refund/cancel-style paths stay open so funds can always leave.
+    pub fn pause(env: Env, caller: Address) {
+        Self::assert_owner(&env, &caller);
+        env.storage().instance().set(&DataKey::Paused, &true);
+        Paused { owner: caller }.publish(&env);
+    }
+
+    /// Unpauses the contract, re-enabling paused operations.
+    pub fn unpause(env: Env, caller: Address) {
+        Self::assert_owner(&env, &caller);
+        env.storage().instance().set(&DataKey::Paused, &false);
+        Unpaused { owner: caller }.publish(&env);
+    }
 
     fn assert_owner(env: &Env, caller: &Address) {
         caller.require_auth();
         if *caller != Self::owner(env.clone()) {
             panic_with_error!(env, Error::NotOwner);
+        }
+    }
+
+    fn require_not_paused(env: &Env) {
+        if Self::is_paused(env.clone()) {
+            panic_with_error!(env, Error::Paused);
         }
     }
 
@@ -594,6 +786,7 @@ impl LyricsFlipNFT {
         Self::index_remove(env, from, token_id);
         Self::index_add(env, to, token_id);
 
+        bump_persistent(env, &DataKey::TokenOwner(token_id));
         Self::add_balance(env, from, -1);
         Self::add_balance(env, to, 1);
         Transfer {
@@ -604,11 +797,40 @@ impl LyricsFlipNFT {
         .publish(env);
     }
 
+    fn do_burn(env: &Env, owner: &Address, token_id: u128) {
+        let current_owner = Self::owner_of(env.clone(), token_id);
+        if current_owner != *owner {
+            panic_with_error!(env, Error::IncorrectOwner);
+        }
+
+        env.storage()
+            .persistent()
+            .remove(&DataKey::Approval(token_id));
+        env.storage()
+            .persistent()
+            .remove(&DataKey::TokenOwner(token_id));
+        Self::add_balance(env, owner, -1);
+
+        Burn {
+            token_id,
+            owner: owner.clone(),
+        }
+        .publish(env);
+    }
+
     fn add_balance(env: &Env, owner: &Address, delta: i32) {
+        let key = DataKey::Balance(owner.clone());
+        let balance = Self::balance(env.clone(), owner.clone());
+        let new_balance = balance
+            .checked_add_signed(delta)
+            .unwrap_or_else(|| panic_with_error!(env, Error::InsufficientBalance));
+        env.storage().persistent().set(&key, &new_balance);
+        bump_persistent(env, &key);
+    fn add_balance(env: &Env, owner: &Address, delta: i128) {
         let balance = Self::balance(env.clone(), owner.clone());
         env.storage().persistent().set(
             &DataKey::Balance(owner.clone()),
-            &balance.checked_add_signed(delta).unwrap(),
+            &balance.checked_add(delta).unwrap(),
         );
     }
 
