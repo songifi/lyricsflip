@@ -14,8 +14,9 @@ mod test_budget;
 pub use errors::Error;
 pub use events::{
     AnswerSubmitted, CardAdded, CardDrawn, CardRemoved, CardUpdated, CardsPerRoundUpdated,
-    OwnershipTransferStarted, OwnershipTransferred, PlayerReady, RewardClaimed, RoleUpdated,
-    RoundCancelled, RoundCompleted, RoundCreated, RoundJoined, RoundLeft, RoundStarted,
+    OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady, RewardClaimed,
+    RoleUpdated, RoundCancelled, RoundCompleted, RoundCreated, RoundJoined, RoundLeft,
+    RoundStarted, Unpaused,
 };
 pub use types::{
     Answer, Card, CardPos, DataKey, Genre, Milestone, PlayerStats, QuestionCard, QuestionKind,
@@ -174,6 +175,7 @@ impl LyricsFlip {
         }
         env.storage().instance().set(&DataKey::Owner, &owner);
         env.storage().instance().set(&DataKey::Admin(owner), &true);
+        env.storage().instance().set(&DataKey::Paused, &false);
         bump_instance(&env);
     }
 
@@ -475,6 +477,14 @@ impl LyricsFlip {
         stats
     }
 
+    /// Returns whether the contract is currently paused.
+    pub fn is_paused(env: Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
+    }
+
     /// Returns whether admin.
     pub fn is_admin(env: Env, role: Role, address: Address) -> bool {
         let Role::Admin = role;
@@ -487,9 +497,29 @@ impl LyricsFlip {
 
     // ---- Mutations ----
 
+    /// Owner-only. Halts new rounds, joins and reward claims. Refund and
+    /// cancel paths stay open so escrowed funds can always leave.
+    pub fn pause(env: Env, caller: Address) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        env.storage().instance().set(&DataKey::Paused, &true);
+        bump_instance(&env);
+        Paused {}.publish(&env);
+    }
+
+    /// Owner-only. Resumes normal operation.
+    pub fn unpause(env: Env, caller: Address) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        env.storage().instance().set(&DataKey::Paused, &false);
+        bump_instance(&env);
+        Unpaused {}.publish(&env);
+    }
+
     /// Creates a round.
     pub fn create_round(env: Env, caller: Address, genre: Option<Genre>, seed: u64) -> u64 {
         caller.require_auth();
+        Self::require_not_paused(&env);
         let genre = match genre {
             Some(g) => g,
             None => panic_with_error!(env, Error::NonExistingGenre),
@@ -653,6 +683,7 @@ impl LyricsFlip {
     /// Joins round.
     pub fn join_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
+        Self::require_not_paused(&env);
         let round = Self::read_round(&env, round_id);
 
         if Self::is_round_player(&env, round_id, &caller) {
@@ -1165,6 +1196,7 @@ impl LyricsFlip {
     /// can be claimed once per player.
     pub fn claim_reward(env: Env, caller: Address, milestone: Milestone) -> u128 {
         caller.require_auth();
+        Self::require_not_paused(&env);
         let nft_contract = Self::get_nft_contract(env.clone())
             .unwrap_or_else(|| panic_with_error!(env, Error::NftContractNotSet));
 
@@ -1702,6 +1734,18 @@ impl LyricsFlip {
     /// lands, the token transfer back to `player` belongs here.
     fn refund_wager(_env: &Env, round: &Round, _player: &Address) -> i128 {
         round.wager_amount
+    }
+
+    /// Panics with `Error::Paused` when the emergency pause is active.
+    fn require_not_paused(env: &Env) {
+        let paused: bool = env
+            .storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false);
+        if paused {
+            panic_with_error!(env, Error::Paused);
+        }
     }
 
     fn assert_owner(env: &Env, address: &Address) {

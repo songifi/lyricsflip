@@ -100,6 +100,11 @@ pub enum Error {
     /// this round. A player may answer each card at most once. Prevents
     /// answer-farming and streak manipulation (LF-004).
     AlreadyAnswered = 35,
+    NoActiveCard = 34,
+    /// The contract is paused by the owner (LF-174). New rounds, joins and
+    /// claims are blocked; refund and cancel paths stay open so funds can
+    /// always leave the contract.
+    Paused = 36,
     /// There is no active card to answer; call `next_card` first.
     NoActiveCard = 36,
     /// The round has been cancelled and no further actions are allowed.

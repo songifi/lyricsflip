@@ -2020,6 +2020,137 @@ fn ownership_transfer_end_to_end() {
     client.set_role(&new_owner, &stranger, &Role::Admin, &true);
 }
 
+// ---------------------------------------------------------------------------
+// LF-174 — Emergency pause
+// ---------------------------------------------------------------------------
+
+#[test]
+fn pause_blocks_create_round_join_round_and_claim_reward() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &2);
+
+    // A round created before the pause stays joinable only until pause lands.
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+
+    client.pause(&owner);
+    assert!(client.is_paused());
+
+    assert_eq!(
+        client.try_create_round(&owner, &Some(Genre::Pop), &2u64),
+        Err(Ok(Error::Paused.into()))
+    );
+    assert_eq!(
+        client.try_join_round(&Address::generate(&env), &round_id),
+        Err(Ok(Error::Paused.into()))
+    );
+    assert_eq!(
+        client.try_claim_reward(&owner, &Milestone::FirstWin),
+        Err(Ok(Error::Paused.into()))
+    );
+}
+
+#[test]
+fn pause_blocks_claim_milestone_entrypoints() {
+    let (env, client, owner) = setup();
+    client.pause(&owner);
+
+    assert_eq!(
+        client.try_claim_reward(&owner, &Milestone::FirstWin),
+        Err(Ok(Error::Paused.into()))
+    );
+    assert_eq!(
+        client.try_claim_milestone(&owner, &Milestone::FirstWin),
+        Err(Ok(Error::Paused.into()))
+    );
+}
+
+#[test]
+fn unpause_restores_create_round_join_round_and_claim() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &2);
+
+    client.pause(&owner);
+    assert!(client.is_paused());
+    client.unpause(&owner);
+    assert!(!client.is_paused());
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+    assert_eq!(client.get_players_round_count(&round_id), 2);
+
+    // Claim paths are reachable again (the milestone itself is still unmet).
+    assert_eq!(
+        client.try_claim_reward(&owner, &Milestone::FirstWin),
+        Err(Ok(Error::MilestoneNotReached.into()))
+    );
+}
+
+#[test]
+fn pause_and_unpause_require_owner() {
+    let (env, client, _owner) = setup();
+    let stranger = Address::generate(&env);
+    assert_eq!(
+        client.try_pause(&stranger),
+        Err(Ok(Error::NotAuthorized.into()))
+    );
+    assert_eq!(
+        client.try_unpause(&stranger),
+        Err(Ok(Error::NotAuthorized.into()))
+    );
+}
+
+#[test]
+fn leave_round_refunds_while_paused() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 2);
+    client.set_cards_per_round(&owner, &2);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+
+    client.pause(&owner);
+
+    // Leaving must still work so a player's wager can always leave the contract.
+    client.leave_round(&player2, &round_id);
+    assert_eq!(client.get_players_round_count(&round_id), 1);
+    let events = env.events().all();
+    let expected = RoundLeft {
+        round_id,
+        player: player2.clone(),
+        refunded: client.get_round(&round_id).wager_amount,
+    }
+    .to_xdr(&env, &client.address);
+    assert!(events.events().contains(&expected));
+}
+
+#[test]
+fn cancel_round_refunds_everyone_while_paused() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 2);
+    client.set_cards_per_round(&owner, &2);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+
+    client.pause(&owner);
+
+    // Cancelling must still work so escrowed funds can always be returned.
+    client.cancel_round(&owner, &round_id);
+    assert!(client.get_round(&round_id).is_cancelled);
+    let events = env.events().all();
+    let expected = RoundCancelled {
+        round_id,
+        cancelled_by: owner.clone(),
+        refunded_players: soroban_sdk::vec![&env, owner.clone(), player2.clone()],
+        refund_per_player: 0,
+    }
+    .to_xdr(&env, &client.address);
+    assert!(events.events().contains(&expected));
+}
+
 #[test]
 fn upgrade_keeps_state_and_changes_version() {
     let (env, client, owner) = setup();
