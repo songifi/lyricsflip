@@ -11,7 +11,41 @@ pub struct Card {
     pub artist: String,
     pub title: String,
     pub year: u64,
+    pub difficulty: u32,
     pub lyrics: String,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyCard {
+    pub card_id: u64,
+    pub genre: Genre,
+    pub artist: String,
+    pub title: String,
+    pub year: u64,
+    pub lyrics: String,
+}
+
+impl From<LegacyCard> for Card {
+    fn from(card: LegacyCard) -> Self {
+        Self {
+            card_id: card.card_id,
+            genre: card.genre,
+            artist: card.artist,
+            title: card.title,
+            year: card.year,
+            difficulty: 2,
+            lyrics: card.lyrics,
+        }
+    }
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundFilter {
+    pub genre: Option<Genre>,
+    /// The first year of a decade, for example 1990.
+    pub decade: Option<u64>,
 }
 
 #[contracttype]
@@ -185,4 +219,7 @@ pub enum DataKey {
     NftContract,
     /// Whether a player has already claimed a milestone reward.
     MilestoneClaimed((Address, Milestone)),
+    /// Global emergency-pause flag. While set, round creation/joining and
+    /// reward claims are blocked; refund and cancel paths stay open.
+    Paused,
 }

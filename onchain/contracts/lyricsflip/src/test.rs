@@ -18,39 +18,13 @@ use crate::{
     MAX_PAGE_LIMIT, MAX_ROUND_PLAYERS,
 };
 use soroban_sdk::{
+    events::Event as _,
     testutils::{Address as _, ContractEvents, Events, Ledger},
-    Address, Env, Event, Map, String, Vec,
+    xdr, Address, Env, Event, Map, String, Vec,
 };
 
 /// 2026-05-28, so cards up to year 2026 pass validation.
 const NOW: u64 = 1_780_000_000;
-use crate::{
-    Answer, Card, Error, Genre, LyricsFlip, LyricsFlipClient, Milestone, Role, RoleUpdated,
-    RoundCancelled, RoundCompleted, RoundLeft, CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS,
-    LOBBY_TIMEOUT_SECONDS, MAX_PAGE_LIMIT,
-};
-use soroban_sdk::{
-    events::Event as _,
-    testutils::{Address as _, ContractEvents, Events, Ledger},
-    Address, Env, Map, String,
-};
-//! Unit tests for the `lyricsflip` contract.
-//!
-//! Coverage targets:
-//! - Every public function (happy path + key error paths).
-//! - Every `Error` variant.
-//! - `build_question_card` with all three `QuestionKind` values (LF-029)
-//!   plus the LF-010 small-card-set edge cases.
-//!
-//! Run with `cargo test` inside `onchain/`.
-
-use crate::{
-    Answer, Card, Error, Genre, LyricsFlip, LyricsFlipClient, QuestionKind, Role, MAX_PAGE_LIMIT,
-};
-use soroban_sdk::{
-    testutils::{Address as _, Ledger as _},
-    xdr, Address, Env, String,
-};
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -73,6 +47,7 @@ fn sample_card(env: &Env, genre: Genre, artist: &str, title: &str, year: u64) ->
         artist: String::from_str(env, artist),
         title: String::from_str(env, title),
         year,
+        difficulty: 2,
         lyrics: String::from_str(env, "sample lyric line"),
     }
 }
@@ -101,6 +76,7 @@ fn seed_cards_genre(
             artist,
             title,
             year: 2000 + i,
+            difficulty: 2,
             lyrics: String::from_str(env, "sample lyric line"),
         };
         client.add_card(owner, &card);
@@ -407,7 +383,7 @@ fn next_card_advances_index_and_completes_round() {
     assert!(!round.is_completed);
     assert_eq!(
         client.try_next_card(&round_id),
-        Err(Ok(Error::RoundCompleted.into()))
+        Err(Ok(Error::NoMoreCards.into()))
     );
 }
 
@@ -436,11 +412,11 @@ fn next_card_errors_when_round_completed() {
 }
 
 // ---------------------------------------------------------------------------
-// build_question_card — LF-029
+// build_question_card â LF-029
 // ---------------------------------------------------------------------------
 
 /// Seed cards with enough variety that all three question kinds can find
-/// 3 unique distractors. We need ≥4 distinct titles, artists, and years.
+/// 3 unique distractors. We need â¥4 distinct titles, artists, and years.
 fn seed_diverse_cards(env: &Env, client: &LyricsFlipClient, owner: &Address) {
     let data = [
         (Genre::Pop, "Drake", "God's Plan", 2018u64),
@@ -463,6 +439,7 @@ fn seed_diverse_cards(env: &Env, client: &LyricsFlipClient, owner: &Address) {
                 artist: String::from_str(env, artist),
                 title: String::from_str(env, title),
                 year: *year,
+                difficulty: 2,
                 lyrics: String::from_str(env, "na na na na"),
             },
         );
@@ -556,7 +533,7 @@ fn build_question_card_year_distractors_are_close_to_correct_year() {
     let card = client.get_card(&1); // year = 2018
     let q = client.build_question_card(&card, &3u64, &QuestionKind::Year);
 
-    // All four options should be within ±5 years of the correct year.
+    // All four options should be within Â±5 years of the correct year.
     let options = [
         q.option_one.clone(),
         q.option_two.clone(),
@@ -589,11 +566,11 @@ fn parse_year_u64(s: &soroban_sdk::String) -> u64 {
 }
 
 // ---------------------------------------------------------------------------
-// build_question_card — LF-010 small card sets
+// build_question_card â LF-010 small card sets
 // ---------------------------------------------------------------------------
 
-/// 4 distinct cards: a question card must still have 4 unique options —
-/// including the correct one — without panicking with `AmountExceedsLimit`.
+/// 4 distinct cards: a question card must still have 4 unique options â
+/// including the correct one â without panicking with `AmountExceedsLimit`.
 #[test]
 fn build_question_card_with_four_distinct_cards_has_four_unique_options() {
     let (env, client, owner) = setup();
@@ -791,9 +768,10 @@ fn get_cards_of_artist_returns_requested_amount() {
                 card_id: 0,
                 genre: Genre::Rock,
                 artist: String::from_str(&env, "The Same Artist"),
-                title: String::from_str(&env, &std::format!("Song {}", i)),
                 title: alloc_string(&env, &format_u64("Song ", i)),
+                title: String::from_str(&env, &std::format!("Song {}", i)),
                 year: 2000 + i,
+                difficulty: 2,
                 lyrics: String::from_str(&env, "lyric"),
             },
         );
@@ -818,11 +796,12 @@ fn get_cards_of_year_returns_requested_amount() {
             &Card {
                 card_id: 0,
                 genre: Genre::Jazz,
-                artist: String::from_str(&env, &std::format!("Artist {}", i)),
-                title: String::from_str(&env, &std::format!("Track {}", i)),
                 artist: alloc_string(&env, &format_u64("Artist ", i)),
                 title: alloc_string(&env, &format_u64("Track ", i)),
+                artist: String::from_str(&env, &std::format!("Artist {}", i)),
+                title: String::from_str(&env, &std::format!("Track {}", i)),
                 year: 1990,
+                difficulty: 2,
                 lyrics: String::from_str(&env, "lyric"),
             },
         );
@@ -1208,7 +1187,7 @@ fn error_codes_are_stable() {
         (Error::RoundNotReady, 18),
         (Error::RoundAlreadyFinalized, 19),
         (Error::NotEnoughDistinctCards, 20),
-        (Error::RoundCancelled, 20),
+        (Error::RoundCancelled, 35),
         (Error::RoundFull, 21),
         (Error::InvalidMaxPlayers, 22),
         (Error::NftContractNotSet, 23),
@@ -1222,6 +1201,29 @@ fn error_codes_are_stable() {
         (Error::DuplicateCard, 31),
         (Error::BatchTooLarge, 32),
         (Error::NotPendingOwner, 33),
+        (Error::NoMoreCards, 34),
+        (Error::InvalidCardDifficulty, 36),
+        (Error::InvalidDecade, 37),
+        (Error::NoActiveCard, 38),
+        (Error::AlreadyAnswered, 39),
+        (Error::RoundCancelled, 20),
+        (Error::NotEnoughDistinctCards, 21),
+        (Error::RoundFull, 22),
+        (Error::InvalidMaxPlayers, 23),
+        (Error::NftContractNotSet, 24),
+        (Error::MilestoneNotReached, 25),
+        (Error::MilestoneAlreadyClaimed, 26),
+        (Error::InvalidCardTitle, 27),
+        (Error::InvalidCardArtist, 28),
+        (Error::InvalidCardLyrics, 29),
+        (Error::InvalidCardYear, 30),
+        (Error::LyricsTooLong, 31),
+        (Error::DuplicateCard, 32),
+        (Error::BatchTooLarge, 33),
+        (Error::NotPendingOwner, 34),
+        (Error::NoMoreCards, 35),
+        (Error::AlreadyAnswered, 36),
+        (Error::NoActiveCard, 37),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);
@@ -1229,11 +1231,11 @@ fn error_codes_are_stable() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-011 – partial Fisher-Yates is O(limit), not O(coupon-collector)
+// LF-011 â partial Fisher-Yates is O(limit), not O(coupon-collector)
 // ---------------------------------------------------------------------------
 
-/// Confirms that `get_random_numbers(amount=50, limit=50)` — the worst-case
-/// scenario that caused the coupon-collector blowup — now runs in a fixed
+/// Confirms that `get_random_numbers(amount=50, limit=50)` â the worst-case
+/// scenario that caused the coupon-collector blowup â now runs in a fixed
 /// number of iterations. We check this indirectly: seed the contract with 50
 /// cards, call `get_cards_of_genre` (which internally calls
 /// `get_random_numbers(amount=50, limit=50)`), and assert the result is
@@ -1253,6 +1255,7 @@ fn get_random_numbers_worst_case_amount_equals_limit() {
             artist: soroban_sdk::String::from_str(&env, "A"),
             title,
             year: 1950 + i,
+            difficulty: 2,
             lyrics: soroban_sdk::String::from_str(&env, "lyric"),
         };
         client.add_card(&owner, &card);
@@ -1299,7 +1302,7 @@ fn get_random_numbers_returns_correct_count_for_various_inputs() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-012 – persistent storage survives a ledger advance past default TTL
+// LF-012 â persistent storage survives a ledger advance past default TTL
 // ---------------------------------------------------------------------------
 
 /// After gameplay entries (cards, round, player stats) are written and the
@@ -1561,6 +1564,13 @@ fn add_card_rejects_invalid_cards() {
                 ..ok.clone()
             },
             Error::InvalidCardYear,
+        ),
+        (
+            Card {
+                difficulty: 0,
+                ..ok.clone()
+            },
+            Error::InvalidCardDifficulty,
         ),
         (
             Card {
@@ -2047,6 +2057,137 @@ fn ownership_transfer_end_to_end() {
     client.set_role(&new_owner, &stranger, &Role::Admin, &true);
 }
 
+// ---------------------------------------------------------------------------
+// LF-174 â Emergency pause
+// ---------------------------------------------------------------------------
+
+#[test]
+fn pause_blocks_create_round_join_round_and_claim_reward() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &2);
+
+    // A round created before the pause stays joinable only until pause lands.
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+
+    client.pause(&owner);
+    assert!(client.is_paused());
+
+    assert_eq!(
+        client.try_create_round(&owner, &Some(Genre::Pop), &2u64),
+        Err(Ok(Error::Paused.into()))
+    );
+    assert_eq!(
+        client.try_join_round(&Address::generate(&env), &round_id),
+        Err(Ok(Error::Paused.into()))
+    );
+    assert_eq!(
+        client.try_claim_reward(&owner, &Milestone::FirstWin),
+        Err(Ok(Error::Paused.into()))
+    );
+}
+
+#[test]
+fn pause_blocks_claim_milestone_entrypoints() {
+    let (env, client, owner) = setup();
+    client.pause(&owner);
+
+    assert_eq!(
+        client.try_claim_reward(&owner, &Milestone::FirstWin),
+        Err(Ok(Error::Paused.into()))
+    );
+    assert_eq!(
+        client.try_claim_milestone(&owner, &Milestone::FirstWin),
+        Err(Ok(Error::Paused.into()))
+    );
+}
+
+#[test]
+fn unpause_restores_create_round_join_round_and_claim() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &2);
+
+    client.pause(&owner);
+    assert!(client.is_paused());
+    client.unpause(&owner);
+    assert!(!client.is_paused());
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+    assert_eq!(client.get_players_round_count(&round_id), 2);
+
+    // Claim paths are reachable again (the milestone itself is still unmet).
+    assert_eq!(
+        client.try_claim_reward(&owner, &Milestone::FirstWin),
+        Err(Ok(Error::MilestoneNotReached.into()))
+    );
+}
+
+#[test]
+fn pause_and_unpause_require_owner() {
+    let (env, client, _owner) = setup();
+    let stranger = Address::generate(&env);
+    assert_eq!(
+        client.try_pause(&stranger),
+        Err(Ok(Error::NotAuthorized.into()))
+    );
+    assert_eq!(
+        client.try_unpause(&stranger),
+        Err(Ok(Error::NotAuthorized.into()))
+    );
+}
+
+#[test]
+fn leave_round_refunds_while_paused() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 2);
+    client.set_cards_per_round(&owner, &2);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+
+    client.pause(&owner);
+
+    // Leaving must still work so a player's wager can always leave the contract.
+    client.leave_round(&player2, &round_id);
+    assert_eq!(client.get_players_round_count(&round_id), 1);
+    let events = env.events().all();
+    let expected = RoundLeft {
+        round_id,
+        player: player2.clone(),
+        refunded: client.get_round(&round_id).wager_amount,
+    }
+    .to_xdr(&env, &client.address);
+    assert!(events.events().contains(&expected));
+}
+
+#[test]
+fn cancel_round_refunds_everyone_while_paused() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 2);
+    client.set_cards_per_round(&owner, &2);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+
+    client.pause(&owner);
+
+    // Cancelling must still work so escrowed funds can always be returned.
+    client.cancel_round(&owner, &round_id);
+    assert!(client.get_round(&round_id).is_cancelled);
+    let events = env.events().all();
+    let expected = RoundCancelled {
+        round_id,
+        cancelled_by: owner.clone(),
+        refunded_players: soroban_sdk::vec![&env, owner.clone(), player2.clone()],
+        refund_per_player: 0,
+    }
+    .to_xdr(&env, &client.address);
+    assert!(events.events().contains(&expected));
+}
+
 #[test]
 fn upgrade_keeps_state_and_changes_version() {
     let (env, client, owner) = setup();
@@ -2156,7 +2297,7 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
             round_id,
             player: fast.clone(),
             correct: true,
-            points: 90,
+            points: 100,
         },
     );
     assert!(!client.submit_answer(
@@ -2182,15 +2323,15 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
     let scores = client.get_round_scores(&round_id);
     let fast_points = scores.get(fast.clone()).unwrap();
     let slow_points = scores.get(slow.clone()).unwrap();
-    assert_eq!(fast_points, 90);
-    assert_eq!(slow_points, 25);
+    assert_eq!(fast_points, 100);
+    assert_eq!(slow_points, 55);
     assert!(fast_points > slow_points);
     assert_eq!(scores.get(wrong.clone()).unwrap(), 0);
     assert_eq!(scores.get(owner.clone()).unwrap(), 0);
 }
 
 // ---------------------------------------------------------------------------
-// LF-004 — Players cannot answer the same card more than once (#421)
+// LF-004 â Players cannot answer the same card more than once (#421)
 // ---------------------------------------------------------------------------
 
 /// A second submit_answer for the same card by the same player must fail
@@ -2218,7 +2359,7 @@ fn lf004_second_answer_for_same_card_fails_with_already_answered() {
         .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
         .unwrap_err()
         .unwrap();
-    assert_eq!(err, crate::Error::AlreadyAnswered);
+    assert_eq!(err, crate::Error::AlreadyAnswered.into());
 }
 
 /// Repeated wrong-then-correct guessing is blocked: each successive call
@@ -2252,7 +2393,7 @@ fn lf004_cannot_guess_until_correct_by_resubmitting() {
         .unwrap();
     assert_eq!(
         err,
-        crate::Error::AlreadyAnswered,
+        crate::Error::AlreadyAnswered.into(),
         "second answer attempt must be rejected even if the first was wrong"
     );
 }
@@ -2261,10 +2402,76 @@ fn lf004_cannot_guess_until_correct_by_resubmitting() {
 /// N cards correctly has a streak of exactly N (not N*2 from double-answers).
 #[test]
 fn lf004_streak_cannot_grow_more_than_one_per_card() {
-// LF-003 — Last card of a round can be answered (#420)
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &3);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &13u64);
+    client.start_round(&owner, &round_id);
+
+    // Draw and answer cards 1, 2, and 3 â one answer per card.
+    for i in 0..3u64 {
+        env.ledger().set_timestamp(NOW + 5 + i * 30);
+        let card = client.next_card(&round_id);
+        env.ledger().set_timestamp(NOW + 8 + i * 30);
+        client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+
+        // Attempt a second answer; it must fail, not add to the streak.
+        env.ledger().set_timestamp(NOW + 10 + i * 30);
+        let _ = client.try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+    }
+
+    let stats = client.get_player_stat(&owner);
+    // Answered 3 cards correctly, 1 answer per card â streak must be exactly 3.
+    assert_eq!(
+        stats.current_streak, 3,
+        "streak must equal the number of cards answered, not double from re-submissions"
+    );
+    assert_eq!(stats.max_streak, 3);
+}
+
+/// Other players can still answer the same card â AlreadyAnswered is
+/// per-player, not per-card.
+#[test]
+fn lf004_other_players_can_still_answer_same_card() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &99u64);
+    let player2 = Address::generate(&env);
+    client.join_round(&player2, &round_id);
+    client.start_round(&owner, &round_id);
+    client.start_round(&player2, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&round_id);
+
+    // Owner answers first.
+    env.ledger().set_timestamp(NOW + 8);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+
+    // player2 can still answer the same card â AlreadyAnswered is per-player.
+    env.ledger().set_timestamp(NOW + 10);
+    assert!(
+        client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone())),
+        "player2 must be allowed to answer a card that owner has already answered"
+    );
+
+    // But owner cannot answer again.
+    env.ledger().set_timestamp(NOW + 11);
+    let err = client
+        .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, crate::Error::AlreadyAnswered.into());
+}
+
+// ---------------------------------------------------------------------------
+// LF-003 â Last card of a round can be answered (#420)
 // ---------------------------------------------------------------------------
 
-/// cards_per_round = 1: draw the only card then submit an answer — must succeed.
+/// cards_per_round = 1: draw the only card then submit an answer â must succeed.
 /// Before the fix, next_card set is_completed = true immediately, causing
 /// submit_answer to reject with RoundCompleted on the very first answer.
 #[test]
@@ -2285,7 +2492,7 @@ fn lf003_single_card_round_can_be_answered() {
     let correct = client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
     assert!(correct, "answer to the only card in a 1-card round must be accepted");
 
-    // Round is not yet completed — only finalize_round sets is_completed.
+    // Round is not yet completed â only finalize_round sets is_completed.
     let round = client.get_round(&round_id);
     assert!(!round.is_completed, "round must not be completed until finalize_round is called");
 
@@ -2305,10 +2512,6 @@ fn lf003_three_card_round_last_card_is_answerable() {
     client.set_cards_per_round(&owner, &3);
 
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64);
-    client.start_round(&owner, &round_id);
-
-    for i in 0..3u64 {
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &13u64);
     let player2 = Address::generate(&env);
     client.join_round(&player2, &round_id);
     client.start_round(&owner, &round_id);
@@ -2320,25 +2523,6 @@ fn lf003_three_card_round_last_card_is_answerable() {
         let card = client.next_card(&round_id);
         env.ledger().set_timestamp(NOW + 8 + i * 30);
         client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
-
-        // Attempt a second answer; it must fail, not add to the streak.
-        env.ledger().set_timestamp(NOW + 10 + i * 30);
-        let _ = client.try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
-    }
-
-    let stats = client.get_player_stat(&owner);
-    // Answered 3 cards correctly, 1 answer per card → streak must be exactly 3.
-    assert_eq!(
-        stats.current_streak, 3,
-        "streak must equal the number of cards answered, not double from re-submissions"
-    );
-    assert_eq!(stats.max_streak, 3);
-}
-
-/// Other players can still answer the same card — AlreadyAnswered is
-/// per-player, not per-card.
-#[test]
-fn lf004_other_players_can_still_answer_same_card() {
         client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone()));
     }
 
@@ -2346,11 +2530,11 @@ fn lf004_other_players_can_still_answer_same_card() {
     env.ledger().set_timestamp(NOW + 65);
     let last_card = client.next_card(&round_id);
 
-    // Round must NOT be completed yet — players must still be able to answer.
+    // Round must NOT be completed yet â players must still be able to answer.
     let round = client.get_round(&round_id);
     assert!(
         !round.is_completed,
-        "round must not be completed after drawing the last card — answer window is still open"
+        "round must not be completed after drawing the last card â answer window is still open"
     );
 
     // Both players can answer the last card.
@@ -2376,33 +2560,6 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &88u64);
-    let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
-    client.start_round(&owner, &round_id);
-    client.start_round(&player2, &round_id);
-
-    env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&round_id);
-
-    // Owner answers first.
-    env.ledger().set_timestamp(NOW + 8);
-    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
-
-    // player2 can still answer the same card — AlreadyAnswered is per-player.
-    env.ledger().set_timestamp(NOW + 10);
-    assert!(
-        client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone())),
-        "player2 must be allowed to answer a card that owner has already answered"
-    );
-
-    // But owner cannot answer again.
-    env.ledger().set_timestamp(NOW + 11);
-    let err = client
-        .try_submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()))
-        .unwrap_err()
-        .unwrap();
-    assert_eq!(err, crate::Error::AlreadyAnswered);
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &21u64);
     client.start_round(&owner, &round_id);
 
@@ -2417,7 +2574,491 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
     let err = client.try_next_card(&round_id).unwrap_err().unwrap();
     assert_eq!(
         err,
-        crate::Error::NoMoreCards,
+        crate::Error::NoMoreCards.into(),
         "exhausted deck must return NoMoreCards, not RoundCompleted"
     );
+}
+
+#[test]
+fn create_round_filter_selects_decade_genre_and_difficulty_and_multiplies_points() {
+    let (env, client, owner) = setup();
+    for i in 0..3u64 {
+        let card = Card {
+            difficulty: 3,
+            ..sample_card(
+                &env,
+                Genre::RnB,
+                &std::format!("Nineties Artist {}", i),
+                &std::format!("Nineties Track {}", i),
+                1990 + i,
+            )
+        };
+        client.add_card(&owner, &card);
+    }
+    client.add_card(
+        &owner,
+        &Card {
+            difficulty: 3,
+            ..sample_card(&env, Genre::RnB, "TwoThousands Artist", "TwoThousands Track", 2000)
+        },
+    );
+    client.add_card(
+        &owner,
+        &Card {
+            difficulty: 3,
+            ..sample_card(&env, Genre::Pop, "Pop Artist", "Pop Track", 1995)
+        },
+    );
+    client.add_card(&owner, &sample_card(&env, Genre::RnB, "Medium Artist", "Medium Track", 1995));
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round_with_filter(
+        &owner,
+        &crate::RoundFilter {
+            genre: Some(Genre::RnB),
+            decade: Some(1990),
+        },
+        &Some(3),
+        &22u64,
+    );
+    let round_cards = client.get_round_cards(&round_id);
+    assert_eq!(round_cards.len(), 2);
+    for card_id in round_cards.iter() {
+        let card = client.get_card(&card_id);
+        assert_eq!(card.genre, Genre::RnB);
+        assert_eq!(card.year / 10 * 10, 1990);
+        assert_eq!(card.difficulty, 3);
+    }
+
+    client.start_round(&owner, &round_id);
+    let card = client.next_card(&round_id);
+    env.ledger().set_timestamp(NOW + 1);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title)));
+    assert_eq!(client.get_round_scores(&round_id).get(owner).unwrap(), 285);
+}
+
+#[test]
+fn invalid_round_difficulty_and_decade_are_rejected() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &1);
+    let filter = crate::RoundFilter {
+        genre: Some(Genre::Pop),
+        decade: None,
+    };
+
+    assert_eq!(
+        client.try_create_round_with_filter(&owner, &filter, &Some(4), &1u64),
+        Err(Ok(Error::InvalidCardDifficulty.into()))
+    );
+    assert_eq!(
+        client.try_create_round_with_filter(
+            &owner,
+            &crate::RoundFilter {
+                genre: Some(Genre::Pop),
+                decade: Some(1995),
+            },
+            &None,
+            &1u64,
+        ),
+        Err(Ok(Error::InvalidDecade.into()))
+    );
+}
+
+#[derive(Clone, Copy)]
+enum Simulation {
+    AllCorrect,
+    ExactTie,
+    AllWrong,
+    Abandoned,
+}
+
+fn simulate_eight_player_round(scenario: Simulation) {
+    let (env, client, owner) = setup();
+    if matches!(scenario, Simulation::AllCorrect) {
+        client.add_card(
+            &owner,
+            &Card {
+                difficulty: 3,
+                ..sample_card(&env, Genre::Pop, "Hard Artist", "Hard Song", 1994)
+            },
+        );
+        client.add_card(
+            &owner,
+            &Card {
+                difficulty: 1,
+                ..sample_card(&env, Genre::Pop, "Easy Artist", "Easy Song", 1996)
+            },
+        );
+        client.set_cards_per_round(&owner, &2);
+    } else {
+        seed_cards(&env, &client, &owner, 8);
+        client.set_cards_per_round(&owner, &1);
+    }
+
+    let mut players = std::vec![owner.clone()];
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &123u64);
+    for _ in 1..MAX_ROUND_PLAYERS {
+        let player = Address::generate(&env);
+        client.join_round(&player, &round_id);
+        players.push(player);
+    }
+    for player in players.iter() {
+        client.start_round(player, &round_id);
+    }
+
+    env.ledger().set_timestamp(NOW + 10);
+    let card = client.next_card(&round_id);
+    match scenario {
+        Simulation::AllCorrect => {
+            let answer_card = |card: &Card, start: u64| {
+                for (i, player) in players.iter().enumerate() {
+                    let delay = match (card.difficulty, i) {
+                        (3, 0) => 1,
+                        (3, 1) => 2,
+                        (1, 0) => 3,
+                        (1, 1) => 0,
+                        _ => 3,
+                    };
+                    env.ledger().set_timestamp(start + delay);
+                    assert!(client.submit_answer(
+                        player,
+                        &round_id,
+                        &Answer::Title(card.title.clone())
+                    ));
+                }
+            };
+            answer_card(&card, NOW + 10);
+            let second_start = env.ledger().timestamp();
+            let second_card = client.next_card(&round_id);
+            answer_card(&second_card, second_start);
+            let score_tie = client.get_round_scores(&round_id);
+            assert_eq!(score_tie.get(owner.clone()).unwrap(), 370);
+            assert_eq!(score_tie.get(players[1].clone()).unwrap(), 370);
+            assert!(score_tie.get(players[2].clone()).unwrap() < 370);
+            let times = env.as_contract(&client.address, || {
+                env.storage()
+                    .persistent()
+                    .get::<_, Map<Address, u64>>(&crate::DataKey::RoundAnswerTimes(round_id))
+                    .unwrap()
+            });
+            assert_eq!(times.get(owner.clone()).unwrap(), 4);
+            assert_eq!(times.get(players[1].clone()).unwrap(), 2);
+        }
+        Simulation::ExactTie => {
+            env.ledger().set_timestamp(NOW + 12);
+            for player in players.iter() {
+                assert!(client.submit_answer(
+                    player,
+                    &round_id,
+                    &Answer::Title(card.title.clone())
+                ));
+            }
+        }
+        Simulation::AllWrong => {
+            env.ledger().set_timestamp(NOW + 12);
+            for player in players.iter() {
+                assert!(!client.submit_answer(
+                    player,
+                    &round_id,
+                    &Answer::Title(String::from_str(&env, "wrong"))
+                ));
+            }
+        }
+        Simulation::Abandoned => {
+            env.ledger().set_timestamp(NOW + 11);
+            assert!(client.submit_answer(
+                &owner,
+                &round_id,
+                &Answer::Title(card.title.clone())
+            ));
+            env.ledger()
+                .set_timestamp(client.get_round(&round_id).end_time + 1);
+            client.finalize_round(&players[1], &round_id);
+        }
+    }
+
+    if !matches!(scenario, Simulation::Abandoned) {
+        client.finalize_round(&owner, &round_id);
+    }
+    let scores = client.get_round_scores(&round_id);
+    let mut winners = soroban_sdk::Vec::new(&env);
+    match scenario {
+        Simulation::AllCorrect => winners.push_back(players[1].clone()),
+        Simulation::Abandoned => winners.push_back(owner.clone()),
+        Simulation::ExactTie => {
+            for player in players.iter() {
+                winners.push_back(player.clone());
+            }
+        }
+        Simulation::AllWrong => {}
+    }
+    let events = env.events().all();
+    assert_round_completed_event(
+        &env,
+        &events,
+        &client.address,
+        round_id,
+        &winners,
+        &scores,
+    );
+
+    for player in players.iter() {
+        let stats = client.get_player_stat(player);
+        assert_eq!(stats.total_rounds, 1);
+        assert_eq!(
+            stats.rounds_won,
+            if winners.first_index_of(player).is_some() {
+                1
+            } else {
+                0
+            }
+        );
+
+// LF-159: a first-ledger answer earns MAX_CORRECT_POINTS
+#[test]
+fn lf159_first_ledger_answer_gets_max_points() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &1);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    client.start_round(&owner, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&round_id);
+    env.ledger().set_timestamp(NOW + 6);
+    assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
+
+    assert_eq!(client.get_round_scores(&round_id).get(owner.clone()), Some(100));
+}
+
+// ---------------------------------------------------------------------------
+// LF-161  normalize title/artist before duplicate checks
+// ---------------------------------------------------------------------------
+
+#[test]
+fn lf161_case_variant_duplicate_rejected() {
+    let (env, client, owner) = setup();
+    client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Drake", "Hotline Bling", 2015),
+    );
+    let dup = sample_card(&env, Genre::Pop, "drake", "hotline bling", 2015);
+    assert_eq!(
+        client.try_add_card(&owner, &dup),
+        Err(Ok(Error::DuplicateCard.into()))
+    );
+}
+
+#[test]
+fn lf161_display_value_preserved() {
+    let (env, client, owner) = setup();
+    let id = client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Drake", "Hotline Bling", 2015),
+    );
+    let stored = client.get_card(&id);
+    assert_eq!(stored.artist, String::from_str(&env, "Drake"));
+    assert_eq!(stored.title, String::from_str(&env, "Hotline Bling"));
+}
+
+#[test]
+fn lf161_artist_index_is_case_insensitive() {
+    let (env, client, owner) = setup();
+    client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Drake", "Hotline Bling", 2015),
+    );
+    client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Drake", "God's Plan", 2018),
+    );
+    client.set_cards_per_round(&owner, &2);
+    for lookup in ["Drake", "drake", "DRAKE"] {
+        let cards = client.get_cards_of_artist(&String::from_str(&env, lookup), &1);
+        assert_eq!(cards.len(), 2, "lookup {lookup} should match both cards");
+    }
+}
+
+#[test]
+fn eight_player_all_correct_round_uses_answer_timing() {
+    simulate_eight_player_round(Simulation::AllCorrect);
+}
+
+#[test]
+fn eight_player_exact_tie_splits_the_winner_set() {
+    simulate_eight_player_round(Simulation::ExactTie);
+}
+
+#[test]
+fn eight_player_all_wrong_round_has_no_winner() {
+    simulate_eight_player_round(Simulation::AllWrong);
+}
+
+#[test]
+fn eight_player_abandoned_round_can_be_finalized_by_a_keeper() {
+    simulate_eight_player_round(Simulation::Abandoned);
+}
+
+#[test]
+fn legacy_cards_default_to_medium_difficulty_when_read() {
+    let (env, client, owner) = setup();
+    let card_id = client.add_card(
+        &owner,
+        &sample_card(&env, Genre::Pop, "Legacy Artist", "Legacy Song", 1999),
+    );
+    env.as_contract(&client.address, || {
+        env.storage().persistent().set(
+            &crate::DataKey::Card(card_id),
+            &crate::LegacyCard {
+                card_id,
+                genre: Genre::Pop,
+                artist: String::from_str(&env, "Legacy Artist"),
+                title: String::from_str(&env, "Legacy Song"),
+                year: 1999,
+                lyrics: String::from_str(&env, "sample lyric line"),
+            },
+        );
+    });
+
+    assert_eq!(client.get_card(&card_id).difficulty, 2);
+}
+
+#[test]
+fn seeded_card_removals_preserve_genre_indexes() {
+    let (env, client, owner) = setup();
+    let mut cards = std::vec::Vec::new();
+    for i in 0..20u64 {
+        let genre = if i % 2 == 0 {
+            Genre::Pop
+        } else {
+            Genre::Rock
+        };
+        let id = client.add_card(
+            &owner,
+            &sample_card(
+                &env,
+                genre,
+                &std::format!("Seeded Artist {i}"),
+                &std::format!("Seeded Title {i}"),
+                1990 + i % 5,
+            ),
+        );
+        cards.push((id, genre));
+    }
+
+    for step in 0..cards.len() {
+        let remove_idx = (step * 7) % cards.len();
+        let (card_id, _) = cards.remove(remove_idx);
+        client.remove_card(&owner, &card_id);
+        assert_eq!(client.get_cards_count(), cards.len() as u64);
+
+        for genre in [Genre::Pop, Genre::Rock] {
+            let expected: std::vec::Vec<u64> = cards
+                .iter()
+                .filter(|(_, card_genre)| *card_genre == genre)
+                .map(|(id, _)| *id)
+                .collect();
+            if !expected.is_empty() {
+                assert_eq!(genre_ids(&client, &owner, genre), expected);
+            } else {
+                assert_eq!(client.get_genre_card_count(&genre), 0);
+            }
+fn lf161_rejects_leading_or_trailing_whitespace() {
+    let (env, client, owner) = setup();
+    let base = sample_card(&env, Genre::Pop, "Artist", "Title", 2000);
+    let cases = [
+        (String::from_str(&env, " Title"), base.artist.clone(), Error::InvalidCardTitle),
+        (String::from_str(&env, "Title "), base.artist.clone(), Error::InvalidCardTitle),
+        (base.title.clone(), String::from_str(&env, " Artist"), Error::InvalidCardArtist),
+        (base.title.clone(), String::from_str(&env, "Artist "), Error::InvalidCardArtist),
+    ];
+    for (title, artist, err) in cases {
+        let card = Card { title, artist, ..base.clone() };
+        assert_eq!(client.try_add_card(&owner, &card), Err(Ok(err.into())));
+    }
+    assert_eq!(client.get_cards_count(), 0);
+}
+
+#[test]
+fn lf161_rejects_control_characters() {
+    let (env, client, owner) = setup();
+    let base = sample_card(&env, Genre::Pop, "Artist", "Title", 2000);
+    let title_with_tab = String::from_str(&env, "Ti\ttle");
+    let artist_with_nl = String::from_str(&env, "Art\nist");
+    assert_eq!(
+        client.try_add_card(&owner, &Card { title: title_with_tab, ..base.clone() }),
+        Err(Ok(Error::InvalidCardTitle.into()))
+    );
+    assert_eq!(
+        client.try_add_card(&owner, &Card { artist: artist_with_nl, ..base.clone() }),
+        Err(Ok(Error::InvalidCardArtist.into()))
+    );
+}
+// ---------------------------------------------------------------------------
+// LF-160  year distractors stay within [MIN_CARD_YEAR, current_year]
+// ---------------------------------------------------------------------------
+
+fn parse_all_year_options(q: &crate::QuestionCard) -> std::vec::Vec<u64> {
+    let opts = [
+        q.option_one.clone(),
+        q.option_two.clone(),
+        q.option_three.clone(),
+        q.option_four.clone(),
+    ];
+    opts.iter().map(|o| parse_year_u64(o)).collect()
+}
+
+#[test]
+fn lf160_current_year_card_options_are_within_bounds() {
+    let (env, client, owner) = setup();
+    let current_year = 1970 + env.ledger().timestamp() / 31_556_952;
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "A", "T", current_year));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "B", "T2", current_year - 1));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "C", "T3", current_year - 2));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "D", "T4", current_year - 3));
+
+    let card = client.get_card(&1);
+    let q = client.build_question_card(&card, &7u64, &QuestionKind::Year);
+    for year in parse_all_year_options(&q).iter() {
+        assert!(*year >= 1900 && *year <= current_year, "option {year} outside [1900, {current_year}]");
+    }
+}
+
+#[test]
+fn lf160_min_year_card_options_are_within_bounds() {
+    let (env, client, owner) = setup();
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "A", "T", 1900));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "B", "T2", 1901));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "C", "T3", 1902));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "D", "T4", 1903));
+
+    let card = client.get_card(&1);
+    let q = client.build_question_card(&card, &7u64, &QuestionKind::Year);
+    for year in parse_all_year_options(&q).iter() {
+        assert!(*year >= 1900, "option {year} is below MIN_CARD_YEAR");
+    }
+}
+
+#[test]
+fn lf160_edge_year_card_still_has_four_unique_options() {
+    let (env, client, owner) = setup();
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "A", "T", 1900));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "B", "T2", 1950));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "C", "T3", 2000));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "D", "T4", 2010));
+
+    let card = client.get_card(&1);
+    let q = client.build_question_card(&card, &11u64, &QuestionKind::Year);
+    let opts = [
+        q.option_one.clone(),
+        q.option_two.clone(),
+        q.option_three.clone(),
+        q.option_four.clone(),
+    ];
+    for i in 0..4 {
+        for j in (i+1)..4 {
+            assert_ne!(opts[i], opts[j], "duplicate option at {i},{j}");
+        }
+    }
 }
