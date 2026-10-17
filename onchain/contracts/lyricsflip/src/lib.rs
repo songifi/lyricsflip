@@ -54,10 +54,14 @@ pub const MIN_CORRECT_POINTS: u64 = 10;
 pub const LOBBY_TIMEOUT_SECONDS: u64 = 600;
 
 /// The subset of the `lyricsflip-nft` interface the game contract calls.
+///
+/// `kind` maps directly to the `Milestone` discriminant (0 = FirstWin,
+/// 1 = Streak5, 2 = TenWins) so the NFT contract records which achievement
+/// a badge represents (LF-168).
 #[contractclient(name = "NftClient")]
 #[allow(dead_code)]
 pub trait NftInterface {
-    fn mint(env: Env, caller: Address, recipient: Address) -> u128;
+    fn mint(env: Env, caller: Address, recipient: Address, kind: u32) -> u128;
 }
 
 /// Upper bound on the page size of the paginated list views (`get_rounds`,
@@ -1350,8 +1354,13 @@ impl LyricsFlip {
         }
 
         env.storage().persistent().set(&claimed_key, &true);
-        let token_id =
-            NftClient::new(&env, &nft_contract).mint(&env.current_contract_address(), &caller);
+        // Pass the milestone discriminant as `kind` so the NFT contract
+        // records which achievement this badge represents (LF-168).
+        let token_id = NftClient::new(&env, &nft_contract).mint(
+            &env.current_contract_address(),
+            &caller,
+            &(milestone as u32),
+        );
 
         RewardClaimed {
             player: caller,
