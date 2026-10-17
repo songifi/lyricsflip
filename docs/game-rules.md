@@ -38,6 +38,8 @@ Related issues: LF-005 (wager escrow), LF-013 (scoring), LF-014 (payouts).
   (specified by its first year, such as 1990); the wager difficulty selects
   cards at the matching difficulty.
 - Incorrect or missing answers award zero points for that card.
+- Each correct answer awards points based on **how quickly** the player answered. Answers within `FIRST_LEDGER_GRACE_SECONDS` (6s) earn full `MAX_CORRECT_POINTS` (100); each extra second costs `POINTS_DECAY_PER_SECOND` (5), floored at `MIN_CORRECT_POINTS` (10).
+- Answers after `CARD_ANSWER_WINDOW_SECONDS` (15s) are recorded but scored as wrong.
 - The round score is the sum of points across all cards in the round.
 
 ## Streaks

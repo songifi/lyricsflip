@@ -219,4 +219,7 @@ pub enum DataKey {
     NftContract,
     /// Whether a player has already claimed a milestone reward.
     MilestoneClaimed((Address, Milestone)),
+    /// Global emergency-pause flag. While set, round creation/joining and
+    /// reward claims are blocked; refund and cancel paths stay open.
+    Paused,
 }

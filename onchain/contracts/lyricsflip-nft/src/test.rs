@@ -4,7 +4,7 @@
 //! environment (no Rust toolchain available).
 
 use crate::{Error, LyricsFlipNFT, LyricsFlipNFTClient};
-use soroban_sdk::{testutils::Address as _, Address, Env, String};
+use soroban_sdk::{testutils::Address as _, testutils::Events as _, Address, Env, String};
 
 fn setup<'a>() -> (Env, LyricsFlipNFTClient<'a>, Address, Address) {
     let env = Env::default();
@@ -82,6 +82,7 @@ fn error_codes_are_stable() {
         (Error::NotOwner, 8),
         (Error::NotPendingOwner, 9),
         (Error::BaseUriTooLong, 10),
+        (Error::InsufficientBalance, 11),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);
@@ -89,7 +90,7 @@ fn error_codes_are_stable() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-012 – persistent TokenOwner entries survive a ledger advance
+// LF-012 / LF-171 – persistent TTL survival tests
 // ---------------------------------------------------------------------------
 
 /// After minting a token and advancing the ledger sequence far past Soroban's
@@ -115,6 +116,70 @@ fn ttl_survival_token_owner_survives_ledger_advance() {
         "token owner should still be readable after ledger advance"
     );
 }
+
+/// LF-171: After minting, approvals, and advancing the ledger sequence far past
+/// the default minimum TTL, balance, approval, and token owner entries are
+/// preserved so transfers and approvals still succeed without underflow panic.
+#[test]
+fn ttl_survival_transfer_survives_ledger_advance() {
+    use soroban_sdk::testutils::Ledger as _;
+
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let operator = Address::generate(&env);
+    let charlie = Address::generate(&env);
+    let dave = Address::generate(&env);
+
+    let token_1 = client.mint(&minter, &alice);
+    let token_2 = client.mint(&minter, &alice);
+    assert_eq!(client.balance(&alice), 2);
+
+    client.approve(&alice, &bob, &token_1, &200_000);
+    client.approve_for_all(&alice, &operator, &200_000);
+
+    // Advance ledger sequence past the default minimum TTL (4 096).
+    env.ledger().set_sequence_number(100_000);
+
+    // Transfer via approved spender still works and updates balances.
+    client.transfer_from(&bob, &alice, &charlie, &token_1);
+    assert_eq!(client.owner_of(&token_1), charlie);
+    assert_eq!(client.balance(&charlie), 1);
+    assert_eq!(client.balance(&alice), 1);
+
+    // Transfer via operator approved for all still works.
+    client.transfer_from(&operator, &alice, &dave, &token_2);
+    assert_eq!(client.owner_of(&token_2), dave);
+    assert_eq!(client.balance(&dave), 1);
+    assert_eq!(client.balance(&alice), 0);
+
+    // Advance again and perform direct transfer.
+    env.ledger().set_sequence_number(150_000);
+    let eve = Address::generate(&env);
+    client.transfer(&charlie, &eve, &token_1);
+    assert_eq!(client.owner_of(&token_1), eve);
+    assert_eq!(client.balance(&charlie), 0);
+    assert_eq!(client.balance(&eve), 1);
+}
+
+#[test]
+fn transfer_with_missing_balance_fails_with_insufficient_balance() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+
+    // Simulate an archived/missing balance entry.
+    env.as_contract(&client.address, || {
+        env.storage()
+            .persistent()
+            .remove(&crate::DataKey::Balance(alice.clone()));
+    });
+
+    let result = client.try_transfer(&alice, &bob, &token_id);
+    assert_eq!(result, Err(Ok(Error::InsufficientBalance.into())));
+}
+
 #[test]
 fn transfer_moves_token_and_updates_balances() {
     let (env, client, _owner, minter) = setup();
@@ -122,13 +187,13 @@ fn transfer_moves_token_and_updates_balances() {
     let bob = Address::generate(&env);
     let token_id = client.mint(&minter, &alice);
     client.mint(&minter, &alice);
-    assert_eq!(client.balance(&alice), 2);
+    assert_eq!(client.balance(&alice), 2i128);
 
     client.transfer(&alice, &bob, &token_id);
 
     assert_eq!(client.owner_of(&token_id), bob);
-    assert_eq!(client.balance(&alice), 1);
-    assert_eq!(client.balance(&bob), 1);
+    assert_eq!(client.balance(&alice), 1i128);
+    assert_eq!(client.balance(&bob), 1i128);
 }
 
 #[test]
@@ -143,7 +208,7 @@ fn transfer_by_non_owner_is_rejected() {
     let result = client.try_transfer_from(&mallory, &alice, &mallory, &token_id);
     assert_eq!(result, Err(Ok(Error::InsufficientApproval.into())));
     assert_eq!(client.owner_of(&token_id), alice);
-    assert_eq!(client.balance(&alice), 1);
+    assert_eq!(client.balance(&alice), 1i128);
 }
 
 #[test]
@@ -159,8 +224,8 @@ fn approved_spender_can_transfer_once() {
 
     client.transfer_from(&spender, &alice, &bob, &token_id);
     assert_eq!(client.owner_of(&token_id), bob);
-    assert_eq!(client.balance(&alice), 0);
-    assert_eq!(client.balance(&bob), 1);
+    assert_eq!(client.balance(&alice), 0i128);
+    assert_eq!(client.balance(&bob), 1i128);
     // The per-token approval is cleared on transfer.
     assert_eq!(client.get_approved(&token_id), None);
     let result = client.try_transfer_from(&spender, &bob, &alice, &token_id);
@@ -273,6 +338,194 @@ fn ownership_transfer_is_two_step() {
     );
 }
 
+// ---------------------------------------------------------------------------
+// LF-174 – emergency pause
+// ---------------------------------------------------------------------------
+
+#[test]
+fn pause_blocks_mint_transfer_and_transfer_from() {
+    let (env, client, owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+
+    client.pause(&owner);
+    assert!(client.paused());
+
+    assert_eq!(
+        client.try_mint(&minter, &bob),
+        Err(Ok(Error::Paused.into()))
+    );
+    assert_eq!(
+        client.try_transfer(&alice, &bob, &token_id),
+        Err(Ok(Error::Paused.into()))
+    );
+    client.approve(&alice, &bob, &token_id, &1000);
+    assert_eq!(
+        client.try_transfer_from(&bob, &alice, &bob, &token_id),
+        Err(Ok(Error::Paused.into()))
+    );
+
+    // State is untouched by the blocked calls.
+    assert_eq!(client.owner_of(&token_id), alice);
+    assert_eq!(client.balance(&alice), 1);
+}
+
+#[test]
+fn unpause_restores_mint_and_transfer() {
+    let (env, client, owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+
+    client.pause(&owner);
+    assert_eq!(
+        client.try_mint(&minter, &alice),
+        Err(Ok(Error::Paused.into()))
+    );
+
+    client.unpause(&owner);
+    assert!(!client.paused());
+
+    let token_id = client.mint(&minter, &alice);
+    client.transfer(&alice, &bob, &token_id);
+    assert_eq!(client.owner_of(&token_id), bob);
+    assert_eq!(client.balance(&bob), 1);
+}
+
+#[test]
+fn pause_and_unpause_are_owner_only() {
+    let (env, client, _owner, minter) = setup();
+
+    assert_eq!(
+        client.try_pause(&minter),
+        Err(Ok(Error::NotOwner.into()))
+    );
+    client.pause(&_owner);
+    assert_eq!(
+        client.try_unpause(&minter),
+        Err(Ok(Error::NotOwner.into()))
+    );
+    assert!(client.paused());
+// LF-173 – Stellar NFT standard (SEP-50) interface compatibility
+// ---------------------------------------------------------------------------
+
+/// The standard exposes `name`/`symbol` (not `token_name`/`token_symbol`).
+#[test]
+fn standard_metadata_getters_are_exposed() {
+    let (env, client, _owner, _minter) = setup();
+    assert_eq!(client.name(), String::from_str(&env, "LyricsFlip"));
+    assert_eq!(client.symbol(), String::from_str(&env, "LFLIP"));
+}
+
+/// `balance` returns `i128` per the standard, and `balance_of` is an alias.
+#[test]
+fn balance_returns_i128_and_matches_balance_of() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    client.mint(&minter, &alice);
+    client.mint(&minter, &alice);
+
+    let balance: i128 = client.balance(&alice);
+    assert_eq!(balance, 2i128);
+    assert_eq!(client.balance_of(&alice), balance);
+    assert_eq!(client.balance(&Address::generate(&env)), 0i128);
+}
+
+/// `mint` emits the standard `mint` event with `(to, token_id)` topics.
+#[test]
+fn mint_emits_standard_event() {
+    use soroban_sdk::{testutils::Events as _, symbol_short, IntoVal, TryFromVal};
+
+    let (env, client, _owner, minter) = setup();
+    let recipient = Address::generate(&env);
+
+    let token_id = client.mint(&minter, &recipient);
+
+    let events = env.events().all();
+    let last = events.last().unwrap();
+    assert_eq!(last.0, client.address);
+    assert_eq!(
+        last.1,
+        (symbol_short!("mint"), recipient.clone(), token_id).into_val(&env)
+    );
+    let _ = <Address as TryFromVal<Env, soroban_sdk::Val>>::try_from_val;
+}
+
+/// `transfer` emits the standard `transfer` event with
+/// `(from, to, token_id)` topics.
+#[test]
+fn transfer_emits_standard_event() {
+    use soroban_sdk::{testutils::Events as _, symbol_short, IntoVal};
+
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+
+    client.transfer(&alice, &bob, &token_id);
+
+    let events = env.events().all();
+    let last = events.last().unwrap();
+    assert_eq!(last.0, client.address);
+    assert_eq!(
+        last.1,
+        (symbol_short!("transfer"), alice.clone(), bob.clone(), token_id).into_val(&env)
+    );
+}
+
+/// `burn` removes the token and decrements the owner's balance.
+#[test]
+fn burn_removes_token_and_updates_balance() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+    assert_eq!(client.balance(&alice), 1i128);
+
+    client.burn(&alice, &token_id);
+
+    assert_eq!(client.balance(&alice), 0i128);
+    assert_eq!(
+        client.try_owner_of(&token_id),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+}
+
+/// `burn` by a non-owner is rejected.
+#[test]
+fn burn_by_non_owner_is_rejected() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let mallory = Address::generate(&env);
+    let token_id = client.mint(&minter, &alice);
+
+    assert_eq!(
+        client.try_burn(&mallory, &token_id),
+        Err(Ok(Error::IncorrectOwner.into()))
+    );
+    assert_eq!(client.owner_of(&token_id), alice);
+}
+
+/// Enumerable extension: `total_supply` and `token_by_index` track mints and
+/// burns.
+#[test]
+fn enumerable_extension_tracks_supply_and_indices() {
+    let (env, client, _owner, minter) = setup();
+    let alice = Address::generate(&env);
+    let bob = Address::generate(&env);
+
+    assert_eq!(client.total_supply(), 0u32);
+
+    let first = client.mint(&minter, &alice);
+    let second = client.mint(&minter, &bob);
+    assert_eq!(client.total_supply(), 2u32);
+    assert_eq!(client.token_by_index(&0), first);
+    assert_eq!(client.token_by_index(&1), second);
+
+    client.burn(&alice, &first);
+    assert_eq!(client.total_supply(), 1u32);
+    assert_eq!(client.token_by_index(&0), second);
+}
+
 #[test]
 fn upgrade_keeps_state_and_changes_version() {
     let (env, client, owner, minter) = setup();
@@ -297,4 +550,126 @@ fn upgrade_keeps_state_and_changes_version() {
             .unwrap()
     });
     assert_eq!(stored_owner, recipient);
+}
+
+// ---------------------------------------------------------------------------
+// LF-172 – NFT: burn and burn_from tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn holder_can_burn_and_balance_is_decremented() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let first = client.mint(&minter, &holder);
+    let second = client.mint(&minter, &holder);
+
+    assert_eq!(client.balance(&holder), 2);
+    client.burn(&holder, &first);
+
+    assert_eq!(
+        client.try_owner_of(&first),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.owner_of(&second), holder);
+    assert_eq!(client.balance(&holder), 1);
+
+    client.burn(&holder, &second);
+    assert_eq!(
+        client.try_owner_of(&second),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.balance(&holder), 0);
+}
+
+#[test]
+fn contract_owner_can_revoke_badge_via_burn_from() {
+    let (env, client, owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let token_id = client.mint(&minter, &holder);
+    assert_eq!(client.balance(&holder), 1);
+
+    client.burn_from(&owner, &holder, &token_id);
+
+    assert_eq!(
+        client.try_owner_of(&token_id),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.balance(&holder), 0);
+}
+
+#[test]
+fn approved_spender_and_operator_can_burn_from() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let operator = Address::generate(&env);
+
+    let token_1 = client.mint(&minter, &holder);
+    let token_2 = client.mint(&minter, &holder);
+    assert_eq!(client.balance(&holder), 2);
+
+    client.approve(&holder, &spender, &token_1, &1000);
+    client.approve_for_all(&holder, &operator, &1000);
+
+    // Approved spender burns token_1
+    client.burn_from(&spender, &holder, &token_1);
+    assert_eq!(
+        client.try_owner_of(&token_1),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.balance(&holder), 1);
+
+    // Operator approved for all burns token_2
+    client.burn_from(&operator, &holder, &token_2);
+    assert_eq!(
+        client.try_owner_of(&token_2),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.balance(&holder), 0);
+}
+
+#[test]
+fn unauthorized_spender_cannot_burn_from() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let stranger = Address::generate(&env);
+    let token_id = client.mint(&minter, &holder);
+
+    let result = client.try_burn_from(&stranger, &holder, &token_id);
+    assert_eq!(result, Err(Ok(Error::InsufficientApproval.into())));
+    assert_eq!(client.owner_of(&token_id), holder);
+    assert_eq!(client.balance(&holder), 1);
+}
+
+#[test]
+fn burn_by_non_owner_is_rejected() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let mallory = Address::generate(&env);
+    let token_id = client.mint(&minter, &holder);
+
+    let result = client.try_burn(&mallory, &token_id);
+    assert_eq!(result, Err(Ok(Error::IncorrectOwner.into())));
+    assert_eq!(client.owner_of(&token_id), holder);
+    assert_eq!(client.balance(&holder), 1);
+}
+
+#[test]
+fn burn_of_unminted_token_fails() {
+    let (env, client, _owner, _minter) = setup();
+    let holder = Address::generate(&env);
+
+    let result = client.try_burn(&holder, &999u128);
+    assert_eq!(result, Err(Ok(Error::TokenDoesNotExist.into())));
+}
+
+#[test]
+fn burn_publishes_burn_event() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let token_id = client.mint(&minter, &holder);
+
+    let event_count_before = env.events().all().len();
+    client.burn(&holder, &token_id);
+    assert_eq!(env.events().all().len(), event_count_before + 1);
 }
