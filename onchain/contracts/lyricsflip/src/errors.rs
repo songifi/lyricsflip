@@ -27,35 +27,33 @@ pub enum Error {
     NotAuthorized = 14,
     AmountExceedsLimit = 15,
     LimitMustBeGreaterThanZero = 16,
-    RoundNotReady = 18,
-    RoundAlreadyFinalized = 19,
     NonExistingCard = 17,
     RoundNotReady = 18,
     RoundAlreadyFinalized = 19,
-    NotEnoughDistinctCards = 20,
-    RoundCancelled = 35,
-    RoundFull = 21,
-    InvalidMaxPlayers = 22,
-    NftContractNotSet = 23,
-    MilestoneNotReached = 24,
-    MilestoneAlreadyClaimed = 25,
-    InvalidCardTitle = 26,
-    InvalidCardArtist = 27,
-    InvalidCardLyrics = 28,
-    InvalidCardYear = 29,
-    LyricsTooLong = 30,
-    DuplicateCard = 31,
-    BatchTooLarge = 32,
-    NotPendingOwner = 33,
-    /// The calling player has already submitted an answer for this card in
-    /// this round. A player may answer each card at most once. Prevents
-    /// answer-farming and streak manipulation (LF-004).
+    /// Round was cancelled and cannot accept further actions.
+    RoundCancelled = 20,
+    NotEnoughDistinctCards = 21,
+    RoundFull = 22,
+    InvalidMaxPlayers = 23,
+    NftContractNotSet = 24,
+    MilestoneNotReached = 25,
+    MilestoneAlreadyClaimed = 26,
+    InvalidCardTitle = 27,
+    InvalidCardArtist = 28,
+    InvalidCardLyrics = 29,
+    InvalidCardYear = 30,
+    LyricsTooLong = 31,
+    DuplicateCard = 32,
+    BatchTooLarge = 33,
+    NotPendingOwner = 34,
     /// All cards in the round have been drawn; call `finalize_round` to
     /// complete the round. Replaces `RoundCompleted` in `next_card` so that
     /// the two states — deck exhausted vs round finalized — are distinct.
-    NoMoreCards = 34,
+    NoMoreCards = 35,
     /// The calling player has already submitted an answer for this card in
-    /// this round. A player may answer each card at most once.
-    AlreadyAnswered = 35,
-    NoActiveCard = 34,
+    /// this round. A player may answer each card at most once. Prevents
+    /// answer-farming and streak manipulation (LF-004).
+    AlreadyAnswered = 36,
+    /// No active card is being played in this round.
+    NoActiveCard = 37,
 }
