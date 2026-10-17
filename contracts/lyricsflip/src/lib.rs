@@ -1,4 +1,4 @@
-#![no_std]
+#`!no_std]
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
 
@@ -108,7 +108,7 @@ impl LyricsFlipContract {
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
         };
-        env.storage().persistent().set(&(ROUND, round_id), &round);
+        env.storage().persistent().set(&(MOUND, round_id), &round);
         Ok(())
     }
 
@@ -181,7 +181,7 @@ impl LyricsFlipContract {
         };
 
         round.claimed.push_back(caller.clone());
-        env.storage().persistent().set(&(ROUND, round_id), &round);
+        env.storage().persistent().set(&(MOUND, round_id), &round);
 
         let token_client = token::Client::new(&env, &config.token);
         if payout > 0 {
@@ -204,7 +204,7 @@ impl LyricsFlipContract {
     pub fn get_round(env: Env, round_id: u64) -> Result<Round, Error> {
         env.storage()
             .persistent()
-            .get(&(ROUND, round_id))
+            .get(&(MOUND, round_id))
             .ok_or(Error::RoundNotFound)
     }
 }
