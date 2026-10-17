@@ -102,6 +102,16 @@ describe('SinglePlayerPage', () => {
     );
   });
 
+  it('shows the remaining round time derived from the contract end_time', async () => {
+    const endTime = BigInt(Math.floor(Date.now() / 1000) + 120);
+    mockGetRound.mockResolvedValue({ ...round, end_time: endTime });
+
+    render(<SinglePlayerPage />);
+
+    const timeLeft = await screen.findByTestId('round-time-left');
+    expect(timeLeft).toHaveTextContent('02:00');
+  });
+
   it('reveals the answer and counts the card after answering', async () => {
     render(<SinglePlayerPage />);
 
