@@ -18,13 +18,13 @@ pub use events::{
     RoundCancelled, RoundCompleted, RoundCreated, RoundJoined, RoundLeft, RoundStarted,
 };
 pub use types::{
-    Answer, Card, CardPos, DataKey, Genre, Milestone, PlayerStats, QuestionCard, QuestionKind,
-    Role, Round,
+    Answer, Card, CardPos, DataKey, Genre, LegacyCard, Milestone, PlayerStats, QuestionCard,
+    QuestionKind, Role, Round, RoundFilter,
 };
 
 use soroban_sdk::{
     contract, contractclient, contractimpl, panic_with_error, Address, Bytes, BytesN, Env, Map,
-    String, Vec,
+    String, TryFromVal, Val, Vec,
 };
 
 /// Bumped on every release that changes the contract's code; see `upgrade`.
@@ -115,6 +115,8 @@ const SECONDS_PER_YEAR: u64 = 31_556_952;
 /// Maximum number of cards accepted by one `add_cards` call. See
 /// `onchain/README.md` and `test::add_cards_max_batch_fits_budget`.
 pub const MAX_CARDS_PER_BATCH: u32 = 20;
+/// Maximum number of cards inspected when applying round filters.
+pub const MAX_ROUND_FILTER_SCAN: u32 = 500;
 
 /// One of the card index lists (see `DataKey::CardAt` and friends).
 enum Index {
@@ -369,11 +371,23 @@ impl LyricsFlip {
 
     /// Returns the card.
     pub fn get_card(env: Env, card_id: u64) -> Card {
-        let card: Card = env
+        let stored: Val = env
             .storage()
             .persistent()
             .get(&DataKey::Card(card_id))
             .unwrap_or_else(|| panic_with_error!(env, Error::NonExistingCard));
+        let card = match Card::try_from_val(&env, &stored) {
+            Ok(card) => card,
+            Err(_) => {
+                let legacy = LegacyCard::try_from_val(&env, &stored)
+                    .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard));
+                let card = Card::from(legacy);
+                env.storage()
+                    .persistent()
+                    .set(&DataKey::Card(card_id), &card);
+                card
+            }
+        };
         bump_persistent(&env, &DataKey::Card(card_id));
         card
     }
@@ -425,24 +439,102 @@ impl LyricsFlip {
 
     /// Creates a round.
     pub fn create_round(env: Env, caller: Address, genre: Option<Genre>, seed: u64) -> u64 {
-        caller.require_auth();
-        let genre = match genre {
-            Some(g) => g,
-            None => panic_with_error!(env, Error::NonExistingGenre),
-        };
+        if genre.is_none() {
+            panic_with_error!(env, Error::NonExistingGenre);
+        }
+        Self::create_round_internal(
+            &env,
+            caller,
+            RoundFilter {
+                genre,
+                decade: None,
+            },
+            None,
+            seed,
+        )
+    }
 
-        let amount = Self::get_cards_per_round(env.clone()) as u64;
-        let genre_count = Self::index_len(&env, &Index::Genre(genre)) as u64;
-        if genre_count == 0 {
+    /// Creates a round using optional genre, decade and difficulty filters.
+    pub fn create_round_with_filter(
+        env: Env,
+        caller: Address,
+        filter: RoundFilter,
+        difficulty: Option<u32>,
+        seed: u64,
+    ) -> u64 {
+        Self::create_round_internal(&env, caller, filter, difficulty, seed)
+    }
+
+    fn create_round_internal(
+        env: &Env,
+        caller: Address,
+        filter: RoundFilter,
+        difficulty: Option<u32>,
+        seed: u64,
+    ) -> u64 {
+        caller.require_auth();
+        if difficulty.is_some_and(|value| !(1..=3).contains(&value)) {
+            panic_with_error!(env, Error::InvalidCardDifficulty);
+        }
+        if let Some(decade) = filter.decade {
+            let current_year = 1970 + env.ledger().timestamp() / SECONDS_PER_YEAR;
+            if decade % 10 != 0 || decade < MIN_CARD_YEAR || decade > current_year {
+                panic_with_error!(env, Error::InvalidDecade);
+            }
+        }
+
+        let amount = Self::get_cards_per_round((*env).clone()) as u64;
+        let source = filter
+            .genre
+            .map(Index::Genre)
+            .unwrap_or(Index::All);
+        let source_count = Self::index_len(env, &source);
+        if source_count == 0 && filter.genre.is_some() {
             panic_with_error!(env, Error::EmptyGenreCards);
         }
-        if genre_count < amount {
-            panic_with_error!(env, Error::AmountExceedsLimit);
+
+        let mut cards: Vec<u64> = Vec::new(env);
+        if filter.decade.is_none() && difficulty.is_none() {
+            if (source_count as u64) < amount {
+                panic_with_error!(env, Error::AmountExceedsLimit);
+            }
+            for idx in Self::get_random_numbers(env, seed, amount, source_count as u64, true).iter()
+            {
+                cards.push_back(Self::index_get(env, &source, idx as u32));
+            }
+        } else {
+            let mut eligible = Vec::new(env);
+            let scan_count = source_count.min(MAX_ROUND_FILTER_SCAN);
+            for i in 0..scan_count {
+                let card_id = Self::index_get(env, &source, i);
+                let card = Self::get_card((*env).clone(), card_id);
+                let matches_decade = filter
+                    .decade
+                    .map(|decade| card.year / 10 * 10 == decade)
+                    .unwrap_or(true);
+                let matches_difficulty = difficulty
+                    .map(|value| card.difficulty == value)
+                    .unwrap_or(true);
+                if matches_decade && matches_difficulty {
+                    eligible.push_back(card_id);
+                }
+            }
+
+            if (eligible.len() as u64) < amount {
+                panic_with_error!(env, Error::AmountExceedsLimit);
+            }
+            for idx in
+                Self::get_random_numbers(env, seed, amount, eligible.len() as u64, true).iter()
+            {
+                cards.push_back(eligible.get(idx as u32).unwrap());
+            }
         }
-        let mut cards: Vec<u64> = Vec::new(&env);
-        for idx in Self::get_random_numbers(&env, seed, amount, genre_count, true).iter() {
-            cards.push_back(Self::index_get(&env, &Index::Genre(genre), idx as u32));
+        if filter.genre.is_none() && cards.is_empty() {
+            panic_with_error!(env, Error::InvalidCardsPerRound);
         }
+        let genre = filter
+            .genre
+            .unwrap_or_else(|| Self::get_card((*env).clone(), cards.get(0).unwrap()).genre);
 
         let round_count: u64 = env
             .storage()
@@ -489,19 +581,19 @@ impl LyricsFlip {
             &env.ledger().timestamp(),
         );
 
-        let mut open = Self::read_open_rounds(&env);
+        let mut open = Self::read_open_rounds(env);
         open.push_back(round_id);
         env.storage().persistent().set(&DataKey::OpenRounds, &open);
         bump_persistent(&env, &DataKey::OpenRounds);
 
-        bump_instance(&env);
+        bump_instance(env);
 
         RoundCreated {
             round_id,
             admin: caller,
             created_time: env.ledger().timestamp(),
         }
-        .publish(&env);
+        .publish(env);
 
         round_id
     }
@@ -1018,6 +1110,7 @@ impl LyricsFlip {
             MAX_CORRECT_POINTS
                 .saturating_sub(answer_time.saturating_mul(POINTS_DECAY_PER_SECOND))
                 .max(MIN_CORRECT_POINTS)
+                .saturating_mul(current_card.difficulty as u64)
         } else {
             0
         };
@@ -1332,6 +1425,9 @@ impl LyricsFlip {
         let current_year = 1970 + env.ledger().timestamp() / SECONDS_PER_YEAR;
         if card.year < MIN_CARD_YEAR || card.year > current_year {
             panic_with_error!(env, Error::InvalidCardYear);
+        }
+        if !(1..=3).contains(&card.difficulty) {
+            panic_with_error!(env, Error::InvalidCardDifficulty);
         }
     }
 
@@ -1764,4 +1860,3 @@ impl LyricsFlip {
         result
     }
 }
-
