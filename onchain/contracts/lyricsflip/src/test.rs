@@ -2502,3 +2502,70 @@ fn lf161_rejects_control_characters() {
         Err(Ok(Error::InvalidCardArtist.into()))
     );
 }
+// ---------------------------------------------------------------------------
+// LF-160 – year distractors stay within [MIN_CARD_YEAR, current_year]
+// ---------------------------------------------------------------------------
+
+fn parse_all_year_options(q: &crate::QuestionCard) -> std::vec::Vec<u64> {
+    let opts = [
+        q.option_one.clone(),
+        q.option_two.clone(),
+        q.option_three.clone(),
+        q.option_four.clone(),
+    ];
+    opts.iter().map(|o| parse_year_u64(o)).collect()
+}
+
+#[test]
+fn lf160_current_year_card_options_are_within_bounds() {
+    let (env, client, owner) = setup();
+    let current_year = 1970 + env.ledger().timestamp() / 31_556_952;
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "A", "T", current_year));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "B", "T2", current_year - 1));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "C", "T3", current_year - 2));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "D", "T4", current_year - 3));
+
+    let card = client.get_card(&1);
+    let q = client.build_question_card(&card, &7u64, &QuestionKind::Year);
+    for year in parse_all_year_options(&q).iter() {
+        assert!(*year >= 1900 && *year <= current_year, "option {year} outside [1900, {current_year}]");
+    }
+}
+
+#[test]
+fn lf160_min_year_card_options_are_within_bounds() {
+    let (env, client, owner) = setup();
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "A", "T", 1900));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "B", "T2", 1901));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "C", "T3", 1902));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "D", "T4", 1903));
+
+    let card = client.get_card(&1);
+    let q = client.build_question_card(&card, &7u64, &QuestionKind::Year);
+    for year in parse_all_year_options(&q).iter() {
+        assert!(*year >= 1900, "option {year} is below MIN_CARD_YEAR");
+    }
+}
+
+#[test]
+fn lf160_edge_year_card_still_has_four_unique_options() {
+    let (env, client, owner) = setup();
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "A", "T", 1900));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "B", "T2", 1950));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "C", "T3", 2000));
+    client.add_card(&owner, &sample_card(&env, Genre::Pop, "D", "T4", 2010));
+
+    let card = client.get_card(&1);
+    let q = client.build_question_card(&card, &11u64, &QuestionKind::Year);
+    let opts = [
+        q.option_one.clone(),
+        q.option_two.clone(),
+        q.option_three.clone(),
+        q.option_four.clone(),
+    ];
+    for i in 0..4 {
+        for j in (i+1)..4 {
+            assert_ne!(opts[i], opts[j], "duplicate option at {i},{j}");
+        }
+    }
+}

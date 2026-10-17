@@ -1316,19 +1316,58 @@ impl LyricsFlip {
         }
 
         let correct_year = card.year as i64;
+        // LF-160: clamp distractors to [MIN_CARD_YEAR, current_year] so a
+        // question never offers an impossible year. Widen the offset tier when
+        // clamping leaves fewer than 3 distinct values, and fall back to a
+        // deterministic sweep of the valid range as a last resort.
+        let current_year = 1970 + env.ledger().timestamp() / SECONDS_PER_YEAR;
+        let min_year = MIN_CARD_YEAR as i64;
+        let max_year = current_year as i64;
+
         let mut false_years: Vec<String> = Vec::new(env);
+
+        let mut try_push = |year: i64, out: &mut Vec<String>| -> bool {
+            if year < min_year || year > max_year || year == correct_year {
+                return false;
+            }
+            let year_str = Self::u64_to_string(env, year as u64);
+            if Self::contains_string(out, &year_str) {
+                return false;
+            }
+            out.push_back(year_str);
+            true
+        };
+
+        // Tier 1: original ±1..5, seeded shuffle preserved for determinism.
         for &offset in shuffled_offsets.iter() {
-            if false_years.len() >= 3 {
-                break;
-            }
-            let candidate_year = correct_year + offset;
-            if candidate_year > 0 {
-                let year_str = Self::u64_to_string(env, candidate_year as u64);
-                if !Self::contains_string(&false_years, &year_str) {
-                    false_years.push_back(year_str);
-                }
-            }
+            if false_years.len() >= 3 { break; }
+            let _ = try_push(correct_year + offset, &mut false_years);
         }
+
+        // Tier 2: ±6..15.
+        let tier2: [i64; 20] = [6,-6,7,-7,8,-8,9,-9,10,-10,11,-11,12,-12,13,-13,14,-14,15,-15];
+        for &offset in tier2.iter() {
+            if false_years.len() >= 3 { break; }
+            let _ = try_push(correct_year + offset, &mut false_years);
+        }
+
+        // Tier 3: ±16..50.
+        let mut tier3_offset: i64 = 16;
+        while tier3_offset <= 50 && false_years.len() < 3 {
+            let _ = try_push(correct_year + tier3_offset, &mut false_years);
+            if false_years.len() >= 3 { break; }
+            let _ = try_push(correct_year - tier3_offset, &mut false_years);
+            tier3_offset += 1;
+        }
+
+        // Fallback: deterministic sweep of the valid range.
+        if false_years.len() < 3 {
+            let mut y = min_year;
+            while y <= max_year && false_years.len() < 3 {
+                let _ = try_push(y, &mut false_years);
+                y += 1;
+            }
+        }        }
 
         let correct_str = Self::u64_to_string(env, card.year);
         let mut options: Vec<String> = Vec::new(env);
