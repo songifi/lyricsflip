@@ -13,10 +13,10 @@ import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull';
 import { AlbedoModule } from '@creit.tech/stellar-wallets-kit/modules/albedo';
 import { LobstrModule } from '@creit.tech/stellar-wallets-kit/modules/lobstr';
 import { HanaModule } from '@creit.tech/stellar-wallets-kit/modules/hana';
-import { createConfig, type StellarConfig } from './stellarConfig';
+import { createConfig, type StellarConfig } from './stellar-config';
 import { createSystemCalls, type SystemCalls } from './client';
 import type { StellarAccount } from './types';
-import { ConfigErrorScreen } from '@/components/organisms/ConfigErrorScreen';
+import { ConfigErrorScreen } from '@/components/organisms/config-error-screen';
 import { requestWalletChallenge, verifyWalletChallenge } from '../../services/wallet-auth';
 import { setAuthTokens, clearAuthTokens } from '../../services/api';
 

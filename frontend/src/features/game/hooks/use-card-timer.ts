@@ -73,7 +73,9 @@ export function useCardTimer({
     }, 1000);
 
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // `timeLeft` is intentionally part of the dependency list: the interval is
+    // re-created for every remaining second, which keeps the countdown in
+    // lock-step with the rendered value.
   }, [isActive, timeLeft]);
 
   const reset = useCallback(() => {

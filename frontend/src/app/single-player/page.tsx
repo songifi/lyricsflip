@@ -1,12 +1,12 @@
 "use client";
 import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
-import { LyricCard } from '@/components/organisms/LyricCard';
+import { LyricCard } from '@/components/organisms/lyric-card';
 import BadgeModal from '@/components/organisms/new-badge-modal';
-import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
+import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/use-card-timer';
 import { fireConfetti } from '@/lib/confetti';
-import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { formatAmount, formatTime, WAGER_ASSET_CODE } from '@/lib/utils';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { getGenreDisplayName } from '@/lib/stellar/genres';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -20,7 +20,7 @@ import {
   type QuestionCard,
   type Round,
 } from '@/lib/stellar/types';
-import { useGameTimer } from '@/features/game/hooks/useGameTimer';
+import { useGameTimer } from '@/features/game/hooks/use-game-timer';
 
 interface SongOption {
   title: string;
@@ -216,7 +216,7 @@ export default function SinglePlayerGame() {
       try {
         const id = BigInt(roundId);
         setTxStatus('Submitting answer…');
-        await systemCalls.submitAnswer(id, isCorrect ? Answer.Correct : Answer.Wrong);
+        await systemCalls.submitAnswer(id, Answer.title(option.title));
         setAnsweredCount((prev) => prev + 1);
         setTxStatus(null);
       } catch (err) {
@@ -280,23 +280,22 @@ export default function SinglePlayerGame() {
       <p ref={statusRef} aria-live="polite" className="sr-only" />
 
       <StatisticsPanel
-        score={score}
-        answeredCount={answeredCount}
-        totalCards={totalCards}
-        timeLeft={timeLeft}
-        wagerLabel={`${formatAmount(round?.wager ?? 0)} ${WAGER_ASSET_CODE}`}
+        time={formatTime(timeLeft)}
+        potWin={`${formatAmount(round?.wager_amount ?? 0)} ${WAGER_ASSET_CODE}`}
+        scores={`${score} / ${totalCards}`}
       />
 
       {question && (
         <section className="flex flex-col gap-4">
           <LyricCard
-            card={card}
-            question={question}
+            lyrics={[
+              {
+                text: question.lyric,
+                title: card?.title ?? '',
+                artist: card?.artist ?? '',
+              },
+            ]}
             isFlipped={isCardFlipped}
-            correctOption={correctOption}
-            selectedOption={selectedOption}
-            timeLeft={cardTimeLeft}
-            timeoutSeconds={CARD_TIMEOUT_SECONDS}
           />
 
           <SongOptions

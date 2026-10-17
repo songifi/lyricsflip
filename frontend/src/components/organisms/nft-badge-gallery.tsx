@@ -1,6 +1,6 @@
 'use client';
 
-import { useOwnedNfts, type NftMetadata } from '@/hooks/useOwnedNfts';
+import { useOwnedNfts, type NftMetadata } from '@/hooks/use-owned-nfts';
 
 interface NftBadgeGalleryProps {
   address: string | null | undefined;

@@ -8,7 +8,7 @@
  *  - resetting the timer works
  */
 import { renderHook, act } from '@testing-library/react';
-import { useGameTimer } from '@/features/game/hooks/useGameTimer';
+import { useGameTimer } from '@/features/game/hooks/use-game-timer';
 import { useStore } from '@/store';
 
 // Reset the Zustand store to a known state before each test
@@ -35,7 +35,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('useGameTimer', () => {
+describe('use-game-timer', () => {
   it('exposes timeLeft, startTimer, stopTimer, resetTimer', () => {
     const { result } = renderHook(() => useGameTimer());
 

@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { formatAmount } from '@/lib/utils';
-import { useStellar } from './useStellar';
+import { useStellar } from './use-stellar';
 
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org';

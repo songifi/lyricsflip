@@ -9,9 +9,23 @@
 module.exports = {
   root: true,
   // Only lint the directories where we enforce naming conventions.
-  // Files outside these directories (app/, pages/, public/, etc.) are
+  // Files outside these directories (app/, pages/, lib/, public/, etc.) are
   // ignored so the default Espree parser never tries to parse TSX/TS.
-  ignorePatterns: ['src/*', '!src/components/', '!src/hooks/', '!src/lib/', '!src/store/', '!src/services/', '!src/features/'],
+  ignorePatterns: [
+    'src/app/**',
+    'src/__tests__/**',
+    'src/mock/**',
+    'src/types/**',
+    'pages/**',
+    'lib/**',
+    'src/*',
+    '!src/components/',
+    '!src/hooks/',
+    '!src/lib/',
+    '!src/store/',
+    '!src/services/',
+    '!src/features/',
+  ],
   overrides: [
     {
       files: [

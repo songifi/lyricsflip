@@ -7,7 +7,7 @@
 // that wiring is completed here rather than carried over broken).
 
 import { useContext } from 'react';
-import { StellarContext, type StellarContextType, type StellarSetupResult } from '../StellarProvider';
+import { StellarContext, type StellarContextType, type StellarSetupResult } from '../stellar-provider';
 import type { SystemCalls } from '../client';
 import type { StellarAccount } from '../types';
 

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, Copy, LogOut, Wallet } from 'lucide-react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import { useXlmBalance } from '@/lib/stellar/hooks/useXlmBalance';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { useXlmBalance } from '@/lib/stellar/hooks/use-xlm-balance';
 import { cn } from '@/lib/utils';
 
 /** `GABCDEFG…WXYZ` -> `GABC…XYZ` */

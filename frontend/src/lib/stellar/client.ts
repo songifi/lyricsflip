@@ -8,7 +8,7 @@
 
 import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
-import type { StellarConfig } from './stellarConfig';
+import type { StellarConfig } from './stellar-config';
 import { withTxToast } from './toast';
 import {
   type Answer,

@@ -1,94 +1,97 @@
-import { render, screen, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import MultiplayerRoundPage from "./page";
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import MultiplayerRoundPage from './page';
 
-const mockUseRoundEvents = jest.fn();
+const mockPush = jest.fn();
+const mockGetRound = jest.fn();
+const mockGetRoundPlayers = jest.fn();
+const mockJoinRound = jest.fn();
+const mockStartRound = jest.fn();
 
-jest.mock("@/hooks/useRoundEvents", () => ({
-  useRoundEvents: (...args: unknown[]) => mockUseRoundEvents(...args),
+jest.mock('next/navigation', () => ({
+  useParams: () => ({ roundId: '123' }),
+  useRouter: () => ({ push: mockPush, back: jest.fn() }),
 }));
 
-jest.mock("next/navigation", () => ({
-  useParams: () => ({ roundId: "123" }),
+jest.mock('@/lib/stellar/hooks/use-stellar', () => ({
+  useStellar: () => ({
+    systemCalls: {
+      getRound: mockGetRound,
+      getRoundPlayers: mockGetRoundPlayers,
+      joinRound: mockJoinRound,
+      startRound: mockStartRound,
+    },
+    account: { address: 'GPLAYER1' },
+    connect: jest.fn(),
+  }),
+}));
+
+jest.mock('@/hooks/use-round-events', () => ({
+  useRoundEvents: () => ({
+    joined: ['GPLAYER2'],
+    ready: [],
+    started: false,
+    error: null,
+  }),
 }));
 
 const baseRound = {
-  id: "123",
-  host: "GHOSTHOST",
-  players: ["GPLAYER1", "GPLAYER2"],
-  ready: ["GPLAYER1"],
-  status: "lobby" as const,
+  round_id: BigInt(123),
+  admin: 'GHOSTHOST',
+  genre: 'Pop' as const,
+  wager_amount: BigInt(0),
+  start_time: BigInt(0),
+  is_started: false,
+  is_completed: false,
+  end_time: BigInt(0),
+  next_card_index: 0,
+  is_cancelled: false,
 };
 
-describe("multiplayer/[roundId] lobby", () => {
+describe('multiplayer/[roundId] lobby', () => {
   beforeEach(() => {
-    mockUseRoundEvents.mockReset();
+    jest.clearAllMocks();
+    mockGetRound.mockResolvedValue(baseRound);
+    mockGetRoundPlayers.mockResolvedValue(['GPLAYER1', 'GPLAYER2']);
+    mockJoinRound.mockResolvedValue(undefined);
+    mockStartRound.mockResolvedValue(undefined);
   });
 
-  it("renders the lobby and lists players from contract state", () => {
-    mockUseRoundEvents.mockReturnValue({
-      round: baseRound,
-      loading: false,
-      error: null,
-      startRound: jest.fn(),
-      setReady: jest.fn(),
-    });
-
+  it('lists the players from contract state', async () => {
     render(<MultiplayerRoundPage />);
 
-    expect(screen.getByText(/lobby/i)).toBeInTheDocument();
-    expect(screen.getByText("GPLAYER1")).toBeInTheDocument();
-    expect(screen.getByText("GPLAYER2")).toBeInTheDocument();
+    expect(await screen.findByText('GPLAYER1 (you)')).toBeInTheDocument();
+    expect(screen.getByText('GPLAYER2')).toBeInTheDocument();
+    expect(screen.getByText(/Players \(2\)/)).toBeInTheDocument();
   });
 
-  it("shows the invite link for the round", () => {
-    mockUseRoundEvents.mockReturnValue({
-      round: baseRound,
-      loading: false,
-      error: null,
-      startRound: jest.fn(),
-      setReady: jest.fn(),
-    });
-
+  it('readies up through start_round', async () => {
     render(<MultiplayerRoundPage />);
 
-    const invite = screen.getByRole("textbox", { name: /invite/i });
-    expect(invite).toHaveValue(expect.stringContaining("/multiplayer/123"));
+    const ready = await screen.findByRole('button', { name: /ready/i });
+    fireEvent.click(ready);
+
+    await waitFor(() =>
+      expect(mockStartRound).toHaveBeenCalledWith(BigInt(123)),
+    );
   });
 
-  it("toggles ready state and starts the round", async () => {
-    const setReady = jest.fn();
-    const startRound = jest.fn();
-    mockUseRoundEvents.mockReturnValue({
-      round: baseRound,
-      loading: false,
-      error: null,
-      startRound,
-      setReady,
-    });
-
-    render(<MultiplayerRoundPage />);
-
-    await userEvent.click(screen.getByRole("button", { name: /ready/i }));
-    expect(setReady).toHaveBeenCalled();
-
-    await userEvent.click(screen.getByRole("button", { name: /start/i }));
-    expect(startRound).toHaveBeenCalled();
-  });
-
-  it("renders an error state when the round fails to load", async () => {
-    mockUseRoundEvents.mockReturnValue({
-      round: null,
-      loading: false,
-      error: "Round not found",
-      startRound: jest.fn(),
-      setReady: jest.fn(),
-    });
+  it('joins the round when the wallet is not a participant yet', async () => {
+    mockGetRoundPlayers.mockResolvedValue(['GPLAYER2']);
 
     render(<MultiplayerRoundPage />);
 
     await waitFor(() =>
-      expect(screen.getByText(/round not found/i)).toBeInTheDocument()
+      expect(mockJoinRound).toHaveBeenCalledWith(BigInt(123)),
     );
+  });
+
+  it('shows an error when the round cannot be loaded', async () => {
+    mockGetRound.mockRejectedValue(new Error('boom'));
+
+    render(<MultiplayerRoundPage />);
+
+    expect(
+      await screen.findByText(/does not exist or could not be loaded/i),
+    ).toBeInTheDocument();
   });
 });

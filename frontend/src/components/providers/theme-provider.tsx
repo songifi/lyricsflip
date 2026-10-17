@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useThemeStore } from '@/store/useThemeStore';
+import { useThemeStore } from '@/store/use-theme-store';
 
 /**
  * ThemeProvider applies the stored theme class to `<html>` on mount and

@@ -1,5 +1,5 @@
 'use client';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useEffect, useState } from 'react';
 
 interface LeaderboardUser {

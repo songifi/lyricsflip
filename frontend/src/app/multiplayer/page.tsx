@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/atoms/button';
 import { GENRE_VALUES, type Genre } from '@/lib/stellar/types';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';

@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-import { useGameTimer } from '@/features/game/hooks/useGameTimer';
-import GameResultPopup from '../organisms/GameResultPopup';
+import { useGameTimer } from '@/features/game/hooks/use-game-timer';
+import GameResultPopup from '../organisms/game-result-popup';
 import { formatTime } from '@/lib/utils';
 
 interface StatisticsPanelProps {

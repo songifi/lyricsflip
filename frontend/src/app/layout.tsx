@@ -1,8 +1,7 @@
 "use client"
 import Navbar, { MobileNav } from '@/components/molecules/navbar';
 import { metadata } from "./metadata";
-import { ClientProvider } from '@/components/providers/client-provider';
-import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
@@ -25,7 +24,7 @@ const interV = localFont({
   variable: '--font-interv',
 });
 
-const DynamicStellarProvider = dynamic(() => import('@/lib/stellar/StellarProvider').then(mod => mod.StellarProvider), {
+const DynamicStellarProvider = dynamic(() => import('@/lib/stellar/stellar-provider').then(mod => mod.StellarProvider), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center min-h-screen">
@@ -53,8 +52,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} ${jetBrainsMono.variable} ${interV.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors`}>
-        <ClientProvider>
-          <ThemeProvider>
+        <ThemeProvider>
             <Suspense fallback={
               <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">
@@ -65,24 +63,15 @@ export default function RootLayout({
             }>
               <DynamicStellarProvider>
                 <Navbar />
-                {children}
+                {/* pb-20 on mobile so the fixed MobileNav bar never overlaps content; md:pb-0 restores normal flow on desktop */}
+                <main className="pb-20 md:pb-0">
+                  {children}
+                </main>
                 <MobileNav />
               </DynamicStellarProvider>
             </Suspense>
-          </ThemeProvider>
-            </div>
-          }>
-            <DynamicStellarProvider>
-              <Navbar />
-              {/* pb-20 on mobile so the fixed MobileNav bar never overlaps content; md:pb-0 restores normal flow on desktop */}
-              <main className="pb-20 md:pb-0">
-                {children}
-              </main>
-              <MobileNav />
-            </DynamicStellarProvider>
-          </Suspense>
-          <Toaster richColors position="top-center" />
-        </ClientProvider>
+            <Toaster richColors position="top-center" />
+        </ThemeProvider>
       </body>
     </html>
   );
