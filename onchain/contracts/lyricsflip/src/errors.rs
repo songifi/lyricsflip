@@ -76,10 +76,26 @@ pub enum Error {
     BatchTooLarge = 32,
     /// The caller is not the pending owner of the contract.
     NotPendingOwner = 33,
+    /// Round was cancelled and cannot accept further actions.
+    RoundCancelled = 20,
+    NotEnoughDistinctCards = 21,
+    RoundFull = 22,
+    InvalidMaxPlayers = 23,
+    NftContractNotSet = 24,
+    MilestoneNotReached = 25,
+    MilestoneAlreadyClaimed = 26,
+    InvalidCardTitle = 27,
+    InvalidCardArtist = 28,
+    InvalidCardLyrics = 29,
+    InvalidCardYear = 30,
+    LyricsTooLong = 31,
+    DuplicateCard = 32,
+    BatchTooLarge = 33,
+    NotPendingOwner = 34,
     /// All cards in the round have been drawn; call `finalize_round` to
     /// complete the round. Replaces `RoundCompleted` in `next_card` so that
     /// the two states — deck exhausted vs round finalized — are distinct.
-    NoMoreCards = 34,
+    NoMoreCards = 35,
     /// The calling player has already submitted an answer for this card in
     /// this round. A player may answer each card at most once. Prevents
     /// answer-farming and streak manipulation (LF-004).
@@ -88,4 +104,7 @@ pub enum Error {
     NoActiveCard = 36,
     /// The round has been cancelled and no further actions are allowed.
     RoundCancelled = 37,
+    AlreadyAnswered = 36,
+    /// No active card is being played in this round.
+    NoActiveCard = 37,
 }

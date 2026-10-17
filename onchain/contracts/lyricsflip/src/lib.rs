@@ -185,7 +185,21 @@ impl LyricsFlip {
     }
 
     /// Returns the round cards.
-    pub fn get_round_cards(env: Env, round_id: u64) -> Vec<u64> {
+    ///
+    /// LF-142: while a round is active (started and not finalized), only an
+    /// admin may read the card ids, so a modified client cannot look up the
+    /// answers ahead of time. After finalization the list is public again.
+    pub fn get_round_cards(env: Env, caller: Address, round_id: u64) -> Vec<u64> {
+        caller.require_auth();
+        let round = Self::read_round(&env, round_id);
+        let finalized: bool = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundFinalized(round_id))
+            .unwrap_or(false);
+        if round.is_started && !finalized && !Self::is_admin(env.clone(), Role::Admin, caller) {
+            panic_with_error!(env, Error::NotAuthorized);
+        }
         Self::read_round_cards(&env, round_id)
     }
 
@@ -368,7 +382,31 @@ impl LyricsFlip {
     }
 
     /// Returns the card.
-    pub fn get_card(env: Env, card_id: u64) -> Card {
+    ///
+    /// LF-142: card contents (title/artist/year) are hidden from non-admins
+    /// while any round that includes this card is active. Callers should use
+    /// `get_question` for the caller's current card instead.
+    pub fn get_card(env: Env, caller: Address, card_id: u64) -> Card {
+        caller.require_auth();
+        if !Self::is_admin(env.clone(), Role::Admin, caller.clone()) {
+            let round_count = Self::get_round_count(env.clone());
+            let mut round_id: u64 = 1;
+            while round_id <= round_count {
+                let round = Self::read_round(&env, round_id);
+                let finalized: bool = env
+                    .storage()
+                    .persistent()
+                    .get(&DataKey::RoundFinalized(round_id))
+                    .unwrap_or(false);
+                if round.is_started && !finalized {
+                    let cards = Self::read_round_cards(&env, round_id);
+                    if cards.contains(&card_id) {
+                        panic_with_error!(env, Error::NotAuthorized);
+                    }
+                }
+                round_id += 1;
+            }
+        }
         let card: Card = env
             .storage()
             .persistent()
@@ -376,6 +414,32 @@ impl LyricsFlip {
             .unwrap_or_else(|| panic_with_error!(env, Error::NonExistingCard));
         bump_persistent(&env, &DataKey::Card(card_id));
         card
+    }
+
+    /// LF-142: returns only the lyric, kind and options for the caller's
+    /// current card in `round_id`, never the title/artist/year. Replaces
+    /// `next_card`'s old `Card` return so a modified client cannot read the
+    /// answer from the contract's own return values.
+    pub fn get_question(env: Env, caller: Address, round_id: u64) -> QuestionCard {
+        caller.require_auth();
+        if !Self::is_round_player(&env, round_id, &caller) {
+            panic_with_error!(env, Error::NotAParticipant);
+        }
+        let round = Self::read_round(&env, round_id);
+        if !round.is_started {
+            panic_with_error!(env, Error::RoundNotStarted);
+        }
+        if round.next_card_index == 0 {
+            panic_with_error!(env, Error::NoActiveCard);
+        }
+        let current_index = round.next_card_index - 1;
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let card_id = round_cards
+            .get(current_index)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
+        let card = Self::get_card(env.clone(), card_id);
+        let kind = QuestionKind::Title;
+        Self::build_question_card(env, card, round_id, kind)
     }
 
     /// Returns the cards of genre.
@@ -709,7 +773,11 @@ impl LyricsFlip {
     /// already finalized". The `is_completed` flag is set only by
     /// `finalize_round`, so players can still answer the last drawn card
     /// after this function returns it.
-    pub fn next_card(env: Env, round_id: u64) -> Card {
+    pub fn next_card(env: Env, caller: Address, round_id: u64) -> Card {
+        caller.require_auth();
+        if !Self::is_round_player(&env, round_id, &caller) {
+            panic_with_error!(env, Error::NotAParticipant);
+        }
         let mut round = Self::read_round(&env, round_id);
         if !round.is_started {
             panic_with_error!(env, Error::RoundNotStarted);
@@ -726,28 +794,39 @@ impl LyricsFlip {
         let round_cards = Self::read_round_cards(&env, round_id);
         // LF-003: use NoMoreCards (not RoundCompleted) so the caller knows
         // the deck is exhausted without implying the round is finished.
+        let player_index: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
         let card_id = round_cards
-            .get(round.next_card_index)
+            .get(player_index)
             .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
         let card = Self::get_card(env.clone(), card_id);
 
         CardDrawn {
             round_id,
-            index: round.next_card_index,
-            card_id,
+            player: caller.clone(),
+            index: player_index,
         }
         .publish(&env);
 
-        let started_at_key = DataKey::RoundCardStartedAt((round_id, card_id));
+        let started_at_key =
+            DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
         env.storage()
             .persistent()
             .set(&started_at_key, &env.ledger().timestamp());
         bump_persistent(&env, &started_at_key);
 
+        let player_index_key = DataKey::PlayerCardIndex((round_id, caller.clone()));
+        env.storage()
+            .persistent()
+            .set(&player_index_key, &(player_index + 1));
+        bump_persistent(&env, &player_index_key);
+
         // Do NOT set is_completed here. The round is completed only by
         // finalize_round, which lets players answer the last card after it
         // has been drawn (LF-003).
-        round.next_card_index += 1;
         env.storage()
             .persistent()
             .set(&DataKey::Round(round_id), &round);
@@ -964,11 +1043,16 @@ impl LyricsFlip {
         // set only by finalize_round (which is guarded by RoundAlreadyFinalized
         // above). The old `round.is_completed` check fired as soon as the last
         // card was drawn, preventing players from ever answering it.
-        if round.next_card_index == 0 {
+        let player_index: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
+        if player_index == 0 {
             panic_with_error!(env, Error::NoActiveCard);
         }
 
-        let current_index = round.next_card_index - 1;
+        let current_index = player_index - 1;
         let round_cards = Self::read_round_cards(&env, round_id);
         let current_card_id = round_cards.get(current_index).unwrap();
         let current_card = Self::get_card(env.clone(), current_card_id);
@@ -993,7 +1077,7 @@ impl LyricsFlip {
         let answer_started_at: u64 = env
             .storage()
             .persistent()
-            .get(&DataKey::RoundCardStartedAt((round_id, current_card_id)))
+            .get(&DataKey::PlayerCardStartedAt((round_id, caller.clone(), current_card_id)))
             .unwrap_or(round.start_time);
         let answer_time = env.ledger().timestamp().saturating_sub(answer_started_at);
         let answer_times = Self::read_round_answer_times(&env, round_id);
@@ -1504,7 +1588,12 @@ impl LyricsFlip {
         }
 
         for player in players.iter() {
-            for card_id in round_cards.iter() {
+            let player_index: u32 = env
+                .storage()
+                .persistent()
+                .get(&DataKey::PlayerCardIndex((round_id, player.clone())))
+                .unwrap_or(0);
+            for card_id in round_cards.iter().take(player_index) {
                 let answered: bool = env
                     .storage()
                     .persistent()
