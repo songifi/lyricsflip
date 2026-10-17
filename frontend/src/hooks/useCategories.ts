@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchCategories } from '../mock/musicService';
+import { fetchCategories } from '../services/musicService';
 
 export const useCategories = () => {
   return useQuery({

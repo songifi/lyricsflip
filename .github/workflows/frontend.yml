@@ -40,4 +40,10 @@ jobs:
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm test -- --ci
+      - name: Knip report (non-blocking)
+        run: npx knip || true
+        continue-on-error: true
       - run: npm run build
+        env:
+          NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+          NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA

@@ -16,6 +16,7 @@ import { HanaModule } from '@creit.tech/stellar-wallets-kit/modules/hana';
 import { createConfig, type StellarConfig } from './stellarConfig';
 import { createSystemCalls, type SystemCalls } from './client';
 import type { StellarAccount } from './types';
+import { StrKey } from '@stellar/stellar-sdk';
 import { ConfigErrorScreen } from '@/components/organisms/ConfigErrorScreen';
 import { requestWalletChallenge, verifyWalletChallenge } from '../../services/wallet-auth';
 import { setAuthTokens, clearAuthTokens } from '../../services/api';
@@ -127,10 +128,19 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
       newWarnings.push(
         'NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID is not set - on-chain calls will fail until it is configured.',
       );
+    } else if (!StrKey.isValidContract(config.lyricsflipContractId)) {
+      newWarnings.push(
+        'NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID is invalid - contract ID must be a valid C... StrKey address.',
+      );
     }
+
     if (!config.lyricsflipNftContractId) {
       newWarnings.push(
         'NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID is not set - NFT minting will fail until it is configured.',
+      );
+    } else if (!StrKey.isValidContract(config.lyricsflipNftContractId)) {
+      newWarnings.push(
+        'NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID is invalid - contract ID must be a valid C... StrKey address.',
       );
     }
     setWarnings(newWarnings);
@@ -188,10 +198,12 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
     authError,
   };
 
-  // Show a clear "App is not configured" screen when the game contract ID is
-  // missing — the app is completely non-functional without it.
-  const criticalWarnings = warnings.filter((w) =>
-    w.includes('NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID'),
+  // Show a clear "App is not configured" screen when either contract ID is
+  // missing or invalid — the app is completely non-functional without them.
+  const criticalWarnings = warnings.filter(
+    (w) =>
+      w.includes('NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID') ||
+      w.includes('NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID'),
   );
   if (!isLoading && criticalWarnings.length > 0) {
     return <ConfigErrorScreen issues={criticalWarnings} />;
