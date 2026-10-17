@@ -56,6 +56,7 @@ export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = {
   8: { name: 'NotOwner', message: 'Only the contract owner can do that.' },
   9: { name: 'NotPendingOwner', message: 'You are not the pending owner of this contract.' },
   10: { name: 'BaseUriTooLong', message: 'That base URI is too long.' },
+  11: { name: 'InsufficientBalance', message: 'Balance is insufficient or missing.' },
 };
 
 /**

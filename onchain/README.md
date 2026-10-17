@@ -321,14 +321,19 @@ following hot keys:
 | `RoundFinalized` | `finalize_round` write |
 | `OpenRounds` | `create_round` / `start_round` write |
 | `PlayerStats` | `start_round` / `submit_answer` / `finalize_round` write, `get_player_stat` read |
-| `TokenOwner(id)` *(NFT)* | `mint` write, `owner_of` read |
+| `TokenOwner(id)` *(NFT)* | `mint` write, `owner_of` read, `do_transfer` write |
+| `Balance(owner)` *(NFT)* | `add_balance` write, `balance` read |
+| `Approval(id)` *(NFT)* | `approve` write, `get_approved` read |
+| `ApprovalForAll(owner, operator)` *(NFT)* | `approve_for_all` write, `is_approved_for_all` read |
 
 ### Survival tests
 
 `test::ttl_survival_game_entries_survive_ledger_advance` advances the ledger
 sequence past the default TTL and verifies that entries touched during gameplay
-(cards, rounds, player stats) are still readable. The equivalent NFT test
-`test::ttl_survival_token_owner_survives_ledger_advance` covers `TokenOwner`.
+(cards, rounds, player stats) are still readable. The equivalent NFT tests
+`test::ttl_survival_token_owner_survives_ledger_advance` and
+`test::ttl_survival_transfer_survives_ledger_advance` cover `TokenOwner`,
+`Balance`, and approvals surviving ledger advances for transfers.
 
 ## Error codes
 
@@ -398,3 +403,4 @@ Every variant is currently referenced by the contract. The ones marked
 | 8 | `NotOwner` | Caller of an owner-only function is not the owner |
 | 9 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
 | 10 | `BaseUriTooLong` | `base_uri` is longer than 200 bytes |
+| 11 | `InsufficientBalance` | Balance is insufficient or missing for transfer |
