@@ -4,7 +4,7 @@
 //! environment (no Rust toolchain available).
 
 use crate::{Error, LyricsFlipNFT, LyricsFlipNFTClient};
-use soroban_sdk::{testutils::Address as _, Address, Env, String};
+use soroban_sdk::{testutils::Address as _, testutils::Events as _, Address, Env, String};
 
 fn setup<'a>() -> (Env, LyricsFlipNFTClient<'a>, Address, Address) {
     let env = Env::default();
@@ -550,4 +550,126 @@ fn upgrade_keeps_state_and_changes_version() {
             .unwrap()
     });
     assert_eq!(stored_owner, recipient);
+}
+
+// ---------------------------------------------------------------------------
+// LF-172 – NFT: burn and burn_from tests
+// ---------------------------------------------------------------------------
+
+#[test]
+fn holder_can_burn_and_balance_is_decremented() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let first = client.mint(&minter, &holder);
+    let second = client.mint(&minter, &holder);
+
+    assert_eq!(client.balance(&holder), 2);
+    client.burn(&holder, &first);
+
+    assert_eq!(
+        client.try_owner_of(&first),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.owner_of(&second), holder);
+    assert_eq!(client.balance(&holder), 1);
+
+    client.burn(&holder, &second);
+    assert_eq!(
+        client.try_owner_of(&second),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.balance(&holder), 0);
+}
+
+#[test]
+fn contract_owner_can_revoke_badge_via_burn_from() {
+    let (env, client, owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let token_id = client.mint(&minter, &holder);
+    assert_eq!(client.balance(&holder), 1);
+
+    client.burn_from(&owner, &holder, &token_id);
+
+    assert_eq!(
+        client.try_owner_of(&token_id),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.balance(&holder), 0);
+}
+
+#[test]
+fn approved_spender_and_operator_can_burn_from() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let spender = Address::generate(&env);
+    let operator = Address::generate(&env);
+
+    let token_1 = client.mint(&minter, &holder);
+    let token_2 = client.mint(&minter, &holder);
+    assert_eq!(client.balance(&holder), 2);
+
+    client.approve(&holder, &spender, &token_1, &1000);
+    client.approve_for_all(&holder, &operator, &1000);
+
+    // Approved spender burns token_1
+    client.burn_from(&spender, &holder, &token_1);
+    assert_eq!(
+        client.try_owner_of(&token_1),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.balance(&holder), 1);
+
+    // Operator approved for all burns token_2
+    client.burn_from(&operator, &holder, &token_2);
+    assert_eq!(
+        client.try_owner_of(&token_2),
+        Err(Ok(Error::TokenDoesNotExist.into()))
+    );
+    assert_eq!(client.balance(&holder), 0);
+}
+
+#[test]
+fn unauthorized_spender_cannot_burn_from() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let stranger = Address::generate(&env);
+    let token_id = client.mint(&minter, &holder);
+
+    let result = client.try_burn_from(&stranger, &holder, &token_id);
+    assert_eq!(result, Err(Ok(Error::InsufficientApproval.into())));
+    assert_eq!(client.owner_of(&token_id), holder);
+    assert_eq!(client.balance(&holder), 1);
+}
+
+#[test]
+fn burn_by_non_owner_is_rejected() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let mallory = Address::generate(&env);
+    let token_id = client.mint(&minter, &holder);
+
+    let result = client.try_burn(&mallory, &token_id);
+    assert_eq!(result, Err(Ok(Error::IncorrectOwner.into())));
+    assert_eq!(client.owner_of(&token_id), holder);
+    assert_eq!(client.balance(&holder), 1);
+}
+
+#[test]
+fn burn_of_unminted_token_fails() {
+    let (env, client, _owner, _minter) = setup();
+    let holder = Address::generate(&env);
+
+    let result = client.try_burn(&holder, &999u128);
+    assert_eq!(result, Err(Ok(Error::TokenDoesNotExist.into())));
+}
+
+#[test]
+fn burn_publishes_burn_event() {
+    let (env, client, _owner, minter) = setup();
+    let holder = Address::generate(&env);
+    let token_id = client.mint(&minter, &holder);
+
+    let event_count_before = env.events().all().len();
+    client.burn(&holder, &token_id);
+    assert_eq!(env.events().all().len(), event_count_before + 1);
 }
