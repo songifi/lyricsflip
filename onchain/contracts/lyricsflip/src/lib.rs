@@ -709,7 +709,11 @@ impl LyricsFlip {
     /// already finalized". The `is_completed` flag is set only by
     /// `finalize_round`, so players can still answer the last drawn card
     /// after this function returns it.
-    pub fn next_card(env: Env, round_id: u64) -> Card {
+    pub fn next_card(env: Env, caller: Address, round_id: u64) -> Card {
+        caller.require_auth();
+        if !Self::is_round_player(&env, round_id, &caller) {
+            panic_with_error!(env, Error::NotAParticipant);
+        }
         let mut round = Self::read_round(&env, round_id);
         if !round.is_started {
             panic_with_error!(env, Error::RoundNotStarted);
@@ -726,28 +730,39 @@ impl LyricsFlip {
         let round_cards = Self::read_round_cards(&env, round_id);
         // LF-003: use NoMoreCards (not RoundCompleted) so the caller knows
         // the deck is exhausted without implying the round is finished.
+        let player_index: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
         let card_id = round_cards
-            .get(round.next_card_index)
+            .get(player_index)
             .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
         let card = Self::get_card(env.clone(), card_id);
 
         CardDrawn {
             round_id,
-            index: round.next_card_index,
-            card_id,
+            player: caller.clone(),
+            index: player_index,
         }
         .publish(&env);
 
-        let started_at_key = DataKey::RoundCardStartedAt((round_id, card_id));
+        let started_at_key =
+            DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
         env.storage()
             .persistent()
             .set(&started_at_key, &env.ledger().timestamp());
         bump_persistent(&env, &started_at_key);
 
+        let player_index_key = DataKey::PlayerCardIndex((round_id, caller.clone()));
+        env.storage()
+            .persistent()
+            .set(&player_index_key, &(player_index + 1));
+        bump_persistent(&env, &player_index_key);
+
         // Do NOT set is_completed here. The round is completed only by
         // finalize_round, which lets players answer the last card after it
         // has been drawn (LF-003).
-        round.next_card_index += 1;
         env.storage()
             .persistent()
             .set(&DataKey::Round(round_id), &round);
@@ -964,11 +979,16 @@ impl LyricsFlip {
         // set only by finalize_round (which is guarded by RoundAlreadyFinalized
         // above). The old `round.is_completed` check fired as soon as the last
         // card was drawn, preventing players from ever answering it.
-        if round.next_card_index == 0 {
+        let player_index: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
+        if player_index == 0 {
             panic_with_error!(env, Error::NoActiveCard);
         }
 
-        let current_index = round.next_card_index - 1;
+        let current_index = player_index - 1;
         let round_cards = Self::read_round_cards(&env, round_id);
         let current_card_id = round_cards.get(current_index).unwrap();
         let current_card = Self::get_card(env.clone(), current_card_id);
@@ -993,7 +1013,7 @@ impl LyricsFlip {
         let answer_started_at: u64 = env
             .storage()
             .persistent()
-            .get(&DataKey::RoundCardStartedAt((round_id, current_card_id)))
+            .get(&DataKey::PlayerCardStartedAt((round_id, caller.clone(), current_card_id)))
             .unwrap_or(round.start_time);
         let answer_time = env.ledger().timestamp().saturating_sub(answer_started_at);
         let answer_times = Self::read_round_answer_times(&env, round_id);
@@ -1504,7 +1524,12 @@ impl LyricsFlip {
         }
 
         for player in players.iter() {
-            for card_id in round_cards.iter() {
+            let player_index: u32 = env
+                .storage()
+                .persistent()
+                .get(&DataKey::PlayerCardIndex((round_id, player.clone())))
+                .unwrap_or(0);
+            for card_id in round_cards.iter().take(player_index) {
                 let answered: bool = env
                     .storage()
                     .persistent()
