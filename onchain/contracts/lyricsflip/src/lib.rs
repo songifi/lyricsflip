@@ -617,7 +617,7 @@ impl LyricsFlip {
             }
         }
         Self::require_not_paused(&env);
-        let genre = match genre {
+        let genre = match filter.genre {
             Some(g) => g,
             None => panic_with_error!(env, Error::NonExistingGenre),
         };
