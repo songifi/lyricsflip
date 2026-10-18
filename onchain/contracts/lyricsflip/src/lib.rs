@@ -1,4 +1,4 @@
-#![no_std]
+﻿#![no_std]
 
 mod errors;
 mod events;
@@ -69,16 +69,16 @@ pub trait NftInterface {
 pub const MAX_PAGE_LIMIT: u32 = 50;
 
 // ---------------------------------------------------------------------------
-// LF-012 â€“ TTL policy
+// LF-012 Ã¢â‚¬â€œ TTL policy
 //
 // Soroban persistent and instance entries are archived when their TTL expires.
 // We extend TTLs on every write (and on reads for hot keys) so that active
 // game data stays available on testnet / mainnet.
 //
-// Ledger cadence on Stellar mainnet â‰ˆ 5 s, so:
-//   DAY_IN_LEDGERS  â‰ˆ 17 280 ledgers/day
+// Ledger cadence on Stellar mainnet Ã¢â€°Ë† 5 s, so:
+//   DAY_IN_LEDGERS  Ã¢â€°Ë† 17 280 ledgers/day
 //   BUMP_AMOUNT     = 30 days of ledgers
-//   LIFETIME_THRESHOLD = 7 days â€” extend only when less than this remains,
+//   LIFETIME_THRESHOLD = 7 days Ã¢â‚¬â€ extend only when less than this remains,
 //                        avoiding a per-call extend when lots of TTL is left.
 // ---------------------------------------------------------------------------
 pub const DAY_IN_LEDGERS: u32 = 17_280;
@@ -696,6 +696,7 @@ impl LyricsFlip {
             end_time: 0,
             next_card_index: 0,
             is_cancelled: false,
+            solo: false,
         };
 
         let mut players: Vec<Address> = Vec::new(&env);
@@ -1494,8 +1495,8 @@ impl LyricsFlip {
     /// Ordered card ids used to pick distractors for `card`: same-genre cards
     /// (shuffled with `seed`) first so wrong options stay plausible, then every
     /// remaining card (shuffled with a derived seed). Each card appears exactly
-    /// once, so a question can always be answered â€” or fail with
-    /// `NotEnoughDistinctCards` â€” without ever looping.
+    /// once, so a question can always be answered Ã¢â‚¬â€ or fail with
+    /// `NotEnoughDistinctCards` Ã¢â‚¬â€ without ever looping.
     fn distractor_candidate_ids(env: &Env, card: &Card, seed: u64, cards_count: u64) -> Vec<u64> {
         let genre_index = Index::Genre(card.genre);
         let genre_len = Self::index_len(env, &genre_index) as u64;
@@ -1565,20 +1566,20 @@ impl LyricsFlip {
             true
         };
 
-        // Tier 1: original ±1..5, seeded shuffle preserved for determinism.
+        // Tier 1: original Â±1..5, seeded shuffle preserved for determinism.
         for &offset in shuffled_offsets.iter() {
             if false_years.len() >= 3 { break; }
             let _ = try_push(correct_year + offset, &mut false_years);
         }
 
-        // Tier 2: ±6..15.
+        // Tier 2: Â±6..15.
         let tier2: [i64; 20] = [6,-6,7,-7,8,-8,9,-9,10,-10,11,-11,12,-12,13,-13,14,-14,15,-15];
         for &offset in tier2.iter() {
             if false_years.len() >= 3 { break; }
             let _ = try_push(correct_year + offset, &mut false_years);
         }
 
-        // Tier 3: ±16..50.
+        // Tier 3: Â±16..50.
         let mut tier3_offset: i64 = 16;
         while tier3_offset <= 50 && false_years.len() < 3 {
             let _ = try_push(correct_year + tier3_offset, &mut false_years);
@@ -2013,14 +2014,14 @@ impl LyricsFlip {
         result
     }
 
-    /// LF-011 fix: partial Fisher-Yates shuffle â€” O(limit) with no
+    /// LF-011 fix: partial Fisher-Yates shuffle Ã¢â‚¬â€ O(limit) with no
     /// deduplication loop.
     ///
-    /// Builds an index array `[0, 1, â€¦, limit-1]`, performs a single-pass
+    /// Builds an index array `[0, 1, Ã¢â‚¬Â¦, limit-1]`, performs a single-pass
     /// Fisher-Yates shuffle seeded from `(seed, ledger_sequence,
     /// ledger_timestamp)`, and returns the first `amount` elements. This
     /// replaces the old SHA-256 + dedup loop which had coupon-collector
-    /// worst-case cost when `amount â‰ˆ limit`.
+    /// worst-case cost when `amount Ã¢â€°Ë† limit`.
     ///
     /// `for_index`: when `false` the results are shifted by +1 so they
     /// become 1-based card IDs instead of 0-based array indices (mirrors the
@@ -2053,7 +2054,7 @@ impl LyricsFlip {
         buf[0..8].copy_from_slice(&seed.to_be_bytes());
         buf[8..16].copy_from_slice(&sequence.to_be_bytes());
         buf[16..24].copy_from_slice(&timestamp.to_be_bytes());
-        // last 8 bytes left zero â€” distinguishes this from per-iteration hashes
+        // last 8 bytes left zero Ã¢â‚¬â€ distinguishes this from per-iteration hashes
         let bytes = Bytes::from_array(env, &buf);
         let hash = env.crypto().sha256(&bytes).to_array();
         let mut rng_state = u64::from_be_bytes([
@@ -2087,4 +2088,70 @@ impl LyricsFlip {
         }
         result
     }
+    /// LF-163: create and start a solo round in one call, return the first
+    /// question. Skipped from OpenRounds so it never appears in the
+    /// multiplayer lobby. Exactly ONE require_auth: create_round_internal
+    /// performs it, so we do not call it again here, and the first card is
+    /// drawn inline (next_card would require_auth a second time).
+    pub fn create_solo_round(
+        env: Env,
+        caller: Address,
+        genre: Option<Genre>,
+        seed: u64,
+    ) -> QuestionCard {
+        if genre.is_none() {
+            panic_with_error!(env, Error::NonExistingGenre);
+        }
+        // create_round_internal calls caller.require_auth() -> sig #1.
+        let round_id = Self::create_round_internal(
+            &env,
+            caller.clone(),
+            RoundFilter { genre, decade: None },
+            None,
+            seed,
+        );
+        // Never leave a solo round in the multiplayer lobby.
+        Self::remove_open_round(&env, round_id);
+
+        // Mark started immediately (mirrors start_round's writes for the
+        // 1-player case, but without touching require_auth).
+        let mut round = Self::read_round(&env, round_id);
+        let start_time = env.ledger().timestamp();
+        round.is_started = true;
+        round.start_time = start_time;
+        round.end_time = start_time + DEFAULT_ROUND_DURATION_SECONDS;
+        round.solo = true;
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(round_id), &round);
+        bump_persistent(&env, &DataKey::Round(round_id));
+
+        let mut stats = Self::get_player_stat(env.clone(), caller.clone());
+        stats.total_rounds += 1;
+        env.storage()
+            .persistent()
+            .set(&DataKey::PlayerStats(caller.clone()), &stats);
+        bump_persistent(&env, &DataKey::PlayerStats(caller.clone()));
+
+        RoundStarted { round_id, admin: caller.clone(), start_time }.publish(&env);
+
+        // Inline first-card draw (do NOT call next_card -> extra auth).
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let card_id = round_cards
+            .get(0)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
+        let card = Self::get_card(env.clone(), card_id);
+        env.storage().persistent().set(
+            &DataKey::PlayerCardIndex((round_id, caller.clone())),
+            &1u32,
+        );
+        env.storage().persistent().set(
+            &DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id)),
+            &env.ledger().timestamp(),
+        );
+        CardDrawn { round_id, player: caller.clone(), index: 0 }.publish(&env);
+
+        Self::build_question_card(env, card, round_id, QuestionKind::Title)
+    }
 }
+

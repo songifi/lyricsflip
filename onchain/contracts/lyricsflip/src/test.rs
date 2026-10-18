@@ -3062,3 +3062,37 @@ fn lf160_edge_year_card_still_has_four_unique_options() {
         }
     }
 }
+
+// LF-163: a solo round starts in one call with exactly one signature.
+#[test]
+fn lf163_solo_round_starts_in_one_call() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 5);
+    client.set_cards_per_round(&owner, &5);
+
+    let baseline = env.auths().len();
+    env.ledger().set_timestamp(NOW + 5);
+
+    let qc = client.create_solo_round(&owner, &Some(Genre::Pop), &163u64);
+
+    // Round exists, started, flagged solo, not in OpenRounds.
+    assert_eq!(client.get_round_count(), 1);
+    let round = client.get_round(&1u64);
+    assert!(round.is_started, "solo round must be started");
+    assert!(round.solo, "round.solo must be true");
+    assert_eq!(round.start_time, NOW + 5);
+    assert!(round.end_time > round.start_time);
+    assert_eq!(client.get_open_rounds(&0u32, &10u32).len(), 0,
+               "solo round must not appear in OpenRounds");
+
+    // First question returned from the same call.
+    assert_eq!(qc.kind, QuestionKind::Title);
+    assert!(!qc.option_one.is_empty());
+    assert!(!qc.option_two.is_empty());
+    assert!(!qc.option_three.is_empty());
+    assert!(!qc.option_four.is_empty());
+
+    // Exactly one auth for the whole call.
+    let sigs = env.auths().len() - baseline;
+    assert_eq!(sigs, 1, "solo round must start with exactly 1 signature, got {sigs}");
+}

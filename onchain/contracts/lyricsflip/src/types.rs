@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, BytesN, String};
+﻿use soroban_sdk::{contracttype, Address, BytesN, String};
 
 /// Ported from `onchain/src/utils/types.cairo`. `felt252`/`ByteArray` fields
 /// become `String`; Starknet's `u8` fields become `u32` since Soroban has no
@@ -104,6 +104,8 @@ pub struct Round {
     pub end_time: u64,
     pub next_card_index: u32,
     pub is_cancelled: bool,
+    /// LF-163: solo rounds skip OpenRounds and start in the same call.
+    pub solo: bool,
 }
 
 /// NFT reward milestones a player can claim once each via `claim_reward`.
@@ -223,3 +225,4 @@ pub enum DataKey {
     /// reward claims are blocked; refund and cancel paths stay open.
     Paused,
 }
+
