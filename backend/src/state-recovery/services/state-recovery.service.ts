@@ -1,3 +1,11 @@
+import { createHash } from 'crypto';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { MoreThan, Repository } from 'typeorm';
+import { RedisService } from '../../redis/redis.service';
+import { GameState } from '../entities/game-state.entity';
+import { StateAudit } from '../entities/state-audit.entity';
+
 @Injectable()
 export class StateRecoveryService {
   constructor(
@@ -6,13 +14,13 @@ export class StateRecoveryService {
     @InjectRepository(StateAudit)
     private auditRepository: Repository<StateAudit>,
     private readonly redisService: RedisService,
-    private readonly logger: Logger
+    private readonly logger: Logger,
   ) {}
 
   async createSnapshot(
     gameId: string,
     playerId: string,
-    state: any
+    state: any,
   ): Promise<GameState> {
     // Calculate checksum for validation
     const checksum = this.calculateChecksum(state);
@@ -25,15 +33,14 @@ export class StateRecoveryService {
       playerId,
       state,
       version: currentVersion + 1,
-      checksum
+      checksum,
     });
 
     // Store in Redis for quick access
     await this.redisService.set(
-      game:${gameId}:state,
+      `game:${gameId}:state`,
       JSON.stringify(snapshot),
-      'EX',
-      3600
+      3600,
     );
 
     // Store in database for persistence
@@ -44,7 +51,7 @@ export class StateRecoveryService {
       'SNAPSHOT_CREATED',
       null,
       state,
-      playerId
+      playerId,
     );
 
     return snapshot;
@@ -52,7 +59,7 @@ export class StateRecoveryService {
 
   async recoverState(gameId: string): Promise<GameState> {
     // Try to get from Redis first
-    const cachedState = await this.redisService.get(game:${gameId}:state);
+    const cachedState = await this.redisService.get(`game:${gameId}:state`);
     if (cachedState) {
       return JSON.parse(cachedState);
     }
@@ -60,7 +67,7 @@ export class StateRecoveryService {
     // Fallback to database
     const latestState = await this.gameStateRepository.findOne({
       where: { gameId, isValid: true },
-      order: { version: 'DESC' }
+      order: { version: 'DESC' },
     });
 
     if (!latestState) {
@@ -76,12 +83,9 @@ export class StateRecoveryService {
     return latestState;
   }
 
-  async rollbackToVersion(
-    gameId: string,
-    version: number
-  ): Promise<GameState> {
+  async rollbackToVersion(gameId: string, version: number): Promise<GameState> {
     const targetState = await this.gameStateRepository.findOne({
-      where: { gameId, version, isValid: true }
+      where: { gameId, version, isValid: true },
     });
 
     if (!targetState) {
@@ -91,7 +95,7 @@ export class StateRecoveryService {
     // Mark current version as invalid
     await this.gameStateRepository.update(
       { gameId, version: MoreThan(version) },
-      { isValid: false }
+      { isValid: false },
     );
 
     // Create audit log
@@ -100,15 +104,14 @@ export class StateRecoveryService {
       'ROLLBACK',
       null,
       targetState.state,
-      'SYSTEM'
+      'SYSTEM',
     );
 
     // Update Redis cache
     await this.redisService.set(
-      game:${gameId}:state,
+      `game:${gameId}:state`,
       JSON.stringify(targetState),
-      'EX',
-      3600
+      3600,
     );
 
     return targetState;
@@ -119,19 +122,19 @@ export class StateRecoveryService {
     action: string,
     previousState: any,
     newState: any,
-    triggeredBy: string
+    triggeredBy: string,
   ): Promise<void> {
     const audit = this.auditRepository.create({
       gameState,
       action,
       previousState,
       newState,
-      triggeredBy
+      triggeredBy,
     });
 
     await this.auditRepository.save(audit);
     this.logger.log(
-      State audit created: ${action} for game ${gameState.gameId}
+      `State audit created: ${action} for game ${gameState.gameId}`,
     );
   }
 
@@ -143,15 +146,13 @@ export class StateRecoveryService {
 
   private calculateChecksum(state: any): string {
     // Implement checksum calculation
-    return createHash('sha256')
-      .update(JSON.stringify(state))
-      .digest('hex');
+    return createHash('sha256').update(JSON.stringify(state)).digest('hex');
   }
 
   private async getCurrentVersion(gameId: string): Promise<number> {
     const currentState = await this.gameStateRepository.findOne({
       where: { gameId },
-      order: { version: 'DESC' }
+      order: { version: 'DESC' },
     });
 
     return currentState ? currentState.version : 0;

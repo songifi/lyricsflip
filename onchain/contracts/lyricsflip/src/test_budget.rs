@@ -30,6 +30,7 @@ fn setup_catalogue<'a>() -> (Env, LyricsFlipClient<'a>, Address) {
             artist: String::from_str(&env, &std::format!("Artist {}", i)),
             title: String::from_str(&env, &std::format!("Title {}", i)),
             year: 1950 + (i % 70),
+            difficulty: 2,
             lyrics: String::from_str(&env, "sample lyric line"),
         };
         client.add_card(&owner, &card);

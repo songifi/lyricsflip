@@ -3,9 +3,8 @@ name: Backend CI
 on:
   push:
     branches: [main]
-    paths: ['backend/**', 'seed/**', '.github/workflows/backend.yml']
+    paths: ["backend/**", "seed/**", ".github/workflows/backend.yml"]
   pull_request:
-    paths: ['backend/**', 'seed/**', '.github/workflows/backend.yml']
 
 concurrency:
   group: backend-${{ github.ref }}
@@ -21,7 +20,7 @@ env:
 
 jobs:
   backend:
-    name: Backend CI
+    name: Backend tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -33,13 +32,13 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: lyricsflip
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready --health-interval 10s
           --health-timeout 5s --health-retries 5
       redis:
         image: redis:7
-        ports: ['6379:6379']
+        ports: ["6379:6379"]
         options: >-
           --health-cmd "redis-cli ping" --health-interval 10s
           --health-timeout 5s --health-retries 5
@@ -53,6 +52,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
+      - run: npm run build
       - run: npm test
       - run: npm run test:e2e
 
@@ -69,7 +69,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: lyricsflip
-        ports: ['5432:5432']
+        ports: ["5432:5432"]
         options: >-
           --health-cmd pg_isready --health-interval 10s
           --health-timeout 5s --health-retries 5
@@ -85,3 +85,16 @@ jobs:
         run: npm run migration:run
       - name: Seed from seed/songs.json
         run: npm run seed
+
+  ci-summary:
+    name: Backend CI
+    if: always()
+    needs: [backend, migrations]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require backend checks
+        run: |
+          if [[ "${{ needs.backend.result }}" != "success" || "${{ needs.migrations.result }}" != "success" ]]; then
+            echo "Backend checks did not all pass."
+            exit 1
+          fi
