@@ -50,7 +50,7 @@ export function ConfigErrorScreen({ issues }: ConfigErrorScreenProps) {
           <p className="text-sm font-semibold text-yellow-800 mb-2">
             Missing configuration:
           </p>
-          <ul className="space-y-1">
+          <ul className="space-y-1" data-testid="warnings">
             {issues.map((issue, index) => (
               <li
                 key={index}
