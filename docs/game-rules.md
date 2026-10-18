@@ -30,9 +30,16 @@ Related issues: LF-005 (wager escrow), LF-013 (scoring), LF-014 (payouts).
 
 ## Scoring
 
-- Each correct answer awards points based on the card's **difficulty**.
-- Higher difficulty cards award more points than lower difficulty cards.
+- Each correct answer earns the answer-time points multiplied by the card's
+  **difficulty** (1 = easy, 2 = medium, 3 = hard).
+- Existing cards without a difficulty are migrated with the default difficulty
+  of 2 (medium).
+- Round creation can additionally filter by an optional genre and decade
+  (specified by its first year, such as 1990); the wager difficulty selects
+  cards at the matching difficulty.
 - Incorrect or missing answers award zero points for that card.
+- Each correct answer awards points based on **how quickly** the player answered. Answers within `FIRST_LEDGER_GRACE_SECONDS` (6s) earn full `MAX_CORRECT_POINTS` (100); each extra second costs `POINTS_DECAY_PER_SECOND` (5), floored at `MIN_CORRECT_POINTS` (10).
+- Answers after `CARD_ANSWER_WINDOW_SECONDS` (15s) are recorded but scored as wrong.
 - The round score is the sum of points across all cards in the round.
 
 ## Streaks
@@ -81,7 +88,7 @@ Related issues: LF-005 (wager escrow), LF-013 (scoring), LF-014 (payouts).
 | **Odds** | Not a contract concept. The contract has no notion of odds or probability of winning. | **Remove from the UI.** Do not display odds; there is no contract value to map it to. |
 | **Pot** | The total escrowed wagers for a head-to-head or tournament round. | Maps to the escrow balance for the round (LF-005). Paid to the winner minus the protocol fee (LF-014). |
 | **Potential win** | The amount a player would receive if they win. | Maps to `pot - protocol fee`. Must be computed from the escrowed pot and the contract fee rate, not from odds. |
-| **Difficulty** | How hard a card is. | Maps to the card's point value; higher difficulty awards more points. |
+| **Difficulty** | How hard a card is. | Multiplies the card's time-adjusted points by 1, 2, or 3. |
 | **Duration** | How long a player has to answer a card. | Maps to the card timer; submissions after expiry are rejected. |
 
 ## References
