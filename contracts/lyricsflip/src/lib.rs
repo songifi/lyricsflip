@@ -1,3 +1,4 @@
+#![no_std]
 #{!no_std]
 #{!no_std}
 
@@ -25,6 +26,10 @@ pub enum Error {
     NotAWinner = 7,
     InvalidFee = 8,
     NoWinners = 9,
+    WagerTokenNotSet = 10,
+    InvalidWagerAmount = 11,
+    WagerBelowMin = 12,
+    WagerAboveMax = 13,
     AlreadyReady = 10,
     NotReady = 11,
     RoundAlreadyStarted = 12,
@@ -43,6 +48,7 @@ pub enum RoundStatus {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Round {
     pub pot: i128,
+    pub wager_amount: i128,
     pub status: RoundStatus,
     pub winners: Vec<Address>,
     pub claimed: Vec<Address>,
@@ -55,6 +61,9 @@ pub struct Config {
     pub token: Address,
     pub treasury: Address,
     pub fee_bps: u32,
+    pub wager_token: Option<Address>,
+    pub min_wager: i128,
+    pub max_wager: i128,
 }
 
 #[contracttype]
@@ -71,6 +80,8 @@ const LOBBY: soroban_sdkz::Symbol = symbol_short!("LOBBY");
 const BPS_DENOM: i128 = 10_000;
 const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
 const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
+const ROUND_POT: soroban_sdk::Symbol = symbol_short!("ROUNDPOT");
+const BPS_DENOM: i128 = 10_000;
 const BPS_DENOM: i128 = 10_000;
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -106,6 +117,12 @@ impl LyricsFlipContract {
             token,
             treasury,
             fee_bps,
+            wager_token: None,
+            min_wager: 0,
+            max_wager: 0,
+        };
+        env.storage().instance().set(&CONFIG, &config);
+        Ok(())
         };
         env.storage().instance().set(&CONFIG, &config);
         Ok(()
@@ -127,6 +144,7 @@ impl LyricsFlipContract {
         }
         config.fee_bps = fee_bps;
         env.storage().instance().set(&CONFIG, &config);
+        Ok(())
         env.storage().instance().set(&DataKey::Config, &config);
         Ok(()
     }
@@ -136,6 +154,48 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
+            .ok_or(Error::NotInitialized)?;
+        config.owner.require_auth();
+        config.treasury = treasury;
+        env.storage().instance().set(&CONFIG, &config);
+        Ok(())
+    }
+
+    pub fn set_wager_token(env: Env, wager_token: Address) -> Result<(), Error> {
+        let mut config: Config = env
+            .storage()
+            .instance()
+            .get(&CONFIG)
+            .ok_or(Error::NotInitialized)?;
+        config.owner.require_auth();
+        config.wager_token = Some(wager_token);
+        env.storage().instance().set(&CONFIG, &config);
+        Ok(())
+    }
+
+    pub fn set_wager_bounds(env: Env, min_wager: i128, max_wager: i128) -> Result<(), Error> {
+        let mut config: Config = env
+            .storage()
+            .instance()
+            .get(&CONFIG)
+            .ok_or(Error::NotInitialized)?;
+        config.owner.require_auth();
+        if min_wager < 0 || max_wager < 0 || min_wager > max_wager {
+            return Err(Error::InvalidWagerAmount);
+        }
+        config.min_wager = min_wager;
+        config.max_wager = max_wager;
+        env.storage().instance().set(&CONFIG, &config);
+        Ok(())
+    }
+
+    pub fn get_wager_config(env: Env) -> Result<(Option<Address>, i128, i128), Error> {
+        let config: Config = env
+            .storage()
+            .instance()
+            .get(&CONFIG)
+            .ok_or(Error::NotInitialized)?;
+        Ok((config.wager_token, config.min_wager, config.max_wager))
             .ok(Error::NotInitialized)?;
         config.owner.require_auth();
         config.treasury = treasury;
@@ -157,11 +217,69 @@ impl LyricsFlipContract {
     pub fn create_round(env: Env, round_id: u64, pot: i128) -> Result<(), Error> {
         let round = Round {
             pot,
+            wager_amount: 0,
             status: RoundStatus::Open,
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
         };
         env.storage().persistent().set(&(ROUND, round_id), &round);
+        env.storage().persistent().set(&(ROUND_POT, round_id), &pot);
+        Ok(())
+    }
+
+    pub fn create_round_wagered(
+        env: Env,
+        caller: Address,
+        round_id: u64,
+        wager_amount: i128,
+    ) -> Result<(), Error> {
+        caller.require_auth();
+
+        if wager_amount < 0 {
+            return Err(Error::InvalidWagerAmount);
+        }
+
+        let config: Config = env
+            .storage()
+            .instance()
+            .get(&CONFIG)
+            .ok_or(Error::NotInitialized)?;
+
+        if wager_amount > 0 {
+            if wager_amount < config.min_wager {
+                return Err(Error::WagerBelowMin);
+            }
+            if wager_amount > config.max_wager {
+                return Err(Error::WagerAboveMax);
+            }
+            let wager_token = config.wager_token.clone().ok_or(Error::WagerTokenNotSet)?;
+            let token_client = token::Client::new(&env, &wager_token);
+            token_client.transfer(&caller, &env.current_contract_address(), &wager_amount);
+        }
+
+        let round = Round {
+            pot: wager_amount,
+            wager_amount,
+            status: RoundStatus::Open,
+            winners: Vec::new(&env),
+            claimed: Vec::new(&env),
+        };
+        env.storage().persistent().set(&(ROUND, round_id), &round);
+        env.storage().persistent().set(&(ROUND_POT, round_id), &wager_amount);
+
+        if wager_amount > 0 {
+            env.events().publish(
+                (symbol_short!("WagerDep"), caller.clone(), round_id),
+                wager_amount,
+            );
+        }
+
+        Ok(())
+    }
+
+    pub fn join_round(env: Env, caller: Address, round_id: u64) -> Result<(), Error> {
+        caller.require_auth();
+
         Ok(()
     }
 
@@ -287,6 +405,38 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
+            .ok_or(Error::NotInitialized)?;
+
+        let mut round: Round = env
+            .storage()
+            .persistent()
+            .get(&(ROUND, round_id))
+            .ok_or(Error::RoundNotFound)?;
+
+        if round.status != RoundStatus::Open {
+            return Err(Error::RoundNotSettled);
+        }
+
+        let wager_amount = round.wager_amount;
+        if wager_amount > 0 {
+            let wager_token = config.wager_token.clone().ok_or(Error::WagerTokenNotSet)?;
+            let token_client = token::Client::new(&env, &wager_token);
+            token_client.transfer(&caller, &env.current_contract_address(), &wager_amount);
+
+            round.pot = round
+                .pot
+                .checked_add(wager_amount)
+                .ok_or(Error::InvalidWagerAmount)?;
+            env.storage().persistent().set(&(ROUND, round_id), &round);
+            env.storage().persistent().set(&(ROUND_POT, round_id), &round.pot);
+
+            env.events().publish(
+                (symbol_short!("WagerDep"), caller.clone(), round_id),
+                wager_amount,
+            );
+        }
+
+        Ok(())
             .ok(Error::NotInitialized)?;
         env.storage().persistent().set(&DataKey::Round(round_id), &round);
         Ok()
@@ -296,6 +446,7 @@ impl LyricsFlipContract {
         let config: Config = env
             .storage()
             .instance()
+            .get(&CONFIG)
             .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
@@ -306,6 +457,11 @@ impl LyricsFlipContract {
             .storage()
             .persistent()
             .get(&(ROUND, round_id))
+            .ok_or(Error::RoundNotFound)?;
+        round.status = RoundStatus::Settled;
+        round.winners = winners;
+        env.storage().persistent().set(&(ROUND, round_id), &round);
+        Ok(())
             .ok(Error::RoundNotFound)?;
         round.status = RoundStatus::Settled;
         round.winners = winners;
