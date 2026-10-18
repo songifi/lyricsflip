@@ -1,3 +1,4 @@
+#{!no_std]
 #{!no_std}
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
@@ -147,6 +148,7 @@ impl LyricsFlipContract {
         Ok(()
     }
 
+    pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>) -> Result<(), Error> {
     pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>)
         -> Result<(), Error>
     {
@@ -215,6 +217,7 @@ impl LyricsFlipContract {
                 break;
             }
         }
+        let index = winner_index.ok_or(Error::NotAWinner)?;
         let index = winner_index.ok(Error::NotAWinner)?;
 
         for i in 0..round.claimed.len() {
@@ -281,6 +284,9 @@ impl LyricsFlipContract {
         }
 
         env.events().publish(
+            (symbol_short!("WiningsClaimed"), caller.clone(), round_id),
+            payout,
+        );
             (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
             payout,
         );
