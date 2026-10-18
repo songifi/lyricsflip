@@ -42,12 +42,17 @@ pub enum Error {
 pub enum RoundStatus {
     Open,
     Settled,
+    Finalized,
 }
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Round {
     pub pot: i128,
+    pub status: RoundStatus,
+    pub winners: Vec<Address>,
+    pub claimed: Vec<Address>,
+    pub end_time: u64,
     pub wager_amount: i128,
     pub status: RoundStatus,
     pub winners: Vec<Address>,
@@ -61,6 +66,12 @@ pub struct Config {
     pub token: Address,
     pub treasury: Address,
     pub fee_bps: u32,
+}
+
+const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
+const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
+const ROUND_IDS: soroban_sdk::Symbol = symbol_short!("ROUNDIDS");
+const BPS_DENOM: i128 = 10_000;
     pub wager_token: Option<Address>,
     pub min_wager: i128,
     pub max_wager: i128,
@@ -117,6 +128,9 @@ impl LyricsFlipContract {
             token,
             treasury,
             fee_bps,
+        };
+        env.storage().instance().set(&CONFIG, &config);
+        Ok(())
             wager_token: None,
             min_wager: 0,
             max_wager: 0,
@@ -154,6 +168,7 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
+            .ok(Error::NotInitialized)?;
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
         config.treasury = treasury;
@@ -161,6 +176,26 @@ impl LyricsFlipContract {
         Ok(())
     }
 
+    pub fn create_round(env: Env, round_id: u64, pot: i128, end_time: u64) -> Result<(), Error> {
+        let round = Round {
+            pot,
+            status: RoundStatus::Open,
+            winners: Vec::new(&env),
+            claimed: Vec::new(&env),
+            end_time,
+        };
+        env.storage().persistent().set(&(ROUND, round_id), &round);
+        let mut ids: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&ROUND_IDS)
+            .unwrap_or(Vec::new(&env));
+        ids.push_back(round_id);
+        env.storage().persistent().set(&ROUND_IDS, &ids);
+        Ok(())
+    }
+
+    pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>) -> Result<(), Error> {
     pub fn set_wager_token(env: Env, wager_token: Address) -> Result<(), Error> {
         let mut config: Config = env
             .storage()
@@ -405,6 +440,7 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
+            .ok(Error::NotInitialized)?;
             .ok_or(Error::NotInitialized)?;
 
         let mut round: Round = env
@@ -457,6 +493,7 @@ impl LyricsFlipContract {
             .storage()
             .persistent()
             .get(&(ROUND, round_id))
+            .ok(Error::RoundNotFound)?;
             .ok_or(Error::RoundNotFound)?;
         round.status = RoundStatus::Settled;
         round.winners = winners;
@@ -590,6 +627,68 @@ impl LyricsFlipContract {
         Ok(payout)
     }
 
+    pub fn finalize_round(env: Env, caller: Address, round_id: u64) -> Result<(), Error> {
+        caller.require_auth();
+
+        let mut round: Round = env
+            .storage()
+            .persistent()
+            .get(&(ROUND, round_id))
+            .ok(Error::RoundNotFound)?;
+
+        if round.status != RoundStatus::Open {
+            return Err(Error::RoundNotSettled);
+        }
+
+        let now = env.ledger().timestamp();
+        if now < round.end_time {
+            return Err(Error::Unauthorized);
+        }
+
+        round.status = RoundStatus::Finalized;
+        env.storage().persistent().set(&(ROUND, round_id), &round);
+
+        env.events().publish(
+            (symbol_short!("RoundFin"), caller.clone(), round_id),
+            now,
+        );
+
+        Ok(())
+    }
+
+    pub fn get_finalizable_rounds(env: Env, start: u32, limit: u32) -> Vec<u64> {
+        let now = env.ledger().timestamp();
+        let ids: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&ROUND_IDS)
+            .unwrap_or(Vec::new(&env));
+        let mut out: Vec<u64> = Vec::new(&env);
+        let len = ids.len();
+        let mut i = start;
+        let mut count: u32 = 0;
+        while i < len && count < limit {
+            let id = ids.get(i).unwrap();
+            if let Some(round) = env
+                .storage()
+                .persistent()
+                .get::<_, Round>(&(ROUND, id))
+            {
+                if round.status == RoundStatus::Open && now >= round.end_time {
+                    out.push_back(id);
+                    count += 1;
+                }
+            }
+            i += 1;
+        }
+        out
+    }
+
+    pub fn get_round(env: Env, round_id: u64) -> Result<Round, Error> {
+        env.storage()
+            .persistent()
+            .get(&(ROUND, round_id))
+            .ok(Error::RoundNotFound)
     pub fn get_round(env: Env, round_id: u64) -> Result<Round, Error> {
         env.storage()
             .persistent()
