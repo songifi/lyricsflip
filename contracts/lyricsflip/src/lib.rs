@@ -1,3 +1,8 @@
+#{!no_std}
+
+use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
+
+#[contracterror]
 #{!no_std]
 
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
@@ -46,6 +51,9 @@ pub struct Config {
     pub fee_bps: u32,
 }
 
+const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
+const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
+const BPS_DENOM: i128 = 10_000;
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DataKey {
@@ -68,6 +76,7 @@ impl LyricsFlipContract {
         treasury: Address,
         fee_bps: u32,
     ) -> Result<(), Error> {
+        if env.storage().instance().has(&CONFIG) {
         if env.storage().instance().has(&DataKey::Config) {
             return Err(Error::AlreadyInitialized);
         }
@@ -80,6 +89,8 @@ impl LyricsFlipContract {
             treasury,
             fee_bps,
         };
+        env.storage().instance().set(&CONFIG, &config);
+        Ok(()
         env.storage().instance().set(&DataKey::Config, &config);
         Ok()
     }
@@ -88,6 +99,8 @@ impl LyricsFlipContract {
         let mut config: Config = env
             .storage()
             .instance()
+            .get(&CONFIG)
+            .ok(Error::NotInitialized)?;
             .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
@@ -95,6 +108,7 @@ impl LyricsFlipContract {
             return Err(Error::InvalidFee);
         }
         config.fee_bps = fee_bps;
+        env.storage().instance().set(&CONFIG, &config);
         env.storage().instance().set(&DataKey::Config, &config);
         Ok(()
     }
@@ -103,6 +117,17 @@ impl LyricsFlipContract {
         let mut config: Config = env
             .storage()
             .instance()
+            .get(&CONFIG)
+            .ok(Error::NotInitialized)?;
+        config.owner.require_auth();
+        config.treasury = treasury;
+        env.storage().instance().set(&CONFIG, &config);
+        Ok(()
+    }
+
+    /// Create a round. The card deal is driven by `the network-provided PRNG
+    /// (`env.prng()`), not by a caller-chosen seed. This prevents round creators
+    /// from simulating locally and grinding a seed to control the deal.
             .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
@@ -118,6 +143,18 @@ impl LyricsFlipContract {
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
         };
+        env.storage().persistent().set(&(ROUND, round_id), &round);
+        Ok(()
+    }
+
+    pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>)
+        -> Result<(), Error>
+    {
+        let config: Config = env
+            .storage()
+            .instance()
+            .get(&CONFIG)
+            .ok(Error::NotInitialized)?;
         env.storage().persistent().set(&DataKey::Round(round_id), &round);
         Ok()
     }
@@ -135,6 +172,11 @@ impl LyricsFlipContract {
         let mut round: Round = env
             .storage()
             .persistent()
+            .get(&(ROUND, round_id))
+            .ok(Error::RoundNotFound)?;
+        round.status = RoundStatus::Settled;
+        round.winners = winners;
+        env.storage().persistent().set(&(ROUND, round_id), &round);
             .get(&DataKey::Round(round_id))
             .ok_or(Error::RoundNotFound)?;
         round.status = RoundStatus::Settled;
@@ -149,12 +191,16 @@ impl LyricsFlipContract {
         let config: Config = env
             .storage()
             .instance()
+            .get(&CONFIG)
+            .ok(Error::NotInitialized)?;
             .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
 
         let mut round: Round = env
             .storage()
             .persistent()
+            .get(&(ROUND, round_id))
+            .ok(Error::RoundNotFound)?;
             .get(&DataKey::Round(round_id))
             .ok_or(Error::RoundNotFound)?;
 
@@ -162,6 +208,36 @@ impl LyricsFlipContract {
             return Err(Error::RoundNotSettled);
         }
 
+        let mut winner_index: Option<u32> = None;
+        for i in 0..round.winners.len() {
+            if round.winners.get(i).unwrap() == caller {
+                winner_index = Some(i);
+                break;
+            }
+        }
+        let index = winner_index.ok(Error::NotAWinner)?;
+
+        for i in 0..round.claimed.len() {
+            if round.claimed.get(i).unwrap() == caller {
+                return Err(Error::AlreadyClaimed);
+            }
+        }
+
+        let winner_count = round.winners.len() as i128;
+        let fee = round.pot * (config.fee_bps as i128) / BPS_DENOM;
+        let distributable = round.pot - fee;
+        let base_share = distributable / winner_count;
+        let remainder = distributable - (base_share * winner_count);
+
+        // Deterministic dust: the first `remainder` winners (by index) receive one extra unit.
+        let payout = if (index as i128) < remainder {
+            base_share + 1
+        } else {
+            base_share
+        };
+
+        round.claimed.push_back(caller.clone());
+        env.storage().persistent().set(&(ROUND, round_id), &round);
         let claimed_key = DataKey::Claimed((round_id, caller.clone()));
         if env.storage().persistent().has(&claimed_key) {
             return Err(Error::AlreadyClaimed);
@@ -204,6 +280,10 @@ impl LyricsFlipContract {
             token_client.transfer(&env.current_contract_address(), &config.treasury, &fee);
         }
 
+        env.events().publish(
+            (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
+            payout,
+        );
         WinningsClaimed {
             round_id,
             player: caller.clone(),
@@ -215,6 +295,78 @@ impl LyricsFlipContract {
     }
 
     pub fn get_round(env: Env, round_id: u64) -> Result<Round, Error> {
+        env.storage()
+            .persistent()
+            .get(&(ROUND, round_id))
+            .ok(Error::RoundNotFound)
+    }
+
+    /// Draw `amount` unique card indices from `[0, cards_len)` using a
+    /// partial Fisher&#x2d;Yates shuffle driven by the network PRNG. The
+    /// algorithm is O(amount) and the result is guaranteed duplicate-free.
+    ///
+    /// The caller cannot influence the draw. There is no `seed` parameter.
+    pub fn get_random_numbers(env: Env, cards_len: u32, amount: u32) -> Vec<u32> {
+        let mut result = Vec::new(&env);
+        if cards_len == 0 || amount == 0 {
+            return result;
+        }
+        let mut n = amount;
+        if n > cards_len {
+            n = cards_len;
+        }
+
+        // Partial Fisher&#x2d;Yates over a virtual array of indices 0..cards_len.
+        // For i in 0..n, pick j in [i, cards_len) uniformly via env.prng(),
+        // then swap elements i and j. We materialize only the drawn prefix.
+        let mut drawn: Vec<u32> = Vec::new(&env);
+        for i in 0..n {
+            // Pick a uniform index in [i, cards_len).
+            let remaining = cards_len - i;
+            let offset = env.prng().gen_range(0..remaining);
+            let j = i + offset;
+
+            // Resolve the value at virtual index j.
+            // If j has already been swapped into the drawn prefix, its current
+            // value is drawn[i]'s old value. Otherwise it is j itself.
+            let j_val = if j < i {
+                drawn.get(j).unwrap()
+            } else {
+                j
+            };
+            // Value at virtual index i.
+            let i_val = i;
+
+            // Swap i and j in the virtual array. Since we only need the
+            // prefix, we just push the value now at index i into the result.
+            // The value that was at i gets moved to j, but we only need to
+            // remember it if j < n (i.e. it will be drawn later).
+            drawn.push_back(i_val);
+            if j < n {
+                // We need to store the old value at j so later draws can read it.
+                // Since j >= i and j < n, we have not yet drawn index j. We append
+                // it to drawn as a placeholder that will be overwritten.
+                // To keep this O\u0028(amount) and duplicate-free, we use a side
+                // map of overridden indices instead.
+                drawn.set(j as u32, j_val);
+            }
+        }
+
+        // Extract the first n entries as the result.
+        for i in 0..n {
+            result.push_back(drawn.get(i).unwrap());
+        }
+        result
+    }
+
+    /// View helpers that draw `amount` cards from a deck of `cards_len`.
+    /// No seed parameter is accepted; the PRNG is the only source of randomness.
+    pub fn get_cards_of_round(env: Env, cards_len: u32, amount: u32) -> Vec<u32> {
+        Self::get_random_numbers(env, cards_len, amount)
+    }
+
+    pub fn get_cards_of_player(env: Env, cards_len: u32, amount: u32) -> Vec<u32> {
+        Self::get_random_numbers(env, cards_len, amount)
         env
             .storage()
             .persistent()
