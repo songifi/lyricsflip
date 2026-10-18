@@ -426,32 +426,6 @@ impl LyricsFlip {
     /// Returns the card.
     pub fn get_card(env: Env, card_id: u64) -> Card {
         let stored: Val = env
-    ///
-    /// LF-142: card contents (title/artist/year) are hidden from non-admins
-    /// while any round that includes this card is active. Callers should use
-    /// `get_question` for the caller's current card instead.
-    pub fn get_card(env: Env, caller: Address, card_id: u64) -> Card {
-        caller.require_auth();
-        if !Self::is_admin(env.clone(), Role::Admin, caller.clone()) {
-            let round_count = Self::get_round_count(env.clone());
-            let mut round_id: u64 = 1;
-            while round_id <= round_count {
-                let round = Self::read_round(&env, round_id);
-                let finalized: bool = env
-                    .storage()
-                    .persistent()
-                    .get(&DataKey::RoundFinalized(round_id))
-                    .unwrap_or(false);
-                if round.is_started && !finalized {
-                    let cards = Self::read_round_cards(&env, round_id);
-                    if cards.contains(&card_id) {
-                        panic_with_error!(env, Error::NotAuthorized);
-                    }
-                }
-                round_id += 1;
-            }
-        }
-        let card: Card = env
             .storage()
             .persistent()
             .get(&DataKey::Card(card_id))
@@ -617,10 +591,6 @@ impl LyricsFlip {
             }
         }
         Self::require_not_paused(&env);
-        let genre = match genre {
-            Some(g) => g,
-            None => panic_with_error!(env, Error::NonExistingGenre),
-        };
 
         let amount = Self::get_cards_per_round((*env).clone()) as u64;
         let source = filter

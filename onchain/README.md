@@ -469,6 +469,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 37 | `InvalidDecade` | Round decade is not a valid decade start year |
 | 38 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
 | 39 | `AlreadyAnswered` | Player submitted more than one answer for the same card |
+| 40 | `Paused` | The contract is paused; round creation, joining, and reward claims are blocked |
 
 ### `lyricsflip-nft`
 

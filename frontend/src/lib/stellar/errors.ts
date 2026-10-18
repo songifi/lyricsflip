@@ -48,6 +48,7 @@ export const LYRICSFLIP_ERRORS: Record<number, ContractErrorInfo> = {
   37: { name: 'InvalidDecade', message: 'Choose a decade beginning in a valid year.' },
   38: { name: 'NoActiveCard', message: 'No card has been drawn yet for this round.' },
   39: { name: 'AlreadyAnswered', message: 'You have already answered this card.' },
+  40: { name: 'Paused', message: 'The game is temporarily paused.' },
 };
 
 export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = {
