@@ -1,3 +1,4 @@
+#![no_std]
 #no_std
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
 
@@ -44,6 +45,10 @@ pub enum Error {
     NotAWinner = 7,
     InvalidFee = 8,
     NoWinners = 9,
+    InvalidCard = 10,
+    InvalidOption = 11,
+    CardAlreadyDrawn = 12,
+    CardNotDrawn = 13,
     MilestoneNotFound = 10,
     MilestoneInactive = 11,
     MilestoneNotMet = 12,
@@ -75,6 +80,7 @@ pub struct Round {
     pub status: RoundStatus,
     pub winners: Vec<Address>,
     pub claimed: Vec<Address>,
+    pub card_count: u32,
     pub created_at: u64,
     pub end_time: u64,
     pub wager_amount: i128,
@@ -92,6 +98,27 @@ pub struct Config {
     pub fee_bps: u32,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QuestionCard {
+    pub card_index: u32,
+    pub question: soroban_sdk::String,
+    pub options: Vec<soroban_sdk::String>,
+    pub correct_index: u32,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    RoundCardOptions((u64, u32)),
+    RoundCard((u64, u32)),
+    RoundCardCount(u64),
+}
+
+const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
+const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
+const BPS_DENOM: i128 = 10_000;
+const OPTION_COUNT: u32 = 4;
 /// Statistic a milestone can be defined against.
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -259,6 +286,7 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
+            .ok_(Error::NotInitialized)?;
             .ok(Error::NotInitialized)?;
             .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
@@ -288,6 +316,10 @@ impl LyricsFlipContract {
         config.owner.require_auth();
         config.treasury = treasury;
         env.storage().instance().set(&CONFIG, &config);
+        Ok()
+    }
+
+    pub fn create_round(env: Env, round_id: u64, pot: i128, card_count: u32) -> Result<(), Error> {
         Ok(())
     }
 
@@ -297,6 +329,101 @@ impl LyricsFlipContract {
             status: RoundStatus::Open,
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
+            card_count,
+        };
+        env.storage().persistent().set(&(ROUND, round_id), &round);
+        env.storage()
+            .persistent()
+            .set(&DataKey::RoundCardCount(round_id), &card_count);
+        Ok(()
+    }
+
+    /// Generate and store the options for a card once per round.
+    /// Subsequent calls return the already-stored options so every player
+    /// sees identical choices.
+    pub fn draw_card(
+        env: Env,
+        round_id: u64,
+        card_index: u32,
+        question: soroban_sdk::String,
+        options: Vec<soroban_sdk::String>,
+        correct_index: u32,
+    ) -> Result<QuestionCard, Error> {
+        let round: Round = env
+            .storage()
+            .persistent()
+            .get(&(ROUND, round_id))
+            .ok_(Error::RoundNotFound)?;
+        if card_index >= round.card_count {
+            return Err(Error::InvalidCard);
+        }
+        if options.len() != OPTION_COUNT || correct_index >= OPTION_COUNT {
+            return Err(Error::InvalidOption);
+        }
+
+        let key = DataKey::RoundCardOptions((round_id, card_index));
+        if env.storage().persistent().has(&key) {
+            return Err(Error::CardAlreadyDrawn);
+        }
+
+        let card = QuestionCard {
+            card_index,
+            question,
+            options,
+            correct_index,
+        };
+        env.storage().persistent().set(&key, &card);
+        env.storage()
+            .persistent()
+            .set(&DataKey::RoundCard((round_id, card_index)), &card);
+        Ok(card)
+    }
+
+    /// Return the stored options for a card.
+    pub fn get_question(
+        env: Env,
+        round_id: u64,
+        card_index: u32,
+    ) -> Result<QuestionCard, Error> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::RoundCardOptions((round_id, card_index)))
+            .ok_or(Error::CardNotDrawn)
+    }
+
+    /// Submit an answer by option index (0-3), resolved against the
+    /// stored options. Returns true if the selected option is correct.
+    pub fn submit_answer(
+        env: Env,
+        player: Address,
+        round_id: u64,
+        card_index: u32,
+        option_index: u32,
+    ) -> Result<bool, Error> {
+        player.require_auth();
+        if option_index >= OPTION_COUNT {
+            return Err(Error::InvalidOption);
+        }
+        let card: QuestionCard = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundCardOptions((round_id, card_index)))
+            .ok_(Error::CardNotDrawn)?;
+        // Reject any submission that isn't one of the stored options.
+        if option_index >= card.options.len() {
+            return Err(Error::InvalidOption);
+        }
+        Ok(option_index == card.correct_index)
+    }
+
+    pub fn submit_choice(
+        env: Env,
+        player: Address,
+        round_id: u64,
+        card_index: u32,
+        option_index: u32,
+    ) -> Result<bool, Error> {
+        Self::submit_answer(env, player, round_id, card_index, option_index)
         };
         env.storage().persistent().set(&(ROUND, round_id), &round);
         Ok()
@@ -678,6 +805,7 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
+            .ok_(Error::NotInitialized)?;
             .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
@@ -688,6 +816,7 @@ impl LyricsFlipContract {
             .storage()
             .persistent()
             .get(&(ROUND, round_id))
+            .ok_or(Error::RoundNotFound)?;
             .ok(Error::RoundNotFound)?;
         round.status = RoundStatus::Settled;
         round.winners = winners;
@@ -746,6 +875,7 @@ impl LyricsFlipContract {
                 break;
             }
         }
+        let index = winner_index.ok_(Error::NotAWinner)?;
         let index = winner_index.ok_or(Error::NotAWinner)?;
         let index = winner_index.ok(Error::NotAWinner)?;
 
@@ -819,6 +949,9 @@ impl LyricsFlipContract {
         }
 
         env.events().publish(
+            (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
+            payout,
+        );
             (symbol_short("WinningsClaimed"), caller.clone(), round_id),
             payout,
         );
