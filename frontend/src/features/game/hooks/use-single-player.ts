@@ -1,4 +1,4 @@
-import { MOCK_LYRICS } from '@/mock/mock';
+import { fetchLyrics } from '@/services/musicService';
 import { LyricData, SongOption, useStore } from '@/store';
 import { useEffect, useState } from 'react';
 
@@ -13,6 +13,7 @@ const shuffleArray = <T>(array: T[]): T[] => {
 
 export const useSinglePlayer = (genre: string) => {
   const gameStore = useStore((state) => state.game);
+  const [lyricsList, setLyricsList] = useState<LyricData[]>([]);
   const [currentLyric, setCurrentLyric] = useState<LyricData | null>(null);
   const [nextLyric, setNextLyric] = useState<LyricData | null>(null);
   const [isGameStarted, setIsGameStarted] = useState(false);
@@ -25,11 +26,19 @@ export const useSinglePlayer = (genre: string) => {
   } | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
 
+  useEffect(() => {
+    fetchLyrics().then((data) => {
+      if (data && data.length > 0) {
+        setLyricsList(data);
+      }
+    });
+  }, [genre]);
+
   // Start game and timer
   useEffect(() => {
-    if (genre && gameStore.gameStatus === 'playing') {
-      const firstLyric = MOCK_LYRICS[Math.floor(Math.random() * MOCK_LYRICS.length)];
-      const secondLyric = MOCK_LYRICS[Math.floor(Math.random() * MOCK_LYRICS.length)];
+    if (genre && gameStore.gameStatus === 'playing' && lyricsList.length > 0) {
+      const firstLyric = lyricsList[Math.floor(Math.random() * lyricsList.length)];
+      const secondLyric = lyricsList[Math.floor(Math.random() * lyricsList.length)];
       setCurrentLyric({ ...firstLyric, options: shuffleArray(firstLyric.options) });
       setNextLyric({ ...secondLyric, options: shuffleArray(secondLyric.options) });
       setIsGameStarted(true);
@@ -38,7 +47,7 @@ export const useSinglePlayer = (genre: string) => {
     return () => {
       gameStore.stopTimer(); // Cleanup timer on unmount
     };
-  }, [genre, gameStore.gameStatus]);
+  }, [genre, gameStore.gameStatus, lyricsList]);
 
   // Monitor timeLeft and end game only once
   useEffect(() => {
@@ -52,8 +61,9 @@ export const useSinglePlayer = (genre: string) => {
       endGame(true); // End if max rounds reached
       return;
     }
+    if (lyricsList.length === 0) return;
     const randomLyric =
-      MOCK_LYRICS[Math.floor(Math.random() * MOCK_LYRICS.length)];
+      lyricsList[Math.floor(Math.random() * lyricsList.length)];
     const shuffledOptions = shuffleArray(randomLyric.options);
     setCurrentLyric({ ...randomLyric, options: shuffledOptions });
     setSelectedOption(null);

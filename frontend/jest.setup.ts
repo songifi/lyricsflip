@@ -24,12 +24,20 @@ jest.mock('@creit.tech/stellar-wallets-kit/modules/albedo', () => ({ AlbedoModul
 jest.mock('@creit.tech/stellar-wallets-kit/modules/lobstr', () => ({ LobstrModule: jest.fn() }));
 jest.mock('@creit.tech/stellar-wallets-kit/modules/hana', () => ({ HanaModule: jest.fn() }));
 
-// Mock @stellar/stellar-sdk's contract client
+// Mock @stellar/stellar-sdk's contract client and StrKey
 jest.mock('@stellar/stellar-sdk', () => ({
   contract: {
     Client: {
       from: jest.fn(() => Promise.resolve({})),
     },
+  },
+  StrKey: {
+    isValidContract: jest.fn((id: string) => {
+      return typeof id === 'string' && id.startsWith('C') && id.length === 56;
+    }),
+    isValidEd25519PublicKey: jest.fn((id: string) => {
+      return typeof id === 'string' && id.startsWith('G') && id.length === 56;
+    }),
   },
 }));
 
