@@ -1,7 +1,17 @@
 // src/coupons/services/coupon.service.ts
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, LessThanOrEqual, MoreThanOrEqual, IsNull } from 'typeorm';
+import {
+  Repository,
+  In,
+  LessThanOrEqual,
+  MoreThanOrEqual,
+  IsNull,
+} from 'typeorm';
 import { Coupon, CouponStatus, DiscountType } from '../entities/coupon.entity';
 import { StoreItem } from '../../store/entities/store-item.entity';
 import { CreateCouponDto } from '../dto/create-coupon.dto';
@@ -24,11 +34,16 @@ export class CouponService {
     });
 
     if (existingCoupon) {
-      throw new ConflictException(Coupon with code ${createCouponDto.code} already exists);
+      throw new ConflictException(
+        `Coupon with code ${createCouponDto.code} already exists`,
+      );
     }
 
     let applicableItems: StoreItem[] = [];
-    if (createCouponDto.applicableItemIds && createCouponDto.applicableItemIds.length > 0) {
+    if (
+      createCouponDto.applicableItemIds &&
+      createCouponDto.applicableItemIds.length > 0
+    ) {
       applicableItems = await this.storeItemRepository.find({
         where: { id: In(createCouponDto.applicableItemIds) },
       });
@@ -55,7 +70,7 @@ export class CouponService {
     });
 
     if (!coupon) {
-      throw new NotFoundException(Coupon with ID ${id} not found);
+      throw new NotFoundException(`Coupon with ID ${id} not found`);
     }
 
     return coupon;
@@ -68,7 +83,7 @@ export class CouponService {
     });
 
     if (!coupon) {
-      throw new NotFoundException(Coupon with code ${code} not found);
+      throw new NotFoundException(`Coupon with code ${code} not found`);
     }
 
     return coupon;
@@ -83,7 +98,9 @@ export class CouponService {
       });
 
       if (existingCoupon && existingCoupon.id !== id) {
-        throw new ConflictException(Coupon with code ${updateCouponDto.code} already exists);
+        throw new ConflictException(
+          `Coupon with code ${updateCouponDto.code} already exists`,
+        );
       }
     }
 
@@ -114,23 +131,26 @@ export class CouponService {
     prefix?: string,
   ): Promise<Coupon[]> {
     const coupons: Coupon[] = [];
-    
+
     let applicableItems: StoreItem[] = [];
-    if (baseProperties.applicableItemIds && baseProperties.applicableItemIds.length > 0) {
+    if (
+      baseProperties.applicableItemIds &&
+      baseProperties.applicableItemIds.length > 0
+    ) {
       applicableItems = await this.storeItemRepository.find({
         where: { id: In(baseProperties.applicableItemIds) },
       });
     }
 
     for (let i = 0; i < count; i++) {
-      const code = this.couponGeneratorService.generateUniqueCode(prefix);
-      
+      const code = await this.couponGeneratorService.generateUniqueCode(prefix);
+
       const coupon = this.couponRepository.create({
         ...baseProperties,
         code,
         applicableItems,
       });
-      
+
       coupons.push(coupon);
     }
 
@@ -139,7 +159,7 @@ export class CouponService {
 
   async updateCouponStatuses(): Promise<void> {
     const now = new Date();
-    
+
     // Find expired coupons
     const expiredCoupons = await this.couponRepository.find({
       where: {
@@ -147,15 +167,15 @@ export class CouponService {
         endDate: LessThanOrEqual(now),
       },
     });
-    
+
     if (expiredCoupons.length > 0) {
       for (const coupon of expiredCoupons) {
         coupon.status = CouponStatus.EXPIRED;
       }
-      
+
       await this.couponRepository.save(expiredCoupons);
     }
-    
+
     // Find coupons that should now be active
     const newlyActiveCoupons = await this.couponRepository.find({
       where: {
@@ -164,12 +184,12 @@ export class CouponService {
         endDate: MoreThanOrEqual(now),
       },
     });
-    
+
     if (newlyActiveCoupons.length > 0) {
       for (const coupon of newlyActiveCoupons) {
         coupon.status = CouponStatus.ACTIVE;
       }
-      
+
       await this.couponRepository.save(newlyActiveCoupons);
     }
   }

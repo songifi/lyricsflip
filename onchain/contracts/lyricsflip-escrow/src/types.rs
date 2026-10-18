@@ -27,6 +27,8 @@ pub struct Round {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
+    /// Owner of this escrow contract — must be the game contract address.
+    /// Only the owner is allowed to create and settle rounds.
     pub owner: Address,
     pub treasury: Address,
     /// Protocol fee in basis points (1 bps = 0.01%).

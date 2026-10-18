@@ -44,7 +44,7 @@ export class CouponValidatorService {
     if (coupon.status !== CouponStatus.ACTIVE) {
       return {
         isValid: false,
-        errorMessage: Coupon is ${coupon.status.toLowerCase()},
+        errorMessage: `Coupon is ${coupon.status.toLowerCase()}`,
       };
     }
 
@@ -61,7 +61,7 @@ export class CouponValidatorService {
       // Update coupon status to expired
       coupon.status = CouponStatus.EXPIRED;
       await this.couponRepository.save(coupon);
-      
+
       return {
         isValid: false,
         errorMessage: 'Coupon has expired',
@@ -73,7 +73,7 @@ export class CouponValidatorService {
       // Update coupon status to depleted
       coupon.status = CouponStatus.DEPLETED;
       await this.couponRepository.save(coupon);
-      
+
       return {
         isValid: false,
         errorMessage: 'Coupon usage limit has been reached',
@@ -91,7 +91,7 @@ export class CouponValidatorService {
     if (userUsages >= coupon.maxUsesPerUser) {
       return {
         isValid: false,
-        errorMessage: You've already used this coupon ${userUsages} time(s),
+        errorMessage: `You've already used this coupon ${userUsages} time(s)`,
       };
     }
 
@@ -112,18 +112,21 @@ export class CouponValidatorService {
     }
 
     // Check minimum purchase amount
-    if (coupon.minimumPurchaseAmount && cartTotal < coupon.minimumPurchaseAmount) {
+    if (
+      coupon.minimumPurchaseAmount &&
+      cartTotal < coupon.minimumPurchaseAmount
+    ) {
       return {
         isValid: false,
-        errorMessage: Minimum purchase amount of ${coupon.minimumPurchaseAmount} required,
+        errorMessage: `Minimum purchase amount of ${coupon.minimumPurchaseAmount} required`,
       };
     }
 
     // Check item applicability
     if (!coupon.isGlobal && coupon.applicableItems.length > 0) {
-      const applicableItemIds = coupon.applicableItems.map(item => item.id);
-      const hasApplicableItem = cartItems.some(item => 
-        applicableItemIds.includes(item.storeItem.id)
+      const applicableItemIds = coupon.applicableItems.map((item) => item.id);
+      const hasApplicableItem = cartItems.some((item) =>
+        applicableItemIds.includes(item.storeItem.id),
       );
 
       if (!hasApplicableItem) {

@@ -57,6 +57,7 @@ export interface Card {
   artist: string;
   title: string;
   year: bigint;
+  difficulty: number;
   lyrics: string;
 }
 
@@ -76,6 +77,11 @@ export interface Round {
   end_time: bigint;
   next_card_index: number;
   is_cancelled: boolean;
+}
+
+export interface RoundFilter {
+  genre?: Genre;
+  decade?: bigint | number;
 }
 
 /** Mirrors the contract's `Milestone` enum (encoded as a plain `u32`). */
