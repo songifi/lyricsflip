@@ -56,6 +56,38 @@ pub struct WinningsClaimed {
     pub fee: i128,
 }
 
+/// Statistic a milestone can be defined against.
+#[contracttype]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StatKind {
+    /// Total wins accumulated by the player.
+    Wins,
+    /// Current winning streak.
+    Streak,
+    /// Perfect rounds completed.
+    PerfectRounds,
+    /// Rounds played in a specific genre.
+    GenreRounds,
+}
+
+/// Owner-configurable milestone definition.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MilestoneDef {
+    pub id: u32,
+    pub kind: StatKind,
+    pub threshold: u64,
+    pub active: bool,
+}
+
+/// Event emitted when a player claims a milestone.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MilestoneClaimed {
+    pub milestone_id: u32,
+    pub caller: Address,
+    pub threshold: u64,
+    pub stat_value: u64,
 /// Per-player stats for a round, used to derive results and winners.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
