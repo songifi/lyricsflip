@@ -21,6 +21,7 @@ Thank you for your interest in contributing to LyricsFlip! This document provide
 ## Code of Conduct
 
 We're all here to have fun and build something awesome. Treat everyone with respect, even if their code is off-key. We value:
+
 - Respectful communication
 - Constructive feedback
 - Inclusive collaboration
@@ -73,6 +74,7 @@ The root `package.json` uses workspaces for `frontend` and `backend`.
 Each package has its own environment configuration:
 
 **Backend** (`backend/.env.development`):
+
 ```
 NODE_ENV=development
 DATABASE_URL=postgresql://user:password@localhost:5432/lyricsflip
@@ -87,6 +89,7 @@ CORS_ORIGIN=http://localhost:3001
 ```
 
 **Frontend** (`frontend/.env.local`):
+
 ```
 NEXT_PUBLIC_API_URL=http://localhost:3000
 NEXT_PUBLIC_WALLET_NETWORK=testnet
@@ -147,6 +150,7 @@ Use descriptive branch names that follow this pattern:
 ```
 
 **Types:**
+
 - `feature/` - New feature
 - `bugfix/` - Bug fix
 - `docs/` - Documentation updates
@@ -154,6 +158,7 @@ Use descriptive branch names that follow this pattern:
 - `refactor/` - Code refactoring without behavior changes
 
 **Examples:**
+
 ```
 feature/510-websocket-auth
 bugfix/511-fix-imports
@@ -162,6 +167,7 @@ refactor/optimize-database-queries
 ```
 
 **Rules:**
+
 - Always create a new branch; never push directly to `main`
 - Use lowercase letters and hyphens (no spaces or underscores)
 - Include the issue number if applicable
@@ -174,6 +180,7 @@ refactor/optimize-database-queries
 LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to maintain a clear commit history.
 
 **Format:**
+
 ```
 <type>(<scope>): <subject>
 
@@ -183,6 +190,7 @@ LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to 
 ```
 
 **Types:**
+
 - `feat:` - A new feature
 - `fix:` - A bug fix
 - `docs:` - Documentation changes
@@ -193,6 +201,7 @@ LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to 
 - `chore:` - Build system, dependencies, or other maintenance
 
 **Scopes:**
+
 - `auth` - Authentication & authorization
 - `api` - API endpoints
 - `db` - Database & migrations
@@ -202,12 +211,14 @@ LyricsFlip uses [Conventional Commits](https://www.conventionalcommits.org/) to 
 - `contracts` - Smart contracts
 
 **Subject:**
+
 - Use imperative mood ("add" not "added" or "adds")
 - Don't capitalize first letter
 - No period (.) at the end
 - Maximum 50 characters
 
 **Examples:**
+
 ```
 feat(auth): add websocket jwt authentication
 
@@ -227,6 +238,7 @@ git config --global commit.template ~/.gitcommit_template
 ```
 
 Create `~/.gitcommit_template`:
+
 ```
 # <type>(<scope>): <subject>
 #
@@ -249,18 +261,22 @@ Create `~/.gitcommit_template`:
 ### Opening a PR
 
 1. **Push your branch** (first time):
+
    ```bash
    git push -u origin feature/510-websocket-auth
    ```
 
 2. **Create PR on GitHub** with this checklist:
+
    ```markdown
    ## Description
+
    Brief description of changes.
 
    Fixes #510
 
    ## Type of Change
+
    - [ ] Feature
    - [ ] Bug Fix
    - [ ] Documentation
@@ -268,12 +284,14 @@ Create `~/.gitcommit_template`:
    - [ ] Performance Improvement
 
    ## Testing
+
    - [ ] Unit tests added/updated
    - [ ] Integration tests added/updated
    - [ ] Manual testing completed
    - [ ] Tested on: [browser/OS]
 
    ## Checklist
+
    - [ ] Code follows project standards
    - [ ] All tests pass
    - [ ] Commit messages follow conventions
@@ -283,6 +301,7 @@ Create `~/.gitcommit_template`:
    ```
 
 3. **Address feedback** - Respond to reviewer comments and push updates:
+
    ```bash
    git add .
    git commit -m "fix: address review feedback"
@@ -297,6 +316,12 @@ Create `~/.gitcommit_template`:
 - **Small is better** - Aim for < 400 lines per PR if possible
 - **Write good descriptions** - Explain what, why, and how
 - **Respond promptly** - Reply to feedback within 24-48 hours
+
+### Merge Policy
+
+- All changes to `main` must go through an approved pull request; direct pushes are not allowed.
+- Before merging, the branch must be up to date with `main` and these required checks must pass: `LyricsFlip Contracts`, `Frontend CI`, `Backend CI`, and `Merge guards`.
+- These checks run for every pull request, including documentation-only changes. Do not bypass a failed or pending check; fix the failure and rerun CI.
 
 ---
 
@@ -356,12 +381,14 @@ npm --prefix frontend exec -- eslint --fix src/
 ### Backend (NestJS + TypeScript)
 
 **Naming Conventions:**
+
 - Classes: `PascalCase` (e.g., `UserController`, `AuthService`)
 - Methods & functions: `camelCase` (e.g., `getUserById`, `verifyToken`)
 - Constants: `UPPER_SNAKE_CASE` (e.g., `REQUEST_USER_KEY`, `JWT_SECRET`)
 - File names: `kebab-case.ts` (e.g., `user.controller.ts`, `ws-jwt-auth.guard.ts`)
 
 **Module Organization:**
+
 ```
 src/
 ├── feature/
@@ -369,6 +396,7 @@ src/
 │   ├── feature.service.ts          # Business logic
 │   ├── feature.module.ts           # Module definition
 │   ├── feature.spec.ts             # Tests
-│   
+│
 
 /* … truncated 4299 chars — edit only what you need near the top … */
+```
