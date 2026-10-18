@@ -19,7 +19,16 @@ contracts:
 
 ## Round scoring and finalization
 
-Each player's round score is the number of correct answers they submitted in that round. The contract also tracks the total time spent answering in that round so tie-breaks can be resolved fairly. `get_round_scores(round_id)` returns the final per-player score map for the round.
+Each correct answer earns the time-adjusted base points multiplied by the card
+difficulty (1 = easy, 2 = medium, 3 = hard). Existing stored cards are lazily
+migrated with difficulty 2. The contract also tracks total answer time for
+tie-breaks. `get_round_scores(round_id)` returns each player's accumulated
+points.
+
+`create_round_with_filter` accepts optional genre and decade filters plus an
+optional difficulty. Decades are supplied as their first year (for example,
+1990); filtered selection checks at most 500 cards and fails if too few cards
+match. The existing `create_round` entry point retains its genre-only behavior.
 
 A round can be finalized when either:
 
@@ -30,7 +39,7 @@ A round can be finalized when either:
 
 Winner selection follows the LF-005 rule:
 
-- highest correct-answer count wins
+- highest point score wins
 - when several players are tied on score, the lowest total answer time wins
 - if the score and total answer time are both tied, the tied players are co-winners
 - if every player has a score of `0`, there are no winners
@@ -90,28 +99,94 @@ library's.
 
 | Function | Description |
 | --- | --- |
-| `mint(caller, recipient) -> u128` | Minter-only; mints the next token id |
+| `mint(caller, recipient, kind: u32) -> u128` | Minter-only; mints the next token id and records the achievement kind (LF-168) |
+| `token_kind(token_id) -> u32` | Returns the achievement kind for a minted token (LF-168) |
 | `owner_of(token_id) -> Address` | Owner of a token |
 | `balance(owner) -> u32` | Number of tokens held by `owner` |
-| `transfer(from, to, token_id)` | Owner transfers a token (auth: `from`) |
-| `transfer_from(spender, from, to, token_id)` | Approved spender or operator transfers (auth: `spender`) |
-| `approve(approver, approved, token_id, live_until_ledger)` | Owner or operator approves one spender for a token; `0` revokes |
-| `approve_for_all(owner, operator, live_until_ledger)` | Approves an operator for all of `owner`'s tokens; `0` revokes |
-| `get_approved(token_id) -> Option<Address>` | Current, unexpired token approval |
-| `is_approved_for_all(owner, operator) -> bool` | Whether `operator` is an unexpired operator |
+| `transfer(from, to, token_id)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
+| `transfer_from(spender, from, to, token_id)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
+| `approve(approver, approved, token_id, live_until_ledger)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
+| `approve_for_all(owner, operator, live_until_ledger)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
+| `get_approved(token_id) -> Option<Address>` | Always `None` — approvals are disabled (LF-169) |
+| `is_approved_for_all(owner, operator) -> bool` | Always `false` — operator approvals are disabled (LF-169) |
+| `tokens_of_owner(owner, start, limit) -> Vec<u128>` | Returns up to `limit` (≤ 50) token ids held by `owner` starting at index `start`; replaces the O(N) `owner_of` loop (LF-170) |
 | `token_name()`, `token_symbol()`, `base_uri()`, `token_count()` | Metadata |
-| `token_uri(token_id) -> String` | `base_uri` followed by the token id; `TokenDoesNotExist` for unminted tokens |
+| `token_uri(token_id) -> String` | `base_uri` + `kind` + `.json`; `TokenDoesNotExist` for unminted tokens (LF-168) |
 | `set_base_uri(caller, base_uri)` | Owner-only; at most 200 bytes |
 | `set_minter(caller, new_minter)` | Owner-only; the old minter can no longer mint |
 | `owner()`, `minter()`, `pending_owner()` | Administration views |
 
-Per-token metadata follows the JSON template in `metadata/template.json`, served
-at `<base_uri><token_id>`.
+#### LF-168 – Token kind
 
-Events: `NftMinted`, `Transfer { from, to, token_id }`,
-`Approve { approver, token_id, approved, live_until_ledger }` and
-`ApproveForAll { owner, operator, live_until_ledger }`, `MinterUpdated`. A
-transfer clears the token's approval.
+Every minted badge records which achievement / milestone it represents via a
+`kind: u32` parameter on `mint`.  The kind is stored under
+`DataKey::TokenKind(token_id)` and exposed through the `token_kind` view.
+
+`token_uri` now returns `<base_uri><kind>.json` (e.g.
+`https://assets.lyricsflip.io/nft/0.json`).  This means every token of the
+same kind shares one metadata URL with its own artwork and description, without
+requiring an off-chain id→kind mapping.
+
+Metadata files live in `metadata/`:
+
+| File | Kind | Milestone |
+| --- | --- | --- |
+| `metadata/0.json` | 0 | `FirstWin` — first round won |
+| `metadata/1.json` | 1 | `Streak5` — correct-answer streak of 5 |
+| `metadata/2.json` | 2 | `TenWins` — ten rounds won |
+
+`metadata/template.json` is the generic template for future kinds.
+
+The `NftInterface` trait in the game contract and the cross-contract call in
+`claim_reward` have been updated to pass `milestone as u32` as the `kind`
+argument.
+
+#### LF-169 – Soulbound badges (ADR)
+
+**Decision: all tokens in this contract are soulbound.**
+
+Achievement badges cannot be transferred, approved, or delegated.  Calling
+`transfer`, `transfer_from`, `approve`, or `approve_for_all` always panics with
+`Error::NonTransferable` (code 11).  `get_approved` always returns `None` and
+`is_approved_for_all` always returns `false`.
+
+Rationale:
+
+1. Every token in this contract is an on-chain achievement badge — a record that
+   a specific wallet reached a specific milestone.  Allowing trading would make a
+   "top players" badge gallery meaningless.
+2. Making soulbound the invariant for the whole contract is simpler to reason
+   about and test than a per-kind flag.
+3. A future contract (or a new contract) can introduce transferable collectibles
+   if that use case arises; having them in the same contract would complicate the
+   storage layout and the access rules.
+
+#### LF-170 – Per-owner token index
+
+The previous approach — iterating `owner_of(1..token_count)` — required O(N)
+RPC simulations and was unusable beyond a few hundred mints.
+
+The contract now maintains a dense index per owner:
+
+| Storage key | Value | Purpose |
+| --- | --- | --- |
+| `OwnerTokenCount(owner)` | `u32` | Number of tokens currently held |
+| `OwnerTokenAt((owner, i))` | `u128` | Token id at index position `i` (0-based) |
+| `OwnerTokenPosition((owner, token_id))` | `u32` | Position of `token_id` in the owner's index |
+
+Insertions append to the end (O(1)).  Removals use **swap-remove**: the last
+entry is moved into the vacated slot, the last slot is deleted, and the count is
+decremented — all O(1).
+
+`tokens_of_owner(owner, start, limit)` returns a paginated slice of the index
+in a single contract call.  `limit` is clamped to `MAX_TOKENS_PER_PAGE` (50).
+
+Per-token metadata follows the JSON template in `metadata/template.json`, served
+at `<base_uri><kind>.json`.
+
+Events: `NftMinted { token_id, kind, recipient }`, `MinterUpdated`.
+Transfer and approval events are not emitted because those operations are
+disabled.
 
 ## Ownership, roles and upgrades
 
@@ -322,13 +397,23 @@ following hot keys:
 | `OpenRounds` | `create_round` / `start_round` write |
 | `PlayerStats` | `start_round` / `submit_answer` / `finalize_round` write, `get_player_stat` read |
 | `TokenOwner(id)` *(NFT)* | `mint` write, `owner_of` read |
+| `TokenKind(id)` *(NFT)* | `mint` write, `token_kind` read (LF-168) |
+| `OwnerTokenCount(owner)` *(NFT)* | `mint` write via `index_add` (LF-170) |
+| `OwnerTokenAt((owner, i))` *(NFT)* | `mint` write via `index_add` (LF-170) |
+| `OwnerTokenPosition((owner, token_id))` *(NFT)* | `mint` write via `index_add` (LF-170) |
+| `TokenOwner(id)` *(NFT)* | `mint` write, `owner_of` read, `do_transfer` write |
+| `Balance(owner)` *(NFT)* | `add_balance` write, `balance` read |
+| `Approval(id)` *(NFT)* | `approve` write, `get_approved` read |
+| `ApprovalForAll(owner, operator)` *(NFT)* | `approve_for_all` write, `is_approved_for_all` read |
 
 ### Survival tests
 
 `test::ttl_survival_game_entries_survive_ledger_advance` advances the ledger
 sequence past the default TTL and verifies that entries touched during gameplay
-(cards, rounds, player stats) are still readable. The equivalent NFT test
-`test::ttl_survival_token_owner_survives_ledger_advance` covers `TokenOwner`.
+(cards, rounds, player stats) are still readable. The equivalent NFT tests
+`test::ttl_survival_token_owner_survives_ledger_advance` and
+`test::ttl_survival_transfer_survives_ledger_advance` cover `TokenOwner`,
+`Balance`, and approvals surviving ledger advances for transfers.
 
 ## Error codes
 
@@ -364,7 +449,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 17 | `NonExistingCard` | No card with the given id |
 | 18 | `RoundNotReady` | `finalize_round` before all answers are in or the deadline has passed |
 | 19 | `RoundAlreadyFinalized` | Round was already finalized |
-| 20 | `RoundCancelled` | Round was cancelled |
+| 20 | `NotEnoughDistinctCards` | `build_question_card` can't find 3 distinct distractors (fewer than 4 distinct values in the catalogue) |
 | 21 | `RoundFull` | Round already has `max_players` players |
 | 22 | `InvalidMaxPlayers` | `set_max_players` was called with a value below 2 |
 | 23 | `NftContractNotSet` | `claim_reward` before the owner set the NFT contract |
@@ -378,11 +463,12 @@ Every variant is currently referenced by the contract. The ones marked
 | 31 | `DuplicateCard` | Another card already has this `title` + `artist` |
 | 32 | `BatchTooLarge` | `add_cards` got more than `MAX_CARDS_PER_BATCH` cards |
 | 33 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
-| 34 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
-| 26 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
-| 18 | `RoundNotReady` | `finalize_round` called before all answers submitted and before the deadline |
-| 19 | `RoundAlreadyFinalized` | `finalize_round` called a second time on an already-finalized round |
-| 20 | `NotEnoughDistinctCards` | `build_question_card` can't find 3 distinct distractors (fewer than 4 distinct values in the catalogue) |
+| 34 | `NoMoreCards` | All cards have been drawn; call `finalize_round` |
+| 35 | `RoundCancelled` | Round was cancelled |
+| 36 | `InvalidCardDifficulty` | Card difficulty or round difficulty is not between 1 and 3 |
+| 37 | `InvalidDecade` | Round decade is not a valid decade start year |
+| 38 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
+| 39 | `AlreadyAnswered` | Player submitted more than one answer for the same card |
 
 ### `lyricsflip-nft`
 
@@ -398,3 +484,5 @@ Every variant is currently referenced by the contract. The ones marked
 | 8 | `NotOwner` | Caller of an owner-only function is not the owner |
 | 9 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
 | 10 | `BaseUriTooLong` | `base_uri` is longer than 200 bytes |
+| 11 | `NonTransferable` | Achievement badges are soulbound; `transfer`, `transfer_from`, `approve`, and `approve_for_all` always panic with this code (LF-169) |
+| 11 | `InsufficientBalance` | Balance is insufficient or missing for transfer |

@@ -42,7 +42,12 @@ export const LYRICSFLIP_ERRORS: Record<number, ContractErrorInfo> = {
   31: { name: 'DuplicateCard', message: 'A card with that title and artist already exists.' },
   32: { name: 'BatchTooLarge', message: 'Too many cards in one batch (max 20).' },
   33: { name: 'NotPendingOwner', message: 'You are not the pending owner of this contract.' },
-  34: { name: 'NoActiveCard', message: 'No card has been drawn yet for this round.' },
+  34: { name: 'NoMoreCards', message: 'All cards have been drawn; finalize the round.' },
+  35: { name: 'RoundCancelled', message: 'That round was cancelled.' },
+  36: { name: 'InvalidCardDifficulty', message: 'Card difficulty must be 1, 2, or 3.' },
+  37: { name: 'InvalidDecade', message: 'Choose a decade beginning in a valid year.' },
+  38: { name: 'NoActiveCard', message: 'No card has been drawn yet for this round.' },
+  39: { name: 'AlreadyAnswered', message: 'You have already answered this card.' },
 };
 
 export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = {
@@ -56,6 +61,7 @@ export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = {
   8: { name: 'NotOwner', message: 'Only the contract owner can do that.' },
   9: { name: 'NotPendingOwner', message: 'You are not the pending owner of this contract.' },
   10: { name: 'BaseUriTooLong', message: 'That base URI is too long.' },
+  11: { name: 'InsufficientBalance', message: 'Balance is insufficient or missing.' },
 };
 
 /**
