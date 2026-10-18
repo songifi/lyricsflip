@@ -98,6 +98,11 @@ stellar contract invoke \
 # ---------------------------------------------------------------------------
 log "Writing contract IDs to ${FRONTEND_ENV}…"
 
+# If .env.local does not exist, initialize from .env.example
+if [[ ! -f "${FRONTEND_ENV}" && -f "${REPO_ROOT}/frontend/.env.example" ]]; then
+  cp "${REPO_ROOT}/frontend/.env.example" "${FRONTEND_ENV}"
+fi
+
 # Preserve any existing variables that are NOT the two contract IDs.
 KEEP_LINES=""
 if [[ -f "${FRONTEND_ENV}" ]]; then
@@ -112,6 +117,17 @@ fi
   echo "NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID=${LYRICSFLIP_CONTRACT_ID}"
   echo "NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID=${NFT_CONTRACT_ID}"
 } > "${FRONTEND_ENV}"
+
+# Update deployment file defaults if present
+DEPLOYMENT_FILE="${REPO_ROOT}/deployments/${NETWORK}.json"
+if [[ -f "${DEPLOYMENT_FILE}" ]] && command -v jq &>/dev/null; then
+  log "Updating ${DEPLOYMENT_FILE}…"
+  jq --arg g "${LYRICSFLIP_CONTRACT_ID}" \
+     --arg n "${NFT_CONTRACT_ID}" \
+     --arg d "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+     '.lyricsflip = $g | .lyricsflipNft = $n | .deployedAt = $d' \
+     "${DEPLOYMENT_FILE}" > "${DEPLOYMENT_FILE}.tmp" && mv "${DEPLOYMENT_FILE}.tmp" "${DEPLOYMENT_FILE}"
+fi
 
 log "Done!"
 log "  Game contract : ${LYRICSFLIP_CONTRACT_ID}"
