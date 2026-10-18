@@ -7,16 +7,16 @@ export class ConfigManagerService {
     private configRepository: Repository<ConfigEntry>,
     @InjectRepository(ConfigAudit)
     private auditRepository: Repository<ConfigAudit>,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
   ) {
     this.initializeCache();
   }
 
   private async initializeCache(): Promise<void> {
     const configs = await this.configRepository.find({
-      where: { isActive: true }
+      where: { isActive: true },
     });
-    configs.forEach(config => {
+    configs.forEach((config) => {
       this.configCache.set(config.key, config.value);
     });
   }
@@ -28,24 +28,20 @@ export class ConfigManagerService {
     }
 
     const config = await this.configRepository.findOne({
-      where: { key, isActive: true }
+      where: { key, isActive: true },
     });
 
     if (!config) {
-      throw new NotFoundException(Configuration ${key} not found);
+      throw new NotFoundException(`Configuration ${key} not found`);
     }
 
     this.configCache.set(key, config.value);
     return config.value;
   }
 
-  async set(
-    key: string,
-    value: any,
-    userId: string
-  ): Promise<ConfigEntry> {
+  async set(key: string, value: any, userId: string): Promise<ConfigEntry> {
     const existingConfig = await this.configRepository.findOne({
-      where: { key }
+      where: { key },
     });
 
     if (existingConfig) {
@@ -57,7 +53,7 @@ export class ConfigManagerService {
         existingConfig,
         existingConfig.value,
         value,
-        userId
+        userId,
       );
 
       // Update config
@@ -72,7 +68,7 @@ export class ConfigManagerService {
       this.eventEmitter.emit('config.updated', {
         key,
         value,
-        version: existingConfig.version
+        version: existingConfig.version,
       });
 
       return existingConfig;
@@ -82,7 +78,7 @@ export class ConfigManagerService {
     const newConfig = this.configRepository.create({
       key,
       value,
-      version: 1
+      version: 1,
     });
 
     await this.configRepository.save(newConfig);
@@ -105,13 +101,13 @@ export class ConfigManagerService {
     config: ConfigEntry,
     oldValue: any,
     newValue: any,
-    userId: string
+    userId: string,
   ): Promise<void> {
     const audit = this.auditRepository.create({
       config,
       oldValue,
       newValue,
-      changedBy: userId
+      changedBy: userId,
     });
 
     await this.auditRepository.save(audit);
@@ -120,10 +116,10 @@ export class ConfigManagerService {
   async rollback(key: string, version: number): Promise<ConfigEntry> {
     const audits = await this.auditRepository.find({
       where: { config: { key } },
-      order: { timestamp: 'DESC' }
+      order: { timestamp: 'DESC' },
     });
 
-    const targetAudit = audits.find(a => a.config.version === version);
+    const targetAudit = audits.find((a) => a.config.version === version);
     if (!targetAudit) {
       throw new NotFoundException('Version not found');
     }
@@ -134,7 +130,7 @@ export class ConfigManagerService {
   async getHistory(key: string): Promise<ConfigAudit[]> {
     return this.auditRepository.find({
       where: { config: { key } },
-      order: { timestamp: 'DESC' }
+      order: { timestamp: 'DESC' },
     });
   }
 }

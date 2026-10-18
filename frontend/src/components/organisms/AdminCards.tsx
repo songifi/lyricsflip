@@ -5,7 +5,7 @@ import { useStellar } from "@/lib/stellar/hooks/useStellar";
 import { GENRE_VALUES, type Card, type Genre } from "@/lib/stellar/types";
 
 type NewCard = Omit<Card, "card_id">;
-type CardFields = Record<"genre" | "artist" | "title" | "year" | "lyrics", string>;
+type CardFields = Record<"genre" | "artist" | "title" | "year" | "difficulty" | "lyrics", string>;
 type CardErrors = Partial<Record<keyof CardFields, string>>;
 
 // Mirrors `validate_card` and `MAX_CARDS_PER_BATCH` in `onchain/contracts/lyricsflip/src/lib.rs`.
@@ -14,11 +14,12 @@ const MAX_LYRICS_LEN = 1000;
 const MAX_CARDS_PER_BATCH = 20;
 const CATALOGUE_SIZE = 50;
 
-const emptyFields: CardFields = { genre: GENRE_VALUES[0], artist: "", title: "", year: "", lyrics: "" };
+const emptyFields: CardFields = { genre: GENRE_VALUES[0], artist: "", title: "", year: "", difficulty: "2", lyrics: "" };
 
 const validateCard = (fields: CardFields): CardErrors => {
     const errors: CardErrors = {};
     const year = Number(fields.year);
+    const difficulty = Number(fields.difficulty);
     if (!GENRE_VALUES.includes(fields.genre as Genre)) errors.genre = `Genre must be one of ${GENRE_VALUES.join(", ")}`;
     if (!fields.artist.trim()) errors.artist = "Artist is required";
     if (!fields.title.trim()) errors.title = "Title is required";
@@ -27,6 +28,7 @@ const validateCard = (fields: CardFields): CardErrors => {
     if (!Number.isInteger(year) || year < MIN_CARD_YEAR || year > new Date().getFullYear()) {
         errors.year = `Year must be between ${MIN_CARD_YEAR} and ${new Date().getFullYear()}`;
     }
+    if (![1, 2, 3].includes(difficulty)) errors.difficulty = "Difficulty must be 1, 2, or 3";
     return errors;
 };
 
@@ -35,6 +37,7 @@ const toCard = (fields: CardFields): NewCard => ({
     artist: fields.artist.trim(),
     title: fields.title.trim(),
     year: BigInt(fields.year),
+    difficulty: Number(fields.difficulty),
     lyrics: fields.lyrics,
 });
 
@@ -78,6 +81,7 @@ const parseImport = (fileName: string, text: string): CardFields[] => {
         artist: String(r.artist ?? ""),
         title: String(r.title ?? ""),
         year: String(r.year ?? "").trim(),
+        difficulty: String(r.difficulty ?? "").trim() || "2",
         lyrics: String(r.lyrics ?? ""),
     }));
 };
@@ -187,6 +191,13 @@ export const AdminCards = () => {
                     {field("artist", <Input id="card-artist" value={fields.artist} onChange={update("artist")} />)}
                     {field("title", <Input id="card-title" value={fields.title} onChange={update("title")} />)}
                     {field("year", <Input id="card-year" type="number" value={fields.year} onChange={update("year")} />)}
+                    {field("difficulty", (
+                        <select id="card-difficulty" value={fields.difficulty} onChange={update("difficulty")} className="w-full px-3 py-2 border rounded">
+                            <option value="1">Easy (1)</option>
+                            <option value="2">Medium (2)</option>
+                            <option value="3">Hard (3)</option>
+                        </select>
+                    ))}
                     {field("lyrics", (
                         <textarea id="card-lyrics" value={fields.lyrics} onChange={update("lyrics")} rows={4} className="w-full px-3 py-2 border rounded" />
                     ))}
@@ -197,7 +208,7 @@ export const AdminCards = () => {
             <section>
                 <h2 className="text-xl font-bold mb-2">Bulk Import</h2>
                 <p className="text-sm text-gray-600 mb-2">
-                    CSV with a header row, or a JSON array, with fields: genre, artist, title, year, lyrics.
+                    CSV with a header row, or a JSON array, with fields: genre, artist, title, year, difficulty, lyrics. Missing difficulty defaults to 2.
                 </p>
                 <input type="file" accept=".csv,.json" onChange={handleFile} disabled={isLoading} />
                 {importRows.length > 0 && (
@@ -206,14 +217,14 @@ export const AdminCards = () => {
                             <thead>
                                 <tr className="bg-gray-100 text-left">
                                     <th className="p-2">#</th><th className="p-2">Genre</th><th className="p-2">Artist</th>
-                                    <th className="p-2">Title</th><th className="p-2">Year</th><th className="p-2">Lyrics</th><th className="p-2">Errors</th>
+                                    <th className="p-2">Title</th><th className="p-2">Year</th><th className="p-2">Difficulty</th><th className="p-2">Lyrics</th><th className="p-2">Errors</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {importRows.map((row, i) => (
                                     <tr key={i} className={Object.keys(importErrors[i]).length ? "bg-red-50" : ""}>
                                         <td className="p-2">{i + 1}</td><td className="p-2">{row.genre}</td><td className="p-2">{row.artist}</td>
-                                        <td className="p-2">{row.title}</td><td className="p-2">{row.year}</td>
+                                        <td className="p-2">{row.title}</td><td className="p-2">{row.year}</td><td className="p-2">{row.difficulty}</td>
                                         <td className="p-2 truncate max-w-xs">{row.lyrics}</td>
                                         <td className="p-2 text-red-500">{Object.values(importErrors[i]).join("; ")}</td>
                                     </tr>
@@ -240,7 +251,7 @@ export const AdminCards = () => {
                             <thead>
                                 <tr className="bg-gray-100 text-left">
                                     <th className="p-2">ID</th><th className="p-2">Genre</th><th className="p-2">Artist</th>
-                                    <th className="p-2">Title</th><th className="p-2">Year</th>
+                                    <th className="p-2">Title</th><th className="p-2">Year</th><th className="p-2">Difficulty</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -249,6 +260,7 @@ export const AdminCards = () => {
                                         <td className="p-2">{card.card_id.toString()}</td><td className="p-2">{card.genre}</td>
                                         <td className="p-2">{card.artist}</td><td className="p-2">{card.title}</td>
                                         <td className="p-2">{card.year.toString()}</td>
+                                        <td className="p-2">{card.difficulty}</td>
                                     </tr>
                                 ))}
                             </tbody>
