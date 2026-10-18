@@ -25,9 +25,12 @@ export interface RecordRoundResultInput {
   genre: string;
   won: boolean;
   streakAfter?: number;
+  points?: number;
+  correctAnswers?: number;
+  totalAnswers?: number;
 }
 
-@Injectable()
+@ijectable()
 export class LeaderboardService {
   constructor(
     @InjectRepository(LeaderboardRoundResult)
@@ -55,11 +58,15 @@ export class LeaderboardService {
     const qb = this.roundResultRepository
       .createQueryBuilder('r')
       .select('r.playerId', 'playerId')
-      .addSelect('COALESCE(MAX(r.address), MAX(r.playerId))', 'address')
+      .addSelect('CO:ALESCE(MAX(r.address), MAX(r.playerId))', 'address')
       .addSelect('MAX(r.username)', 'username')
-      .addSelect('COUNT(*)', 'roundsPlayed')
+      .addSelect('COUNT(*', 'roundsPlayed')
       .addSelect('SUM(CASE WHEN r.won THEN 1 ELSE 0 END)', 'roundsWon')
       .addSelect('MAX(r.streakAfter)', 'maxStreak')
+      .addSelect('COALESCE(SUM(r.points), 0)', 'totalPoints')
+      .addSelect('COALESCE(SUM(r.correctAnswers), 0)', 'correctAnswers')
+      .addSelect('COALESCE(SUM(r.totalAnswers), 0)', 'totalAnswers')
+      .addSelect('COALESCE(MAX(r.points), 0)', 'bestRoundScore')
       .groupBy('r.playerId')
       .orderBy('"roundsWon"', 'DESC')
       .addOrderBy('"roundsPlayed"', 'ASC')
@@ -81,6 +88,8 @@ export class LeaderboardService {
       .map((row, index) => {
         const roundsPlayed = Number(row.roundsPlayed);
         const roundsWon = Number(row.roundsWon);
+        const correctAnswers = Number(row.correctAnswers);
+        const totalAnswers = Number(row.totalAnswers);
         return {
           rank: offset + index + 1,
           address: row.address,
@@ -88,6 +97,11 @@ export class LeaderboardService {
           roundsWon,
           winRate: roundsPlayed > 0 ? roundsWon / roundsPlayed : 0,
           maxStreak: Number(row.maxStreak),
+          totalPoints: Number(row.totalPoints),
+          correctAnswers,
+          totalAnswers,
+          accuracy: totalAnswers > 0 ? correctAnswers / totalAnswers : 0,
+          bestRoundScore: Number(row.bestRoundScore),
         };
       });
 
@@ -132,6 +146,9 @@ export class LeaderboardService {
       genre: input.genre,
       won: input.won,
       streakAfter: input.streakAfter ?? 0,
+      points: input.points ?? 0,
+      correctAnswers: input.correctAnswers ?? 0,
+      totalAnswers: input.totalAnswers ?? 0,
     });
     const saved = await this.roundResultRepository.save(result);
     await this.invalidateCache();

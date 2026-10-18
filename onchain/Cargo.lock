@@ -1102,6 +1102,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "lyricsflip-escrow"
+version = "0.1.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
 name = "lyricsflip-nft"
 version = "0.1.0"
 dependencies = [
