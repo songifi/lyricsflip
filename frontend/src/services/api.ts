@@ -5,9 +5,11 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios';
 
+import { env } from '@/env';
+
 // Define the base configuration for API
 const apiConfig = {
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
+  baseURL: env.NEXT_PUBLIC_API_URL,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
