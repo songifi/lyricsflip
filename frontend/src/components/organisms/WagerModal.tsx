@@ -116,7 +116,13 @@ export function WagerModal() {
 
       try {
 
-        const result = await setup.systemCalls.createRound(genreInfo.variant);
+        const difficulty = { easy: 1, medium: 2, hard: 3 }[
+          wagerDetails.difficulty as 'easy' | 'medium' | 'hard'
+        ];
+        const result = await setup.systemCalls.createRoundWithFilter(
+          { genre: genreInfo.variant },
+          difficulty,
+        );
 
         // Start game in store
         startGame({

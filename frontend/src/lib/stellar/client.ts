@@ -19,6 +19,7 @@ import {
   type QuestionCard,
   type QuestionKind,
   type Round,
+  type RoundFilter,
   type WireCard,
   type WireRound,
   ROLE_ADMIN,
@@ -29,6 +30,11 @@ import {
 
 export interface SystemCalls {
   createRound: (genre: Genre, seed?: bigint) => Promise<bigint>;
+  createRoundWithFilter: (
+    filter: RoundFilter,
+    difficulty?: number,
+    seed?: bigint,
+  ) => Promise<bigint>;
   joinRound: (roundId: bigint) => Promise<void>;
   startRound: (roundId: bigint) => Promise<void>;
   nextCard: (roundId: bigint) => Promise<Card>;
@@ -103,6 +109,12 @@ function makeSignTransaction(defaultNetworkPassphrase: string) {
 
 type LyricsFlipContract = {
   create_round: (args: { caller: string; genre: number; seed: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
+  create_round_with_filter: (args: {
+    caller: string;
+    filter: { genre: number | null; decade: bigint | null };
+    difficulty: number | null;
+    seed: bigint;
+  }) => Promise<contract.AssembledTransaction<bigint>>;
   join_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   start_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   next_card: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
@@ -176,6 +188,22 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       return submit(() => client.create_round({ caller, genre: genreToWire(genre), seed }));
+    },
+
+    createRoundWithFilter: async (filter, difficulty, seed = randomSeed()) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      return submit(() =>
+        client.create_round_with_filter({
+          caller,
+          filter: {
+            genre: filter.genre === undefined ? null : genreToWire(filter.genre),
+            decade: filter.decade === undefined ? null : BigInt(filter.decade),
+          },
+          difficulty: difficulty ?? null,
+          seed,
+        }),
+      );
     },
 
     joinRound: async (roundId) => {
