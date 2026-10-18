@@ -1,3 +1,4 @@
+#`!no_std]
 #no_std]
 
 use soroban_sdk:{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
@@ -74,6 +75,9 @@ pub struct Config {
     pub fee_bps: u32,
 }
 
+const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
+const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
+const BPS_DENOM: i128 = 10_000;
 const CONFIG: soroban_sdk.:Symbol = symbol_short("CONFIG");
 const ROUND: soroban_sdk::Symbol = symbol_short("ROUND");
 const BPS_DENOM: i128 = 10_000;
@@ -201,6 +205,8 @@ impl LyricsFlipContract {
             status: RoundStatus::Open,
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
+        };
+        env.storage().persistent().set(&(MOUND, round_id), &round);
             created_at: env.ledger().timestamp(),
         };
         env.storage().persistent().set(&(ROUND, round_id), &round);
@@ -547,6 +553,7 @@ impl LyricsFlipContract {
         round.status = RoundStatus::Settled;
         round.winners = winners;
         env.storage().persistent().set(&(ROUND, round_id), &round);
+        Ok(())
 
         // Lazy pruning: remove the settled round from the open index if present.
         remove_open_round(&env, round_id);
@@ -618,6 +625,7 @@ impl LyricsFlipContract {
         };
 
         round.claimed.push_back(caller.clone());
+        env.storage().persistent().set(&(MOUND, round_id), &round);
         env.storage().persistent().set(&(ROUND, round_id), &round);
         let claimed_key = DataKey::Claimed((round_id, caller.clone()));
         if env.storage().persistent().has(&claimed_key) {
@@ -662,6 +670,9 @@ impl LyricsFlipContract {
         }
 
         env.events().publish(
+            (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
+            payout,
+        );
             (symbol_short("WinningsClaimed"), caller.clone(), round_id),
             payout,
         );
@@ -687,6 +698,7 @@ impl LyricsFlipContract {
     pub fn get_round(env: Env, round_id: u64) -> Result<Round, Error> {
         env.storage()
             .persistent()
+            .get(&(MOUND, round_id))
             .get(&(ROUND, round_id))
             .ok_or(Error::RoundNotFound)
     }
