@@ -1,4 +1,5 @@
 IyFbbm9fc3RkXQoKdXNlIHNvcm9iYW5fc29yZWs6OnhkcjpDb250cmFjdFR5cGU7CnVzZSBzb3JvYmFuX3NvcmVrOjpBZGRyZXNzOwp1c2Ugc29yb2Jhbl9zb3Jlazo6Qnl0ZXNOOwp1c2Ugc29yb2Jhbl9zb3Jlazo6RW52Owp1c2Ugc29yb2Jhbl9zb3Jlazo6U3ltYm9sOwoKbW9kIGV2ZW50czsKCiNbc29yb2Jhbl9zb3Jlazo6Y29udHJhY3RdCnB1YiBzdHJ1Y3QgTHlyaWNzRmxpcCB7CiAgICBtYXhfcGxheWVyczogdTMyLAogICAgbmZ0X2NvbnRyYWN0OiBPcHRpb248QWRkcmVzcz4sCiAgICB2ZXJzaW9uOiB1MzIsCiAgICBhZG1pbjogQWRkcmVzcywKfQoKI1tzb3JvYmFuX3NvcmVrOjpjb250cmFjdGltcGxdCmltcGwgTHlyaWNzRmxpcCB7CiAgICBwdWIgZm4gaW5pdGlhbGl6ZShlbnY6IEVudiwgYWRtaW46IEFkZHJlc3MsIG1heF9wbGF5ZXJzOiB1MzIpIHsKICAgICAgICBlbnYuc3RvcmFnZSgpLnNldCgmc3ltYm9sX3Nob3J0ISgiYWRtaW4iKSwgJmFkbWluKTsKICAgICAgICBlbnYuc3RvcmFnZSgpLnNldCgmc3ltYm9sX3Nob3J0ISgibWF4X3BseXJzIiksICZtYXhfcGxheWVycyk7CiAgICAgICAgZW52LnN0b3JhZ2UoKS5zZXQoJnN5bWJvbF9zaG9ydCEoInZlcnNpb24iKSwgJjF1MzIpOwogICAgfQoKICAgIHB1YiBmbiBzZXRfbWF4X3BsYXllcnMoZW52OiBFbnYsIG1heF9wbGF5ZXJzOiB1MzIpIHsKICAgICAgICBzZWxmX29ubHlfYWRtaW4oJmVudik7CiAgICAgICAgbGV0IG9sZF9tYXhfcGxheWVyczogdTMyID0gZW52CiAgICAgICAgICAgIC5zdG9yYWdlKCkKICAgICAgICAgICAgLmdldCgmc3ltYm9sX3Nob3J0ISgibWF4X3BseXJzIikpCiAgICAgICAgICAgIC51bndyYXBfb3IoKTsKICAgICAgICBlbnYuc3RvcmFnZSgpCiAgICAgICAgICAgIC5zZXQoJnN5bWJvbF9zaG9ydCEoIm1heF9wbHlycyIpLCAmbWF4X3BsYXllcnMpOwogICAgICAgIGV2ZW50czo6ZW1pdF9tYXhfcGxheWVyc191cGRhdGVkKCZlbnYsIG9sZF9tYXhfcGxheWVycywgbWF4X3BsYXllcnMpOwogICAgfQoKICAgIHB1YiBmbiBzZXRfbmZ0X2NvbnRyYWN0KGVudiBFbnYsIG5mdF9jb250cmFjdDogQWRkcmVzcykgewogICAgICAgIHNlbGZfb25seV9hZG1pbigmZW52KTsKICAgICAgICBsZXQgb2xkX2NvbnRyYWN0OiBPcHRpb248QWRkcmVzcz4gPSBlbnYuc3RvcmFnZSgpLmdldCgmc3ltYm9sX3Nob3J0ISgibmZ0X2NvbnQiKSk7CiAgICAgICAgZW52LnN0b3JhZ2UoKQogICAgICAgICAgICAuc2V0KCZzeW1ib2xfc2hvcnQhKCJuZnRfY29udCIpLCAmbmd0X2NvbnRyYWN0KTsKICAgICAgICBldmVudHM6OmVtaXRfbmZ0X2NvbnRyYWN0X3VwZGF0ZWQoJmVudiwgb2xkX2NvbnRyYWN0LCBuZnRfY29udHJhY3QpOwogICAgfQoKICAgIHB1YiBmbiB1cGdyYWRlKGVudjogRW52LCBuZXdfd2FzbV9oYXNoOiBCeXRlc04zMikgewogICAgICAgIHNlbGZfb25seV9hZG1pbigmZW52KTsKICAgICAgICBsZXQgb2xkX3ZlcnNpb246IHUzMiA9IGVudgogICAgICAgICAgICAuc3RvcmFnZSgpCiAgICAgICAgICAgIC5nZXQoJnN5bWJvbF9zaG9ydCEoInZlcnNpb24iKSkKICAgICAgICAgICAgLnVud3JhcF9vcigpOwogICAgICAgIGxldCBuZXdfdmVyc2lvbjogdTMyID0gb2xkX3ZlcnNpb24gKyAxOwogICAgICAgIGVudi5zdG9yYWdlKCkKICAgICAgICAgICAgLnNldCgmc3ltYm9sX3Nob3J0ISgidmVyc2lvbiIpLCAmbмV3X3ZlcnNpb24pOwogICAgICAgIGV2ZW50czo6ZW1pdF9jb250cmFjdF91cGdyYWRlZCgmZW52LCBvbGRfdmVyc2lvbiwgbmV3X3dhc21faGFzaCk7CiAgICB9CgogICAgcHViIGZuIG1heF9wbGF5ZXJzKGVudjogRW52KSAtPiB1MzIgewogICAgICAgIGVudi5zdG9yYWdlKCkKICAgICAgICAgICAgLmdldCgmc3ltYm9sX3Nob3J0ISgibWF4X3BseXJzIikpCiAgICAgICAgICAgIC51bndyYXBfb3IoKQogICAgfQoKICAgIHB1YiBmbiBuZnRfY29udHJhY3QoZW52OiBFbnYpIC0+IE9wdGlvbjxBZGRyZXNzPiB7CiAgICAgICAgZW52LnN0b3JhZ2UoKS5nZXQoJnN5bWJvbF9zaG9ydCEoIm5mdF9jb250IikpCiAgICB9CgogICAgcHViIGZuIHZlcnNpb24oZW52OiBFbnYpIC0+IHUzMiB7CiAgICAgICAgZW52LnN0b3JhZ2UoKQogICAgICAgICAgICAuZ2V0KCZzeW1ib2xfc2hvcnQhKCJ2ZXJzaW9uIikpCiAgICAgICAgICAgIC51bndyYXBfb3IoKQogICAgfQoKICAgIGZuIHNlbGZfb25seV9hZG1pbihlbnY6ICZFbnYpIHsKICAgICAgICBsZXQgYWRtaW46IEFkZHJlc3MgPSBlbnYuc3RvcmFnZSgpLmdldCgmc3ltYm9sX3Nob3J0ISgiYWRtaW4iKSkudW53cmFwKCk7CiAgICAgICAgYWRtaW4ucmVxdWlyZV9hdXRoKCk7CiAgICB9Cn0KCiNbc29yb2Jhbl9zb3Jlazo6Y29udHJhY3R0eXBlXQpwdWIgc3RydWN0IE1heFBsYXllcnNVcGRhdGVkIHsKICAgIHB1YiBvbGRfbWF4X3BsYXllcnM6IHUzMiwKICAgIHB1YiBuZXdfbWF4X3BsYXllcnM6IHUzMiwKfQoKI1tzb3JvYmFuX3NvcmVrOjpjb250cmFjdHR5cGVdCnB1YiBzdHJ1Y3QgTmZ0Q29udHJhY3RVcGRhdGVkIHsKICAgIHB1YiBvbGRfY29udHJhY3Q6IE9wdGlvbjxBZGRyZXNzPiwKICAgIHB1YiBuZXdfY29udHJhY3Q6IEFkZHJlc3MsCn0KCiNbc29yb2Jhbl9zb3Jlazo6Y29udHJhY3R0eXBlXQpwdWIgc3RydWN0IENvbnRyYWN0VXBncmFkZWQgewogICAgcHViIG9sZF92ZXJzaW9uOiB1MzIsCiAgICBwdWIgbmV3X3dhc21faGFzaDogQnl0ZXNOMzIsCn0KCiNbc29yb2Jhbl9zb3Jlazo6Y29udHJhY3R0eXBlXQpwdWIgc3RydWN0IEJhc2VVcmlVcGRhdGVkIHsKICAgIHB1YiBvbGRfYmFzZV91cmk6IFN5bWJvbCwKICAgIHB1YiBuZXdfYmFzZV91cmk6IFN5bWJvbCwKfQoKI1tjZmddCnRlc3QgbW9kdWxlIHRlc3RzIHsKICAgIHVzZSBzdXBlcjoqOwogICAgdXNlIHNvcm9iYW5fc29yZWs6OnRlc3R1dGlsczo6QWRkcmVzczsKICAgIHVzZSBzb3JvYmFuX3NvcmVrOjp0ZXN0dXRpbHM6OkVudjsKICAgIHVzZSBzb3JvYmFuX3NvcmVrOjp0ZXN0dXRpbHM6Ok1vY2tBdXRoOwoKICAgIGZuIHNldHVwKCkgLT4gKEVudiwgTHlyaWNzRmxpcENsaWVudCwgQWRkcmVzcykgewogICAgICAgIGxldCBlbnYgPSBFbnY6OmRlZmF1bHQoKTsKICAgICAgICBlbnYubW9ja19hbGxfYXV0aHMoKTsKICAgICAgICBsZXQgYWRtaW4gPSBBZGRyZXNzOjpnZW5lcmF0ZSgmZW52KTsKICAgICAgICBsZXQgY29udHJhY3RfaWQgPSBlbnYucmVnaXN0ZXJfY29udHJhY3QoTHlyaWNzRmxpcCk7CiAgICAgICAgbGV0IGNsaWVudCA9IEx5cmljc0ZsaXBDbGllbnQ6Om5ldygmZW52LCAmY29udHJhY3RfaWQpOwogICAgICAgIGNsaWVudC5pbml0aWFsaXplKCZhZG1pbiwgJjEwKTsKICAgICAgICAoZW52LCBjbGllbnQsIGFkbWluKQogICAgfQoKICAgICNbdGVzdF0KICAgIGZuIHRlc3Rfc2V0X21heF9wbGF5ZXJzX2VtaXRzX2V2ZW50KCkgewogICAgICAgIGxldCAoZW52LCBjbGllbnQsIF8pID0gc2V0dXAoKTsKICAgICAgICBlbnYuZXZlbnRzKCkuYWxsKCk7CiAgICAgICAgY2xpZW50LnNldF9tYXhfcGxheWVycygmMjApOwogICAgICAgIGxldCBldmVudHMgPSBlbnYuZXZlbnRzKCkuYWxsKCk7CiAgICAgICAgYXNzZXJ0X2VxIShldmVudHMubGVuKCksIDEpOwogICAgICAgIGxldCAoXywgXywgZGF0YSkgPSBldmVudHMuZ2V0KDApLnVud3JhcCgpOwogICAgICAgIGxldCBldmVudDogTWF4UGxheWVyc1VwZGF0ZWQgPSBkYXRhLnVud3JhcCgpOwogICAgICAgIGFzc2VydF9lcSEoZXZlbnQub2xkX21heF9wbGF5ZXJzLCAxMCk7CiAgICAgICAgYXNzZXJ0X2VxIShldmVudC5uZXdfbWF4X3BsYXllcnMsIDIwKTsKICAgIH0KCiAgICBbdGVzdF0KICAgIGZuIHRlc3Rfc2V0X25mdF9jb250cmFjdF9lbWl0c19ldmVudCgpIHsKICAgICAgICBsZXQgKGVudiwgY2xpZW50LCBfKSA9IHNldHVwKCk7CiAgICAgICAgbGV0IG5mdCA9IEFkZHJlc3M6OmdlbmVyYXRlKCZlbnYpOwogICAgICAgIGVudi5ldmVudHMoKS5hbGwoKTsKICAgICAgICBjbGllbnQuc2V0X25mdF9jb250cmFjdCgmbmZ0KTsKICAgICAgICBsZXQgZXZlbnRzID0gZW52LmV2ZW50cygpLmFsbCgpOwogICAgICAgIGFzc2VydF9lcSEoZXZlbnRzLmxlbigpLCAxKTsKICAgICAgICBsZXQgKF8sIF8sIGRhdGEpID0gZXZlbnRzLmdldCgwKS51bndyYXAoKTsKICAgICAgICBsZXQgZXZlbnQ6IE5mdENvbnRyYWN0VXBkYXRlZCA9IGRhdGEudW53cmFwKCk7CiAgICAgICAgYXNzZXJ0X2VxIShldmVudC5vbGRfY29udHJhY3QsIE5vbmUpOwogICAgICAgIGFzc2VydF9lcSEoZXZlbnQubmV3X2NvbnRyYWN0LCBuZnQpOwogICAgfQoKICAgIFt0ZXN0XQogICAgZm4gdGVzdF91cGdyYWRlX2VtaXRzX2V2ZW50KCkgewogICAgICAgIGxldCAoZW52LCBjbGllbnQsIF8pID0gc2V0dXAoKTsKICAgICAgICBsZXQgaGFzaCA9IEJ5dGVzTjM6Ojpmcm9tX2FycmF5KCZbN3U4OyAzMl0pOwogICAgICAgIGVudi5ldmVudHMoKS5hbGwoKTsKICAgICAgICBjbGllbnQudXBncmFkZSgmaGFzaCk7CiAgICAgICAgbGV0IGV2ZW50cyA9IGVudi5ldmVudHMoKS5hbGwoKTsKICAgICAgICBhc3NlcnRfZXEhKGV2ZW50cy5sZW4oKSwgMSk7CiAgICAgICAgbGV0IChfLCBfLCBkYXRhKSA9IGV2ZW50cy5nZXQoMCkudW53cmFwKCk7CiAgICAgICAgbGV0IGV2ZW50OiBDb250cmFjdFVwZ3JhZGVkID0gZGF0YS51bndyYXAoKTsKICAgICAgICBhc3NlcnRfZXEhKGV2ZW50Lm9sZF92ZXJzaW9uLCAxKTsKICAgICAgICBhc3NlcnRfZXEhKGV2ZW50Lm5ld193YXNtX2hhc2gsIGhhc2gpOwogICAgfQp9Cg==
+#![no_std]
 #no_std
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
 
@@ -45,6 +46,10 @@ pub enum Error {
     NotAWinner = 7,
     InvalidFee = 8,
     NoWinners = 9,
+    InvalidCard = 10,
+    InvalidOption = 11,
+    CardAlreadyDrawn = 12,
+    CardNotDrawn = 13,
     MilestoneNotFound = 10,
     MilestoneInactive = 11,
     MilestoneNotMet = 12,
@@ -76,6 +81,7 @@ pub struct Round {
     pub status: RoundStatus,
     pub winners: Vec<Address>,
     pub claimed: Vec<Address>,
+    pub card_count: u32,
     pub created_at: u64,
     pub end_time: u64,
     pub wager_amount: i128,
@@ -93,6 +99,27 @@ pub struct Config {
     pub fee_bps: u32,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QuestionCard {
+    pub card_index: u32,
+    pub question: soroban_sdk::String,
+    pub options: Vec<soroban_sdk::String>,
+    pub correct_index: u32,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    RoundCardOptions((u64, u32)),
+    RoundCard((u64, u32)),
+    RoundCardCount(u64),
+}
+
+const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
+const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
+const BPS_DENOM: i128 = 10_000;
+const OPTION_COUNT: u32 = 4;
 /// Statistic a milestone can be defined against.
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -260,6 +287,7 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
+            .ok_(Error::NotInitialized)?;
             .ok(Error::NotInitialized)?;
             .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
@@ -289,6 +317,10 @@ impl LyricsFlipContract {
         config.owner.require_auth();
         config.treasury = treasury;
         env.storage().instance().set(&CONFIG, &config);
+        Ok()
+    }
+
+    pub fn create_round(env: Env, round_id: u64, pot: i128, card_count: u32) -> Result<(), Error> {
         Ok(())
     }
 
@@ -298,6 +330,101 @@ impl LyricsFlipContract {
             status: RoundStatus::Open,
             winners: Vec::new(&env),
             claimed: Vec::new(&env),
+            card_count,
+        };
+        env.storage().persistent().set(&(ROUND, round_id), &round);
+        env.storage()
+            .persistent()
+            .set(&DataKey::RoundCardCount(round_id), &card_count);
+        Ok(()
+    }
+
+    /// Generate and store the options for a card once per round.
+    /// Subsequent calls return the already-stored options so every player
+    /// sees identical choices.
+    pub fn draw_card(
+        env: Env,
+        round_id: u64,
+        card_index: u32,
+        question: soroban_sdk::String,
+        options: Vec<soroban_sdk::String>,
+        correct_index: u32,
+    ) -> Result<QuestionCard, Error> {
+        let round: Round = env
+            .storage()
+            .persistent()
+            .get(&(ROUND, round_id))
+            .ok_(Error::RoundNotFound)?;
+        if card_index >= round.card_count {
+            return Err(Error::InvalidCard);
+        }
+        if options.len() != OPTION_COUNT || correct_index >= OPTION_COUNT {
+            return Err(Error::InvalidOption);
+        }
+
+        let key = DataKey::RoundCardOptions((round_id, card_index));
+        if env.storage().persistent().has(&key) {
+            return Err(Error::CardAlreadyDrawn);
+        }
+
+        let card = QuestionCard {
+            card_index,
+            question,
+            options,
+            correct_index,
+        };
+        env.storage().persistent().set(&key, &card);
+        env.storage()
+            .persistent()
+            .set(&DataKey::RoundCard((round_id, card_index)), &card);
+        Ok(card)
+    }
+
+    /// Return the stored options for a card.
+    pub fn get_question(
+        env: Env,
+        round_id: u64,
+        card_index: u32,
+    ) -> Result<QuestionCard, Error> {
+        env.storage()
+            .persistent()
+            .get(&DataKey::RoundCardOptions((round_id, card_index)))
+            .ok_or(Error::CardNotDrawn)
+    }
+
+    /// Submit an answer by option index (0-3), resolved against the
+    /// stored options. Returns true if the selected option is correct.
+    pub fn submit_answer(
+        env: Env,
+        player: Address,
+        round_id: u64,
+        card_index: u32,
+        option_index: u32,
+    ) -> Result<bool, Error> {
+        player.require_auth();
+        if option_index >= OPTION_COUNT {
+            return Err(Error::InvalidOption);
+        }
+        let card: QuestionCard = env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundCardOptions((round_id, card_index)))
+            .ok_(Error::CardNotDrawn)?;
+        // Reject any submission that isn't one of the stored options.
+        if option_index >= card.options.len() {
+            return Err(Error::InvalidOption);
+        }
+        Ok(option_index == card.correct_index)
+    }
+
+    pub fn submit_choice(
+        env: Env,
+        player: Address,
+        round_id: u64,
+        card_index: u32,
+        option_index: u32,
+    ) -> Result<bool, Error> {
+        Self::submit_answer(env, player, round_id, card_index, option_index)
         };
         env.storage().persistent().set(&(ROUND, round_id), &round);
         Ok()
@@ -679,6 +806,7 @@ impl LyricsFlipContract {
             .storage()
             .instance()
             .get(&CONFIG)
+            .ok_(Error::NotInitialized)?;
             .get(&DataKey::Config)
             .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
@@ -689,6 +817,7 @@ impl LyricsFlipContract {
             .storage()
             .persistent()
             .get(&(ROUND, round_id))
+            .ok_or(Error::RoundNotFound)?;
             .ok(Error::RoundNotFound)?;
         round.status = RoundStatus::Settled;
         round.winners = winners;
@@ -747,6 +876,7 @@ impl LyricsFlipContract {
                 break;
             }
         }
+        let index = winner_index.ok_(Error::NotAWinner)?;
         let index = winner_index.ok_or(Error::NotAWinner)?;
         let index = winner_index.ok(Error::NotAWinner)?;
 
@@ -820,6 +950,9 @@ impl LyricsFlipContract {
         }
 
         env.events().publish(
+            (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
+            payout,
+        );
             (symbol_short("WinningsClaimed"), caller.clone(), round_id),
             payout,
         );

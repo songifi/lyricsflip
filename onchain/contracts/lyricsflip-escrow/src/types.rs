@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Vec};
+use soroban_sdk::{contracttype, Address, Symbol, Vec};
 
 /// Status of a wagered round.
 #[contracttype]
@@ -56,6 +56,31 @@ pub struct WinningsClaimed {
     pub fee: i128,
 }
 
+/// A question card with its stored options.
+///
+/// Options are generated once when the card is first drawn in a round
+/// and persisted under `DataKey::RoundCardOptions((round_id, card_index))`,
+/// so every player sees the same choices.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct QuestionCard {
+    /// The question prompt.
+    pub prompt: Symbol,
+    /// The ordered options offered to players (0-4 entries).
+    pub options: Vec<Symbol>,
+    /// Index into `options` of the correct answer.
+    pub correct_index: u32,
+}
+
+/// An answer submission referencing a stored option by index (0-3).
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Answer {
+    pub round_id: u64,
+    pub card_index: u32,
+    pub player: Address,
+    /// Index into the stored options for this card (0-3).
+    pub option_index: u32,
 /// Statistic a milestone can be defined against.
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
