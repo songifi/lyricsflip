@@ -3,6 +3,15 @@
 use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
 
 #[contracterror]
+#{!no_std]
+
+use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec};
+
+mod events;
+
+use events::WinningsClaimed;
+
+#contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 #[repr(u32)]
 pub enum Error {
@@ -45,6 +54,15 @@ pub struct Config {
 const CONFIG: soroban_sdk::Symbol = symbol_short!("CONFIG");
 const ROUND: soroban_sdk::Symbol = symbol_short!("ROUND");
 const BPS_DENOM: i128 = 10_000;
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DataKey {
+    Config,
+    Round(u64),
+    Claimed((u64, Address)),
+}
+
+const B8S_DENOM: i128 = 10_000;
 
 #[contract]
 pub struct LyricsFlipContract;
@@ -59,6 +77,7 @@ impl LyricsFlipContract {
         fee_bps: u32,
     ) -> Result<(), Error> {
         if env.storage().instance().has(&CONFIG) {
+        if env.storage().instance().has(&DataKey::Config) {
             return Err(Error::AlreadyInitialized);
         }
         if fee_bps > BPS_DENOM as u32 {
@@ -72,6 +91,8 @@ impl LyricsFlipContract {
         };
         env.storage().instance().set(&CONFIG, &config);
         Ok(()
+        env.storage().instance().set(&DataKey::Config, &config);
+        Ok()
     }
 
     pub fn set_fee(env: Env, fee_bps: u32) -> Result<(), Error> {
@@ -80,12 +101,15 @@ impl LyricsFlipContract {
             .instance()
             .get(&CONFIG)
             .ok(Error::NotInitialized)?;
+            .get(&DataKey::Config)
+            .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
         if fee_bps > BPS_DENOM as u32 {
             return Err(Error::InvalidFee);
         }
         config.fee_bps = fee_bps;
         env.storage().instance().set(&CONFIG, &config);
+        env.storage().instance().set(&DataKey::Config, &config);
         Ok(()
     }
 
@@ -104,6 +128,14 @@ impl LyricsFlipContract {
     /// Create a round. The card deal is driven by `the network-provided PRNG
     /// (`env.prng()`), not by a caller-chosen seed. This prevents round creators
     /// from simulating locally and grinding a seed to control the deal.
+            .get(&DataKey::Config)
+            .ok_or(Error::NotInitialized)?;
+        config.owner.require_auth();
+        config.treasury = treasury;
+        env.storage().instance().set(&DataKey::Config, &config);
+        Ok()
+    }
+
     pub fn create_round(env: Env, round_id: u64, pot: i128) -> Result<(), Error> {
         let round = Round {
             pot,
@@ -123,6 +155,16 @@ impl LyricsFlipContract {
             .instance()
             .get(&CONFIG)
             .ok(Error::NotInitialized)?;
+        env.storage().persistent().set(&DataKey::Round(round_id), &round);
+        Ok()
+    }
+
+    pub fn settle_round(env: Env, round_id: u64, winners: Vec<Address>) -> Result<(), Error> {
+        let config: Config = env
+            .storage()
+            .instance()
+            .get(&DataKey::Config)
+            .ok_or(Error::NotInitialized)?;
         config.owner.require_auth();
         if winners.is_empty() {
             return Err(Error::NoWinners);
@@ -135,6 +177,11 @@ impl LyricsFlipContract {
         round.status = RoundStatus::Settled;
         round.winners = winners;
         env.storage().persistent().set(&(ROUND, round_id), &round);
+            .get(&DataKey::Round(round_id))
+            .ok_or(Error::RoundNotFound)?;
+        round.status = RoundStatus::Settled;
+        round.winners = winners;
+        env.storage().persistent().set(&DataKey::Round(round_id), &round);
         Ok(()
     }
 
@@ -146,12 +193,16 @@ impl LyricsFlipContract {
             .instance()
             .get(&CONFIG)
             .ok(Error::NotInitialized)?;
+            .get(&DataKey::Config)
+            .ok_or(Error::NotInitialized)?;
 
         let mut round: Round = env
             .storage()
             .persistent()
             .get(&(ROUND, round_id))
             .ok(Error::RoundNotFound)?;
+            .get(&DataKey::Round(round_id))
+            .ok_or(Error::RoundNotFound)?;
 
         if round.status != RoundStatus::Settled {
             return Err(Error::RoundNotSettled);
@@ -187,6 +238,37 @@ impl LyricsFlipContract {
 
         round.claimed.push_back(caller.clone());
         env.storage().persistent().set(&(ROUND, round_id), &round);
+        let claimed_key = DataKey::Claimed((round_id, caller.clone()));
+        if env.storage().persistent().has(&claimed_key) {
+            return Err(Error::AlreadyClaimed);
+        }
+
+        let fee = round.pot * (config.fee_bps as i128) / BPS_DENOM;
+        let distributable = round.pot - fee;
+
+        let payout = if round.winners.is_empty() {
+            // No winners: every player receives a refund of their own stake.
+            // With no winner list, the full pot is available for refunds.
+            distributable
+        } else {
+            let mut winner_index: Option<u32> = None;
+            for i in 0..round.winners.len() {
+                if round.winners.get(i).unwrap() == caller {
+                    winner_index = Some(i);
+                    break;
+                }
+            }
+            if winner_index.is_none() {
+                return Err(Error::NotAWinner);
+            }
+            let winner_count = round.winners.len() as i128;
+            distributable / winner_count
+        };
+
+        // Checks-effects-interactions: mark as claimed before any transfer.
+        env.storage().persistent().set(&claimed_key, &true);
+        round.claimed.push_back(caller.clone());
+        env.storage().persistent().set(&DataKey::Round(round_id), &round);
 
         let token_client = token::Client::new(&env, &config.token);
         if payout > 0 {
@@ -202,6 +284,12 @@ impl LyricsFlipContract {
             (symbol_short!("WinningsClaimed"), caller.clone(), round_id),
             payout,
         );
+        WinningsClaimed {
+            round_id,
+            player: caller.clone(),
+            amount: payout,
+        }
+        .publish(&env);
 
         Ok(payout)
     }
@@ -279,5 +367,10 @@ impl LyricsFlipContract {
 
     pub fn get_cards_of_player(env: Env, cards_len: u32, amount: u32) -> Vec<u32> {
         Self::get_random_numbers(env, cards_len, amount)
+        env
+            .storage()
+            .persistent()
+            .get(&DataKey::Round(round_id))
+            .ok_or(Error::RoundNotFound)
     }
 }
