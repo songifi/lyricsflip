@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Keypair, contract } from '@stellar/stellar-sdk';
 import { Song } from '../entities/song.entity';
 import { genreToWire } from '../enums/genre.enum';
+import { SongDifficulty } from '../enums/song-difficulty.enum';
 
 /** The contract rejects a batch larger than this (see `MAX_CARDS_PER_BATCH` in `onchain/contracts/lyricsflip/src/lib.rs`). */
 export const MAX_CARDS_PER_BATCH = 20;
@@ -20,6 +21,7 @@ interface WireCard {
   artist: string;
   title: string;
   year: bigint;
+  difficulty: number;
   lyrics: string;
 }
 
@@ -37,6 +39,12 @@ const songToWireCard = (song: Song): WireCard => ({
   artist: song.artist,
   title: song.title,
   year: BigInt(song.year),
+  difficulty:
+    song.difficulty === SongDifficulty.EASY
+      ? 1
+      : song.difficulty === SongDifficulty.HARD
+        ? 3
+        : 2,
   lyrics: song.lyrics,
 });
 

@@ -1,4 +1,4 @@
-# Answer privacy on-chain (LF-008)
+# Answer privacy on-chain (LF-142)
 
 `Card` currently stores `title`, `artist`, and `year` in plaintext, and
 `get_card`, `get_round_cards`, and `next_card` all return them. On a public
@@ -56,21 +56,38 @@ card; the answer never touches public storage.
 
 ## Chosen approach
 
+**Decision (LF-142 / ADR LF-248):** implement option (a) as a
+**redaction-first** variant, with salted commitments deferred to a follow-up.
 We implement a **redaction-first** variant of (a): the contract keeps the
 plaintext answer in storage for scoring, but **no public view returns it while
 the card's round is active**.
 
 - `next_card` returns a `QuestionCard { lyric, options }` — the lyric and the
   multiple-choice options, never the answer.
+- `get_question(env, caller, round_id) -> QuestionCard` is the only public
+  getter for the caller's current card; it returns lyric, kind, and options.
 - `get_card` is admin-only. Non-admins receive a redacted card (no `title`,
   `artist`, or `year`) while the round is active; the full card is only
   returned once the round is completed.
-- `get_round_cards` returns redacted cards for active rounds.
+- `get_round_cards` is admin-only while the round is active, and returns
+  redacted cards for non-admins; full cards are only returned once the round
+  is finalized.
 - `submit_answer` is unchanged: it still validates against the stored answer,
   so scoring and tests keep working.
+- `get_reveal(round_id, card_index)` returns the answer only after the caller
+  has answered that card or the round has been finalized.
 
 This satisfies the acceptance criteria — no public view leaks the answer for
 an active round — without introducing an oracle or a second reveal
 transaction. A future issue can layer the `sha256(answer || salt)` commitment
 from (a) on top of this redaction boundary if we want the answer to be absent
 from storage entirely.
+
+## Acceptance criteria mapping
+
+- During an active round, no public contract function returns `title`,
+  `artist`, or `year` for a card the caller has not answered.
+- `next_card` returns `QuestionCard`; `get_card` and `get_round_cards` are
+  restricted to admins or finalized rounds.
+- Tests cover each restricted getter before and after answering or
+  finalization.
