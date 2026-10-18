@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { env } from '@/env';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -15,7 +16,7 @@ export const formatTime = (seconds: number): string => {
 export const LOBBY_PAGE_SIZE = 5;
 
 /** Code of the Stellar asset used for wagers (e.g. `XLM`). */
-export const WAGER_ASSET_CODE = process.env.NEXT_PUBLIC_WAGER_ASSET_CODE || 'XLM';
+export const WAGER_ASSET_CODE = env.NEXT_PUBLIC_WAGER_ASSET_CODE;
 
 /** Stellar assets use 7 decimal places. */
 export const STELLAR_DECIMALS = 7;
