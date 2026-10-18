@@ -27,18 +27,10 @@ pub struct Round {
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
+    /// Owner of this escrow contract — must be the game contract address.
+    /// Only the owner is allowed to create and settle rounds.
     pub owner: Address,
     pub treasury: Address,
     /// Protocol fee in basis points (1 bps = 0.01%).
     pub fee_bps: u32,
-}
-
-/// Event emitted when a winner claims their share of the pot.
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct WinningsClaimed {
-    pub round_id: u64,
-    pub caller: Address,
-    pub amount: i128,
-    pub fee: i128,
 }

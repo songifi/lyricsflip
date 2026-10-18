@@ -1,0 +1,30 @@
+name: Stray file guard
+
+on:
+  pull_request:
+
+permissions: read-all
+
+jobs:
+  no-ts-outside-workspaces:
+    name: No .ts/.tsx outside frontend/ backend/ onchain/
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject TypeScript files outside workspace folders
+        shell: bash
+        run: |
+          # Find any .ts or .tsx file that is NOT under frontend/, backend/, or onchain/
+          mapfile -t stray < <(
+            git ls-files '*.ts' '*.tsx' \
+              | grep -Ev '^(frontend|backend|onchain)/'
+          )
+          if [[ ${#stray[@]} -gt 0 ]]; then
+            echo "::error::TypeScript files found outside workspace folders:"
+            printf '  %s\n' "${stray[@]}"
+            echo ""
+            echo "All .ts/.tsx files must live under frontend/, backend/, or onchain/."
+            exit 1
+          fi
+          echo "✅ No stray TypeScript files found."
