@@ -70,6 +70,18 @@ export interface SystemCalls {
    */
   claimWinnings: (roundId: bigint) => Promise<bigint>;
   /**
+   * Scores for every player in the round, as `{ address: points }`. The
+   * contract's `get_round_scores` view fills in zero for players who have not
+   * answered yet, so the scoreboard can render the full roster.
+   */
+  getRoundScores: (roundId: bigint) => Promise<Record<string, number>>;
+  /**
+   * Finalizes a round once every required card has been answered or the
+   * round's `end_time` has passed (LF-195). Only players in the round may
+   * finalize; this publishes `RoundCompleted` with the winners and scores.
+   */
+  finalizeRound: (roundId: bigint) => Promise<void>;
+  /**
    * `getCategories`, `getSongs`, `getLeaderboard`, and `claimEarnings` were
    * already referenced by some UI components on the Starknet/Dojo version of
    * this app despite never being part of the on-chain `ILyricsFlip`
@@ -136,6 +148,13 @@ type LyricsFlipContract = {
   }) => Promise<contract.AssembledTransaction<null>>;
   is_admin: (args: { role: number; address: string }) => Promise<contract.AssembledTransaction<boolean>>;
   get_round: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<WireRound>>;
+  get_round_scores: (args: {
+    round_id: bigint;
+  }) => Promise<contract.AssembledTransaction<Map<string, bigint>>>;
+  finalize_round: (args: {
+    caller: string;
+    round_id: bigint;
+  }) => Promise<contract.AssembledTransaction<null>>;
   get_round_cards: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<bigint[]>>;
   get_round_players: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<string[]>>;
   get_player_stat: (args: { player: string }) => Promise<contract.AssembledTransaction<PlayerStats>>;
@@ -346,6 +365,22 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     },
 
     claimWinnings,
+
+    getRoundScores: async (roundId) => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.get_round_scores({ round_id: roundId });
+      const scores: Record<string, number> = {};
+      res.result.forEach((points, player) => {
+        scores[String(player)] = Number(points);
+      });
+      return scores;
+    },
+
+    finalizeRound: async (roundId) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.finalize_round({ caller, round_id: roundId }));
+    },
 
     getCategories: notImplemented('getCategories'),
     getSongs: notImplemented('getSongs'),
