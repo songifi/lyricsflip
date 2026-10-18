@@ -56,6 +56,27 @@ pub struct WinningsClaimed {
     pub fee: i128,
 }
 
+/// Per-player stats for a round, used to derive results and winners.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlayerStats {
+    pub player: Address,
+    pub points: u32,
+    pub correct: u32,
+    pub total_time: u64,
+}
+
+/// A single player's result in a round, as returned by `get_round_results`.
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlayerResult {
+    pub player: Address,
+    pub points: u32,
+    pub correct: u32,
+    pub total_time: u64,
+    /// 1-based rank, sorted by the same tie-break as `determine_round_winners`.
+    pub rank: u32,
+    pub claimed: bool,
 /// Event emitted when a player deposits a wager into escrow.
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
