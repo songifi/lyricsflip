@@ -26,6 +26,7 @@ const makeWireCard = (overrides: Partial<WireCard> = {}): WireCard => ({
   artist: 'Test Artist',
   title: 'Test Song',
   year: BigInt(2020),
+  difficulty: 2,
   lyrics: 'Test lyrics here',
   ...overrides,
 });
@@ -123,6 +124,7 @@ describe('requireAccount (disconnected wallet)', () => {
         artist: 'Artist',
         title: 'Title',
         year: BigInt(2020),
+        difficulty: 2,
         lyrics: 'lyrics',
       }),
     ).rejects.toThrow('Connect a Stellar wallet');
