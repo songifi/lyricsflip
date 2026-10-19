@@ -5,6 +5,7 @@ import {
   LYRICSFLIP_ERRORS,
   parseContractError,
 } from './errors';
+import { reportError } from '@/lib/error-reporting';
 
 const PUBLIC_PASSPHRASE = 'Public Global Stellar Network ; September 2015';
 
@@ -133,7 +134,15 @@ export async function withTxToastResult<T>(
       txHash: hash,
     };
   } catch (err) {
-    toast.error(`Failed: ${parseContractError(err, errors).message}`, { id });
+    const contractError = parseContractError(err, errors);
+    toast.error(`Failed: ${contractError.message}`, { id });
+    reportError({
+      contractError: contractError.name,
+      network:
+        networkPassphrase === PUBLIC_PASSPHRASE ? 'public' : 'testnet',
+      route:
+        typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
     throw err;
   }
 }
