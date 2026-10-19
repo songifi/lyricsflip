@@ -9,9 +9,14 @@
  */
 
 import { renderHook, act } from '@testing-library/react';
-import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
+import {
+  useCardTimer,
+  CARD_TIMEOUT_SECONDS,
+  CARD_LEDGER_LATENCY_SECONDS,
+} from '@/features/game/hooks/use-card-timer';
+import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/use-card-timer';
 
-describe('useCardTimer', () => {
+describe('use-card-timer', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -147,5 +152,85 @@ describe('useCardTimer', () => {
       jest.advanceTimersByTime((CARD_TIMEOUT_SECONDS - 5) * 1000);
     });
     expect(onTimeout).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ledger-anchored countdown (LF-193 / issue #679)
+//
+// The card window starts when the `next_card` transaction is included in a
+// ledger, so the countdown must be derived from that close time and must close
+// one ledger early to avoid accepting clicks the contract will score late.
+// ---------------------------------------------------------------------------
+describe('use-card-timer – ledger-anchored', () => {
+  const NOW = new Date('2026-01-01T00:00:00.000Z').getTime();
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  const renderAnchored = (
+    startedAtMs: number,
+    isActive = true,
+    onTimeout = jest.fn(),
+  ) =>
+    renderHook(() =>
+      useCardTimer({ isActive, onTimeout, startedAtMs }),
+    );
+
+  it('derives the remaining time from the ledger close time', () => {
+    jest.setSystemTime(NOW);
+    const { result } = renderAnchored(NOW - 3000);
+
+    // 15 s window − 5 s ledger allowance − 3 s already elapsed.
+    expect(result.current.timeLeft).toBe(7);
+    expect(result.current.isExpired).toBe(false);
+  });
+
+  it('closes the window one ledger before the contract deadline', () => {
+    jest.setSystemTime(NOW);
+    const { result } = renderAnchored(
+      NOW - (CARD_TIMEOUT_SECONDS - CARD_LEDGER_LATENCY_SECONDS) * 1000,
+    );
+
+    expect(result.current.timeLeft).toBe(0);
+    expect(result.current.isExpired).toBe(true);
+  });
+
+  it('calls onTimeout once and stops ticking when the anchored window closes', () => {
+    jest.setSystemTime(NOW);
+    const onTimeout = jest.fn();
+    const { result } = renderAnchored(NOW, true, onTimeout);
+
+    expect(result.current.timeLeft).toBe(CARD_TIMEOUT_SECONDS - CARD_LEDGER_LATENCY_SECONDS);
+
+    act(() => {
+      jest.advanceTimersByTime((CARD_TIMEOUT_SECONDS - CARD_LEDGER_LATENCY_SECONDS) * 1000);
+    });
+
+    expect(result.current.timeLeft).toBe(0);
+    expect(onTimeout).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      jest.advanceTimersByTime(CARD_TIMEOUT_SECONDS * 1000);
+    });
+
+    expect(onTimeout).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears its interval on unmount', () => {
+    jest.setSystemTime(NOW);
+    const { unmount } = renderAnchored(NOW);
+
+    expect(jest.getTimerCount()).toBeGreaterThan(0);
+
+    unmount();
+
+    expect(jest.getTimerCount()).toBe(0);
   });
 });

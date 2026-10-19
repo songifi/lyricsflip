@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import { createConfig } from '@/lib/stellar/stellarConfig';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { createConfig } from '@/lib/stellar/stellar-config';
 
 const expectedPassphrase = createConfig().networkPassphrase;
 

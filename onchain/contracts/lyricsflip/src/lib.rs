@@ -426,32 +426,6 @@ impl LyricsFlip {
     /// Returns the card.
     pub fn get_card(env: Env, card_id: u64) -> Card {
         let stored: Val = env
-    ///
-    /// LF-142: card contents (title/artist/year) are hidden from non-admins
-    /// while any round that includes this card is active. Callers should use
-    /// `get_question` for the caller's current card instead.
-    pub fn get_card(env: Env, caller: Address, card_id: u64) -> Card {
-        caller.require_auth();
-        if !Self::is_admin(env.clone(), Role::Admin, caller.clone()) {
-            let round_count = Self::get_round_count(env.clone());
-            let mut round_id: u64 = 1;
-            while round_id <= round_count {
-                let round = Self::read_round(&env, round_id);
-                let finalized: bool = env
-                    .storage()
-                    .persistent()
-                    .get(&DataKey::RoundFinalized(round_id))
-                    .unwrap_or(false);
-                if round.is_started && !finalized {
-                    let cards = Self::read_round_cards(&env, round_id);
-                    if cards.contains(&card_id) {
-                        panic_with_error!(env, Error::NotAuthorized);
-                    }
-                }
-                round_id += 1;
-            }
-        }
-        let card: Card = env
             .storage()
             .persistent()
             .get(&DataKey::Card(card_id))
@@ -617,10 +591,6 @@ impl LyricsFlip {
             }
         }
         Self::require_not_paused(&env);
-        let genre = match genre {
-            Some(g) => g,
-            None => panic_with_error!(env, Error::NonExistingGenre),
-        };
 
         let amount = Self::get_cards_per_round((*env).clone()) as u64;
         let source = filter
@@ -2155,3 +2125,144 @@ impl LyricsFlip {
     }
 }
 
+// LF-164: combined answer+draw. Reuses submit_answer's scoring path so
+// lf159 timing points, lf004 AlreadyAnswered guard and streaks are unchanged.
+impl LyricsFlip {
+    fn submit_answer_internal(
+        env: &Env,
+        caller: &Address,
+        round_id: u64,
+        answer: &Answer,
+    ) -> (bool, u64) {
+        if !Self::is_round_player(env, round_id, caller) {
+            panic_with_error!(env, Error::NotAParticipant);
+        }
+        let round = Self::read_round(env, round_id);
+        if !round.is_started {
+            panic_with_error!(env, Error::RoundNotStarted);
+        }
+        if env.storage().persistent().get(&DataKey::RoundFinalized(round_id)).unwrap_or(false) {
+            panic_with_error!(env, Error::RoundAlreadyFinalized);
+        }
+        if round.is_completed || env.ledger().timestamp() >= round.end_time {
+            panic_with_error!(env, Error::RoundCompleted);
+        }
+
+        let player_index: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
+        if player_index == 0 {
+            panic_with_error!(env, Error::NoActiveCard);
+        }
+        let current_index = player_index - 1;
+        let round_cards = Self::read_round_cards(env, round_id);
+        let current_card_id = round_cards.get(current_index).unwrap();
+        let current_card = Self::get_card(env.clone(), current_card_id);
+
+        let answered_key =
+            DataKey::RoundPlayerAnswered((round_id, caller.clone(), current_card_id));
+        if env.storage().persistent().get(&answered_key).unwrap_or(false) {
+            panic_with_error!(env, Error::AlreadyAnswered);
+        }
+        env.storage().persistent().set(&answered_key, &true);
+        bump_persistent(env, &answered_key);
+
+        let started_at: u64 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardStartedAt((round_id, caller.clone(), current_card_id)))
+            .unwrap_or(round.start_time);
+        let answer_time = env.ledger().timestamp().saturating_sub(started_at);
+        let mut times = Self::read_round_answer_times(env, round_id);
+        let t = times.get(caller.clone()).unwrap_or(0u64);
+        times.set(caller.clone(), t + answer_time);
+        env.storage().persistent().set(&DataKey::RoundAnswerTimes(round_id), &times);
+        bump_persistent(env, &DataKey::RoundAnswerTimes(round_id));
+
+        let is_correct = answer_time <= CARD_ANSWER_WINDOW_SECONDS
+            && match answer {
+                Answer::Artist(v) => *v == current_card.artist,
+                Answer::Year(v) => *v == current_card.year,
+                Answer::Title(v) => *v == current_card.title,
+            };
+
+        let points: u64 = if is_correct {
+            MAX_CORRECT_POINTS
+                .saturating_sub(
+                    answer_time
+                        .saturating_sub(FIRST_LEDGER_GRACE_SECONDS)
+                        .saturating_mul(POINTS_DECAY_PER_SECOND),
+                )
+                .max(MIN_CORRECT_POINTS)
+                .saturating_mul(current_card.difficulty as u64)
+        } else {
+            0
+        };
+
+        if is_correct {
+            let mut scores = Self::read_round_scores(env, round_id);
+            let s = scores.get(caller.clone()).unwrap_or(0u64);
+            scores.set(caller.clone(), s + points);
+            env.storage().persistent().set(&DataKey::RoundScores(round_id), &scores);
+            bump_persistent(env, &DataKey::RoundScores(round_id));
+        }
+
+        let mut stats = Self::get_player_stat(env.clone(), caller.clone());
+        if is_correct {
+            stats.current_streak += 1;
+            if stats.current_streak > stats.max_streak {
+                stats.max_streak = stats.current_streak;
+            }
+        } else {
+            stats.current_streak = 0;
+        }
+        env.storage().persistent().set(&DataKey::PlayerStats(caller.clone()), &stats);
+        bump_persistent(env, &DataKey::PlayerStats(caller.clone()));
+
+        AnswerSubmitted {
+            round_id,
+            player: caller.clone(),
+            correct: is_correct,
+            points,
+        }
+        .publish(env);
+
+        (is_correct, points)
+    }
+
+    pub fn answer_and_next(
+        env: Env,
+        caller: Address,
+        round_id: u64,
+        choice: Answer,
+    ) -> AnswerResult {
+        caller.require_auth();
+
+        let (correct, points) =
+            Self::submit_answer_internal(&env, &caller, round_id, &choice);
+
+        let next_index: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
+
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let round = Self::read_round(&env, round_id);
+
+        let next = if (next_index as u64) < (round_cards.len() as u64) {
+            Some(Self::next_card(env.clone(), caller.clone(), round_id))
+        } else {
+            let ready = Self::are_all_required_answers_submitted(&env, round_id);
+            let past = round.end_time != 0 && env.ledger().timestamp() >= round.end_time;
+            if ready || past {
+                Self::finalize_round(env.clone(), caller.clone(), round_id);
+            }
+            None
+        };
+
+        AnswerResult { correct, points, correct_option: 0, next }
+    }
+}

@@ -5,7 +5,7 @@
 import { createSystemCalls } from '@/lib/stellar/client';
 import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
-import type { StellarConfig } from '@/lib/stellar/stellarConfig';
+import type { StellarConfig } from '@/lib/stellar/stellar-config';
 import type { WireCard, WireRound } from '@/lib/stellar/types';
 
 // ---------------------------------------------------------------------------
@@ -45,9 +45,22 @@ const makeWireRound = (overrides: Partial<WireRound> = {}): WireRound => ({
   ...overrides,
 });
 
-// Helper: build an assembled-transaction mock that returns a value on `.result`
+// Helper: build an assembled-transaction mock that returns a value on `.result`.
+// `sign()` / `send()` mirror the calls `withTxToast` makes for mutating calls.
+const makeAssembled = <T>(
+  result: T,
+  signAndSend?: () => Promise<{ result: T }>,
+  txResponse?: { createdAt?: number; ledger?: number },
+) => ({
 const makeAssembled = <T>(result: T, signAndSend?: () => Promise<{ result: T }>) => ({
   result,
+  sign: jest.fn().mockResolvedValue(undefined),
+  send: jest.fn().mockResolvedValue({
+    result,
+    sendTransactionResponse: { hash: 'TEST_TX_HASH' },
+    getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1, ...txResponse },
+    getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1 },
+  }),
   signAndSend: signAndSend ?? (() => Promise.resolve({ result })),
 });
 
@@ -68,6 +81,11 @@ const mockContractMethods = {
   set_role: jest.fn(),
   is_admin: jest.fn(),
   get_round: jest.fn(),
+  get_round_scores: jest.fn(),
+  finalize_round: jest.fn(),
+  get_open_rounds: jest.fn(),
+  get_max_players: jest.fn(),
+  cancel_round: jest.fn(),
   get_round_cards: jest.fn(),
   get_round_players: jest.fn(),
   get_player_stat: jest.fn(),
@@ -214,6 +232,48 @@ describe('read-only calls (no wallet required)', () => {
     expect(cards).toEqual([BigInt(1), BigInt(2), BigInt(3)]);
   });
 
+  it('getRoundScores flattens the contract map into a plain record', async () => {
+    mockContractMethods.get_round_scores.mockResolvedValue(
+      makeAssembled(
+        new Map([
+          [TEST_ADDRESS, BigInt(120)],
+          ['GOTHERADDRESS', BigInt(60)],
+        ]),
+      ),
+    );
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+    const scores = await calls.getRoundScores(BigInt(1));
+
+    expect(scores).toEqual({ [TEST_ADDRESS]: 120, GOTHERADDRESS: 60 });
+    expect(mockContractMethods.get_round_scores).toHaveBeenCalledWith({
+      round_id: BigInt(1),
+    });
+  });
+
+  it('getOpenRounds returns the contract page of round ids', async () => {
+    mockContractMethods.get_open_rounds.mockResolvedValue(
+      makeAssembled([BigInt(4), BigInt(5)]),
+    );
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+    const ids = await calls.getOpenRounds(0, 50);
+
+    expect(ids).toEqual([BigInt(4), BigInt(5)]);
+    expect(mockContractMethods.get_open_rounds).toHaveBeenCalledWith({
+      start: 0,
+      limit: 50,
+    });
+  });
+
+  it('getMaxPlayers returns the contract setting', async () => {
+    mockContractMethods.get_max_players.mockResolvedValue(makeAssembled(8));
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+
+    await expect(calls.getMaxPlayers()).resolves.toBe(8);
+  });
+
   it('getRoundPlayers returns array of addresses', async () => {
     mockContractMethods.get_round_players.mockResolvedValue(
       makeAssembled([TEST_ADDRESS]),
@@ -298,6 +358,25 @@ describe('mutating calls with connected wallet', () => {
     );
   });
 
+  it('finalizeRound sends the caller and round id', async () => {
+    mockContractMethods.finalize_round.mockResolvedValue(makeAssembled(null));
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    await calls.finalizeRound(BigInt(9));
+
+    expect(mockContractMethods.finalize_round).toHaveBeenCalledWith({
+      caller: TEST_ADDRESS,
+      round_id: BigInt(9),
+    });
+  });
+
+  it('finalizeRound throws when no wallet is connected', async () => {
+    const calls = createSystemCalls(TEST_CONFIG, null);
+    await expect(calls.finalizeRound(BigInt(9))).rejects.toThrow(
+      'Connect a Stellar wallet',
+    );
+  });
+
   it('nextCard requires account and decodes wire card', async () => {
     const wireCard = makeWireCard({ genre: 0 }); // HipHop
     mockContractMethods.next_card.mockResolvedValue(makeAssembled(wireCard));
@@ -306,6 +385,36 @@ describe('mutating calls with connected wallet', () => {
     const card = await calls.nextCard(BigInt(1));
 
     expect(card.genre).toBe('HipHop');
+  });
+
+  it('nextCardWithMeta reports the ledger close time of the card draw', async () => {
+    const wireCard = makeWireCard({ genre: 1 });
+    mockContractMethods.next_card.mockResolvedValue(
+      makeAssembled(wireCard, undefined, { createdAt: 1_800_000_000, ledger: 42 }),
+    );
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    const { result, startedAtMs, closedAtMs } = await calls.nextCardWithMeta(BigInt(1));
+
+    expect(result.genre).toBe('Pop');
+    expect(closedAtMs).toBe(1_800_000_000_000);
+    expect(startedAtMs).toBe(1_800_000_000_000);
+  });
+
+  it('submitAnswerWithMeta reports the ledger close time of the submission', async () => {
+    mockContractMethods.submit_answer.mockResolvedValue(
+      makeAssembled(false, undefined, { createdAt: 1_800_000_020, ledger: 45 }),
+    );
+    const { Answer } = await import('@/lib/stellar/types');
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    const { result, closedAtMs } = await calls.submitAnswerWithMeta(
+      BigInt(1),
+      Answer.title('Thriller'),
+    );
+
+    expect(result).toBe(false);
+    expect(closedAtMs).toBe(1_800_000_020_000);
   });
 });
 
@@ -332,10 +441,10 @@ describe('not-implemented stubs', () => {
     );
   });
 
-  it('claimEarnings throws with helpful message', async () => {
+  it('claimEarnings is a legacy alias for claimWinnings', async () => {
     const calls = createSystemCalls(TEST_CONFIG, null);
-    await expect(calls.claimEarnings()).rejects.toThrow(
-      'claimEarnings is not implemented on-chain',
+    await expect(calls.claimEarnings(BigInt(1))).rejects.toThrow(
+      'Connect a Stellar wallet before performing this action.',
     );
   });
 });

@@ -226,3 +226,11 @@ pub enum DataKey {
     Paused,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnswerResult {
+    pub correct: bool,
+    pub points: u64,
+    pub correct_option: u32,
+    pub next: Option<Card>,
+}
