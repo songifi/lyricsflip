@@ -8,19 +8,87 @@ import {
 
 const PUBLIC_PASSPHRASE = 'Public Global Stellar Network ; September 2015';
 
+const HORIZON_URL =
+  process.env.NEXT_PUBLIC_STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org';
+
+/** Minimum balance in stroops required to pay transaction fees (0.1 XLM). */
+const MIN_FEE_STROOPS = BigInt(1_000_000);
+
 const explorerTxUrl = (hash: string, networkPassphrase: string) =>
   `https://stellar.expert/explorer/${networkPassphrase === PUBLIC_PASSPHRASE ? 'public' : 'testnet'}/tx/${hash}`;
+
+interface HorizonBalance {
+  asset_type: string;
+  balance: string;
+}
+
+const toStroops = (balance: string): bigint => {
+  const [whole, fraction = ''] = balance.split('.');
+  return BigInt(whole + fraction.padEnd(7, '0').slice(0, 7));
+};
+
+/**
+ * Fetches the account's native XLM balance and throws a friendly error if:
+ * - the account doesn't exist on-chain (Horizon 404), or
+ * - the balance is below `MIN_FEE_STROOPS`.
+ *
+ * Called before building/signing a transaction to catch funding issues early.
+ */
+async function assertSufficientBalance(
+  address: string,
+  required: bigint = MIN_FEE_STROOPS,
+): Promise<void> {
+  try {
+    const res = await fetch(`${HORIZON_URL}/accounts/${address}`);
+    if (res.status === 404) {
+      throw new Error(
+        'account not found: This account has no XLM and does not exist on-chain yet. Fund it with Friendbot (testnet) or send XLM to it first.',
+      );
+    }
+    if (!res.ok) return; // Horizon unavailable — let the simulation catch it
+    const { balances } = (await res.json()) as { balances: HorizonBalance[] };
+    const native = balances.find((b) => b.asset_type === 'native');
+    const balance = native ? toStroops(native.balance) : BigInt(0);
+    if (balance < required) {
+      const formatted = `${(Number(balance) / 1e7).toFixed(7).replace(/\.?0+$/, '')}`;
+      throw new Error(
+        `txInsufficientBalance: Your XLM balance (${formatted} XLM) is too low to pay transaction fees.`,
+      );
+    }
+  } catch (err) {
+    // Only re-throw errors we deliberately created above.
+    // Network errors (fetch failures) are silently ignored so the transaction
+    // attempt can still proceed through the RPC.
+    if (
+      err instanceof Error &&
+      (err.message.startsWith('account not found') ||
+        err.message.startsWith('txInsufficientBalance'))
+    ) {
+      throw err;
+    }
+  }
+}
 
 /**
  * Builds, signs and submits a mutating contract call, reporting progress as a
  * single toast: "Waiting for signature…" → "Submitting…" → "Confirmed" (with a
  * stellar.expert link) or "Failed: <friendly message>".
+ *
+ * When `publicKey` is provided a balance pre-check runs before the wallet
+ * prompt to catch unfunded / low-balance accounts early and show a friendly
+ * error instead of an opaque simulation failure.
  */
 export async function withTxToast<T>(
   build: () => Promise<contract.AssembledTransaction<T>>,
   networkPassphrase: string,
   errors: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
+  publicKey?: string | null,
 ): Promise<T> {
+  // Balance pre-check: surface friendly errors before asking for a signature.
+  if (publicKey) {
+    await assertSufficientBalance(publicKey);
+  }
+
   const id = toast.loading('Waiting for signature…');
   try {
     const assembled = await build();

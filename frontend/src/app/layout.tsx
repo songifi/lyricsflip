@@ -3,6 +3,7 @@ import Navbar, { MobileNav } from '@/components/molecules/navbar';
 import { metadata } from "./metadata";
 import { ClientProvider } from '@/components/providers/client-provider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { WalletStatusBanner } from '@/components/molecules/wallet-status-banner';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 import './globals.css';
@@ -65,23 +66,17 @@ export default function RootLayout({
             }>
               <DynamicStellarProvider>
                 <Navbar />
-                {children}
+                {/* WalletStatusBanner sits below the navbar so it is visible on every route */}
+                <WalletStatusBanner />
+                {/* pb-20 on mobile so the fixed MobileNav bar never overlaps content; md:pb-0 restores normal flow on desktop */}
+                <main className="pb-20 md:pb-0">
+                  {children}
+                </main>
                 <MobileNav />
               </DynamicStellarProvider>
             </Suspense>
+            <Toaster richColors position="top-center" />
           </ThemeProvider>
-            </div>
-          }>
-            <DynamicStellarProvider>
-              <Navbar />
-              {/* pb-20 on mobile so the fixed MobileNav bar never overlaps content; md:pb-0 restores normal flow on desktop */}
-              <main className="pb-20 md:pb-0">
-                {children}
-              </main>
-              <MobileNav />
-            </DynamicStellarProvider>
-          </Suspense>
-          <Toaster richColors position="top-center" />
         </ClientProvider>
       </body>
     </html>
