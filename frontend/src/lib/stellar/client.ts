@@ -212,14 +212,38 @@ type LyricsFlipContract = {
   claim_winnings: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
 };
 
+type GameClientInstance = Awaited<ReturnType<typeof contract.Client.from<LyricsFlipContract>>>;
+
+const gameClientCache = new Map<string, Promise<GameClientInstance>>();
+
+function getClientCacheKey(config: StellarConfig, publicKey: string | null): string {
+  return `${config.lyricsflipContractId}:${config.rpcUrl}:${config.networkPassphrase}:${publicKey ?? ''}`;
+}
+
+/**
+ * Clears the cached contract client instances (e.g. on wallet disconnect or for tests).
+ */
+export function clearGameClientCache(): void {
+  gameClientCache.clear();
+}
+
 async function getGameClient(config: StellarConfig, publicKey: string | null) {
-  return contract.Client.from<LyricsFlipContract>({
-    contractId: config.lyricsflipContractId,
-    networkPassphrase: config.networkPassphrase,
-    rpcUrl: config.rpcUrl,
-    publicKey: publicKey ?? undefined,
-    signTransaction: makeSignTransaction(config.networkPassphrase),
-  });
+  const key = getClientCacheKey(config, publicKey);
+  let clientPromise = gameClientCache.get(key);
+  if (!clientPromise) {
+    clientPromise = contract.Client.from<LyricsFlipContract>({
+      contractId: config.lyricsflipContractId,
+      networkPassphrase: config.networkPassphrase,
+      rpcUrl: config.rpcUrl,
+      publicKey: publicKey ?? undefined,
+      signTransaction: makeSignTransaction(config.networkPassphrase),
+    });
+    clientPromise.catch(() => {
+      gameClientCache.delete(key);
+    });
+    gameClientCache.set(key, clientPromise);
+  }
+  return clientPromise;
 }
 
 const cardFromWire = (card: WireCard): Card => ({ ...card, genre: genreFromWire(card.genre) });
