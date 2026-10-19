@@ -11,6 +11,8 @@ const mockNextCardWithMeta = jest.fn();
 const mockBuildQuestionCard = jest.fn();
 const mockSubmitAnswer = jest.fn();
 const mockSubmitAnswerWithMeta = jest.fn();
+const mockBuildQuestionCard = jest.fn();
+const mockSubmitAnswer = jest.fn();
 const mockGetPlayerStat = jest.fn();
 const mockClaimReward = jest.fn();
 
@@ -23,6 +25,8 @@ const mockSystemCalls = {
   buildQuestionCard: mockBuildQuestionCard,
   submitAnswer: mockSubmitAnswer,
   submitAnswerWithMeta: mockSubmitAnswerWithMeta,
+  buildQuestionCard: mockBuildQuestionCard,
+  submitAnswer: mockSubmitAnswer,
   getPlayerStat: mockGetPlayerStat,
   claimReward: mockClaimReward,
 };
@@ -84,6 +88,8 @@ describe('SinglePlayerPage', () => {
     mockBuildQuestionCard.mockResolvedValue(question);
     mockSubmitAnswer.mockResolvedValue(true);
     mockSubmitAnswerWithMeta.mockResolvedValue({ result: true, closedAtMs: null });
+    mockBuildQuestionCard.mockResolvedValue(question);
+    mockSubmitAnswer.mockResolvedValue(true);
   });
 
   it('loads the round and renders the lyric with four answer options', async () => {
@@ -110,6 +116,9 @@ describe('SinglePlayerPage', () => {
   });
 
   it('reveals the answer and counts the card after answering', async () => {
+  });
+
+  it('submits the selected answer as a Title answer', async () => {
     render(<SinglePlayerPage />);
 
     fireEvent.click(
@@ -158,6 +167,26 @@ describe('SinglePlayerPage', () => {
         }),
     );
 
+
+    await waitFor(() =>
+      expect(mockSubmitAnswer).toHaveBeenCalledWith(BigInt(1), {
+        tag: 'Title',
+        values: ['Thriller'],
+      }),
+    );
+  });
+
+  it('shows the remaining round time derived from the contract end_time', async () => {
+    const endTime = BigInt(Math.floor(Date.now() / 1000) + 120);
+    mockGetRound.mockResolvedValue({ ...round, end_time: endTime });
+
+    render(<SinglePlayerPage />);
+
+    const timeLeft = await screen.findByTestId('round-time-left');
+    expect(timeLeft).toHaveTextContent('02:00');
+  });
+
+  it('reveals the answer and counts the card after answering', async () => {
     render(<SinglePlayerPage />);
 
     fireEvent.click(
@@ -190,5 +219,7 @@ describe('SinglePlayerPage', () => {
     );
 
     expect(await screen.findByText('Wrong')).toBeInTheDocument();
+
+    expect(await screen.findByRole('button', { name: /next card/i })).toBeInTheDocument();
   });
 });

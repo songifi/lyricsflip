@@ -8,6 +8,7 @@ import {
   CARD_TIMEOUT_SECONDS,
   CARD_LEDGER_LATENCY_SECONDS,
 } from '@/features/game/hooks/use-card-timer';
+import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/use-card-timer';
 import { fireConfetti } from '@/lib/confetti';
 import { formatAmount, formatTime, WAGER_ASSET_CODE } from '@/lib/utils';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
@@ -36,17 +37,12 @@ const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.Streak5]: 'Streak Master',
   [MILESTONES.TenWins]: 'Music Connoisseur',
 };
-// Default round duration in seconds (5 minutes)
-const DEFAULT_ROUND_SECONDS = 300;
 
 export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundId = searchParams?.get('roundId') ?? null;
   const { account, systemCalls } = useStellar();
-
-  // Use the single shared timer — no local setInterval here.
-  const { timeLeft, startTimer, stopTimer, resetTimer } = useGameTimer();
 
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,12 +64,12 @@ export default function SinglePlayerGame() {
     'correct' | 'wrong' | 'late' | null
   >(null);
 
-  // Stop the timer when the component unmounts (e.g. user navigates away).
-  useEffect(() => {
-    return () => {
-      stopTimer();
-    };
-  }, [stopTimer]);
+  // Exactly one round timer: it derives the remaining time from the round's
+  // on-chain `end_time`, so a page refresh resumes with the correct value
+  // instead of restarting the countdown.
+  const { timeLeft } = useGameTimer({
+    endTimeSeconds: round ? round.end_time : null,
+  });
 
   // Badge modal state (Issue #476)
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
@@ -163,10 +159,6 @@ export default function SinglePlayerGame() {
         setAnsweredCount(roundData.next_card_index);
         setIsGameStarted(true);
 
-        // Initialise and start the shared timer for this round.
-        resetTimer(DEFAULT_ROUND_SECONDS);
-        startTimer();
-
         if (roundData.next_card_index < cards.length) {
           await loadNextCard();
         }
@@ -178,7 +170,7 @@ export default function SinglePlayerGame() {
       }
     };
     fetchRoundData();
-  }, [roundId, systemCalls, loadNextCard, resetTimer, startTimer]);
+  }, [roundId, systemCalls, loadNextCard]);
 
   // ── Milestone / badge check ───────────────────────────────────────────────
   const checkMilestoneAndShowBadge = useCallback(
@@ -255,6 +247,7 @@ export default function SinglePlayerGame() {
           fireConfetti();
         }
         setAnswerResult(isCorrect ? 'correct' : wasLate ? 'late' : 'wrong');
+        await systemCalls.submitAnswer(id, Answer.title(option.title));
         setAnsweredCount((prev) => prev + 1);
         setTxStatus(null);
       } catch (err) {

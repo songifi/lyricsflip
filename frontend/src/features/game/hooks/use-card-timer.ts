@@ -14,12 +14,16 @@
  * timestamp, minus one ledger of submission latency, so the UI closes early
  * rather than accepting an answer the contract will reject. Without an anchor
  * the hook keeps its original local countdown.
+ * Per-card 15-second countdown for Issue #472 (LF-055).
  *
  * - Start the timer whenever a new card is displayed.
  * - On timeout, call `onTimeout()` so the parent can flip the card and
  *   count the card as a miss.
  * - Stop the timer (and reset it) when `isActive` becomes false (e.g.
  *   the player answered or the component unmounts).
+ *
+ * The timer does NOT tick if the user prefers reduced motion; callers
+ * should still respect that signal for the flip animation.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -76,6 +80,12 @@ export function useCardTimer({
   const [timeLeft, setTimeLeft] = useState(CARD_TIMEOUT_SECONDS);
   const onTimeoutRef = useRef(onTimeout);
   const firedRef = useRef(false);
+export function useCardTimer({
+  onTimeout,
+  isActive,
+}: UseCardTimerOptions): UseCardTimerResult {
+  const [timeLeft, setTimeLeft] = useState(CARD_TIMEOUT_SECONDS);
+  const onTimeoutRef = useRef(onTimeout);
 
   // Keep callback ref stable so callers don't need to memoize it
   useEffect(() => {
@@ -127,6 +137,15 @@ export function useCardTimer({
 
     if (timeLeft <= 0) {
       fireTimeout();
+  useEffect(() => {
+    if (!isActive) {
+      // Don't tick while inactive
+      return;
+    }
+
+    if (timeLeft <= 0) {
+      // Fire the callback once when we hit zero
+      onTimeoutRef.current();
       return;
     }
 
@@ -152,4 +171,11 @@ export function useCardTimer({
   }, []);
 
   return { timeLeft, isExpired: timeLeft <= 0, reset };
+  }, [isActive, timeLeft]);
+
+  const reset = useCallback(() => {
+    setTimeLeft(CARD_TIMEOUT_SECONDS);
+  }, []);
+
+  return { timeLeft, reset };
 }
