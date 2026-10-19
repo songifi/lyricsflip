@@ -1206,24 +1206,7 @@ fn error_codes_are_stable() {
         (Error::InvalidDecade, 37),
         (Error::NoActiveCard, 38),
         (Error::AlreadyAnswered, 39),
-        (Error::RoundCancelled, 20),
-        (Error::NotEnoughDistinctCards, 21),
-        (Error::RoundFull, 22),
-        (Error::InvalidMaxPlayers, 23),
-        (Error::NftContractNotSet, 24),
-        (Error::MilestoneNotReached, 25),
-        (Error::MilestoneAlreadyClaimed, 26),
-        (Error::InvalidCardTitle, 27),
-        (Error::InvalidCardArtist, 28),
-        (Error::InvalidCardLyrics, 29),
-        (Error::InvalidCardYear, 30),
-        (Error::LyricsTooLong, 31),
-        (Error::DuplicateCard, 32),
-        (Error::BatchTooLarge, 33),
-        (Error::NotPendingOwner, 34),
-        (Error::NoMoreCards, 35),
-        (Error::AlreadyAnswered, 36),
-        (Error::NoActiveCard, 37),
+        (Error::Paused, 40),
     ];
     for (variant, code) in expected {
         assert_eq!(variant as u32, code, "{:?} was renumbered", variant);
@@ -3128,4 +3111,64 @@ fn lf162_public_round_still_joinable_without_code() {
     let stranger = Address::generate(&env);
     client.join_round(&stranger, &round_id, &None);
     assert_eq!(client.get_round_players(&round_id).len(), 2);
+// LF-163: a solo round starts in one call with exactly one signature.
+#[test]
+fn lf163_solo_round_starts_in_one_call() {
+// LF-164: 5-card solo round uses <= 6 signatures (5 answer_and_next calls).
+#[test]
+fn lf164_five_card_solo_round_uses_six_or_fewer_signatures() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 5);
+    client.set_cards_per_round(&owner, &5);
+
+    let baseline = env.auths().len();
+    env.ledger().set_timestamp(NOW + 5);
+
+    let qc = client.create_solo_round(&owner, &Some(Genre::Pop), &163u64);
+
+    // Round exists, started, flagged solo, not in OpenRounds.
+    assert_eq!(client.get_round_count(), 1);
+    let round = client.get_round(&1u64);
+    assert!(round.is_started, "solo round must be started");
+    assert!(round.solo, "round.solo must be true");
+    assert_eq!(round.start_time, NOW + 5);
+    assert!(round.end_time > round.start_time);
+    assert_eq!(client.get_open_rounds(&0u32, &10u32).len(), 0,
+               "solo round must not appear in OpenRounds");
+
+    // First question returned from the same call.
+    assert_eq!(qc.kind, QuestionKind::Title);
+    assert!(!qc.option_one.is_empty());
+    assert!(!qc.option_two.is_empty());
+    assert!(!qc.option_three.is_empty());
+    assert!(!qc.option_four.is_empty());
+
+    // Exactly one auth for the whole call.
+    let sigs = env.auths().len() - baseline;
+    assert_eq!(sigs, 1, "solo round must start with exactly 1 signature, got {sigs}");
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &164u64);
+    client.start_round(&owner, &round_id);
+
+    env.ledger().set_timestamp(NOW + 5);
+    let mut card = client.next_card(&round_id);
+
+    let baseline = env.auths().len();
+
+    for i in 0..5u64 {
+        env.ledger().set_timestamp(NOW + 10 + i * 30);
+        let r = client.answer_and_next(&owner, &round_id, &Answer::Title(card.title.clone()));
+        assert!(r.correct, "card {i} should be correct");
+        if i < 4 {
+            card = r.next.expect("expected next card");
+        } else {
+            assert!(r.next.is_none(), "last card must auto-finalize");
+        }
+    }
+
+    let round = client.get_round(&round_id);
+    assert!(round.is_completed, "last answer must auto-finalize");
+    assert!(round.end_time > 0);
+
+    let sigs = env.auths().len() - baseline;
+    assert!(sigs <= 6, "5-card solo round used {sigs} signatures, must be <= 6");
 }

@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
-import { StellarProvider, StellarContext } from '@/lib/stellar/StellarProvider';
+import { StellarProvider, StellarContext } from '@/lib/stellar/stellar-provider';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 
 // ---------------------------------------------------------------------------
@@ -30,6 +30,18 @@ const renderProvider = () =>
       <TestConsumer />
     </StellarProvider>,
   );
+
+// The provider reads configuration from `window.__ENV` in the browser, so
+// tests must supply a contract id for the provider to render its children
+// instead of the "App is not configured" screen.
+const TEST_CONTRACT_ID = 'CTESTCONTRACTID';
+
+beforeEach(() => {
+  window.__ENV = {
+    NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: TEST_CONTRACT_ID,
+    NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: 'CTESTNFTID',
+  };
+});
 
 // ---------------------------------------------------------------------------
 // Initialisation
@@ -180,18 +192,23 @@ describe('StellarProvider – disconnect', () => {
 // Config warnings
 // ---------------------------------------------------------------------------
 describe('StellarProvider – config warnings', () => {
-  it('emits a warning when LYRICSFLIP_CONTRACT_ID is missing', async () => {
-    // The StellarProvider reads env vars on init. Since JSDOM env doesn't have
-    // NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID set, the warning should always appear.
+  it('blocks the app when LYRICSFLIP_CONTRACT_ID is missing', async () => {
+    window.__ENV = {
+      NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: '',
+      NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: 'CTESTNFTID',
+    };
+
     renderProvider();
 
-    await waitFor(() => {
-      const warnings = screen.getByTestId('warnings').textContent ?? '';
-      expect(warnings).toContain('NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID');
-    });
+    expect(await screen.findByText(/app is not configured/i)).toBeInTheDocument();
   });
 
   it('emits a warning when LYRICSFLIP_NFT_CONTRACT_ID is missing', async () => {
+    window.__ENV = {
+      NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: TEST_CONTRACT_ID,
+      NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: '',
+    };
+
     renderProvider();
 
     await waitFor(() => {

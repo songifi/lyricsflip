@@ -18,3 +18,10 @@ pub const START_ROUND_MAX_MEM: u64 = 11_700_000;
 /// Covers every `QuestionKind`; Title is the most expensive.
 pub const BUILD_QUESTION_CARD_MAX_CPU: u64 = 5_100_000;
 pub const BUILD_QUESTION_CARD_MAX_MEM: u64 = 2_750_000;
+
+// LF-163
+pub const CREATE_SOLO_ROUND_MAX_CPU: u64 = 30_000_000;
+pub const CREATE_SOLO_ROUND_MAX_MEM: u64 = 800_000;
+// LF-164
+pub const ANSWER_AND_NEXT_MAX_CPU: u64 = 20_000_000;
+pub const ANSWER_AND_NEXT_MAX_MEM: u64 = 500_000;

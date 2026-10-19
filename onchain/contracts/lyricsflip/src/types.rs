@@ -106,6 +106,8 @@ pub struct Round {
     pub is_cancelled: bool,
     /// LF-162: true when the round requires an invite code to join.
     pub is_private: bool,
+    /// LF-163: solo rounds skip OpenRounds and start in the same call.
+    pub solo: bool,
 }
 
 /// NFT reward milestones a player can claim once each via `claim_reward`.
@@ -228,3 +230,11 @@ pub enum DataKey {
     Paused,
 }
 
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnswerResult {
+    pub correct: bool,
+    pub points: u64,
+    pub correct_option: u32,
+    pub next: Option<Card>,
+}

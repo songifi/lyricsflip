@@ -1,7 +1,7 @@
 'use client';
 
-import { NftBadgeGallery } from '@/components/organisms/NftBadgeGallery';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { NftBadgeGallery } from '@/components/organisms/nft-badge-gallery';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useEffect, useState } from 'react';
 import type { PlayerStats } from '@/lib/stellar/types';
 import { useRouter } from 'next/navigation';

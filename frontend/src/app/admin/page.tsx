@@ -1,9 +1,9 @@
 'use client';
 
-import { AdminCards } from "@/components/organisms/AdminCards";
-import { AdminConfig } from "@/components/organisms/AdminConfig";
-import { AdminRoles } from "@/components/organisms/AdminRoles";
-import { useStellar } from "@/lib/stellar/hooks/useStellar";
+import { AdminCards } from "@/components/organisms/admin-cards";
+import { AdminConfig } from "@/components/organisms/admin-config";
+import { AdminRoles } from "@/components/organisms/admin-roles";
+import { useStellar } from "@/lib/stellar/hooks/use-stellar";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 

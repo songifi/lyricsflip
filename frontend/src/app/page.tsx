@@ -3,9 +3,9 @@
 import Welcome from '@/components/atoms/welcome';
 import { GameModal } from '@/components/organisms/game-modal';
 import { GameOptions } from '@/components/organisms/game-mode-selection';
-import { WagerModal } from '@/components/organisms/WagerModal';
+import { WagerModal } from '@/components/organisms/wager-modal';
 import { useModalStore } from '@/store/modal-store';
-import { useStellar, type UseStellarResult } from '@/lib/stellar/hooks/useStellar';
+import { useStellar, type UseStellarResult } from '@/lib/stellar/hooks/use-stellar';
 
 export default function Home() {
   const { openModal } = useModalStore();
