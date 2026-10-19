@@ -256,6 +256,8 @@ pub enum DataKey {
     /// Nominated by `transfer_ownership`, pending `accept_ownership`.
     PendingOwner,
     Admin(Address),
+    /// Enumerable index of all active admin addresses (LF-156).
+    Admins,
     RoundCount,
     CardsCount,
     CardsPerRound,

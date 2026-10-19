@@ -2250,7 +2250,7 @@ fn upgrade_keeps_state_and_changes_version() {
         assert_eq!(stored, owner);
         assert!(env
             .storage()
-            .instance()
+            .persistent()
             .get::<_, bool>(&crate::DataKey::Admin(other.clone()))
             .unwrap());
     });
@@ -3506,10 +3506,271 @@ fn lf158_legacy_round_fallback_and_migration() {
     assert_eq!(round.lobby_timeout, 600);
     assert_eq!(round.round_duration, 300);
 
-    // Initial schema version is 3 in constructor
-    assert_eq!(client.schema_version(), 3);
+    // Initial schema version is 4 in constructor
+    assert_eq!(client.schema_version(), 4);
 
     // Calling migrate is a clean, idempotent no-op
     client.migrate(&owner);
+    assert_eq!(client.schema_version(), 4);
+}
+
+// ----------------------------------------------------------------------------
+// LF-156: Move admin flags out of instance storage, and make admins enumerable
+// ----------------------------------------------------------------------------
+
+#[test]
+fn test_lf156_admin_flags_in_persistent_storage_not_instance() {
+    let (env, client, owner) = setup();
+
+    // Owner is admin
+    assert!(client.is_admin(&Role::Admin, &owner));
+
+    // get_admins returns current set containing owner
+    let admins = client.get_admins();
+    assert_eq!(admins.len(), 1);
+    assert_eq!(admins.get(0).unwrap(), owner);
+
+    // Instance storage holds only global configuration - ZERO Admin keys in instance!
+    env.as_contract(&client.address, || {
+        assert!(
+            !env.storage()
+                .instance()
+                .has(&crate::DataKey::Admin(owner.clone())),
+            "Instance storage must not contain DataKey::Admin"
+        );
+        assert_eq!(
+            env.storage()
+                .persistent()
+                .get::<_, bool>(&crate::DataKey::Admin(owner.clone())),
+            Some(true),
+            "Persistent storage must hold DataKey::Admin"
+        );
+    });
+}
+
+#[test]
+fn test_lf156_admin_addition_and_enumeration() {
+    let (env, client, owner) = setup();
+
+    let admin1 = Address::generate(&env);
+    let admin2 = Address::generate(&env);
+
+    assert!(!client.is_admin(&Role::Admin, &admin1));
+    assert!(!client.is_admin(&Role::Admin, &admin2));
+
+    // Add admin1 and admin2
+    client.set_role(&owner, &admin1, &Role::Admin, &true);
+    client.set_role(&owner, &admin2, &Role::Admin, &true);
+
+    assert!(client.is_admin(&Role::Admin, &admin1));
+    assert!(client.is_admin(&Role::Admin, &admin2));
+
+    // get_admins returns all 3 current admins
+    let admins = client.get_admins();
+    assert_eq!(admins.len(), 3);
+    assert_eq!(admins.get(0).unwrap(), owner);
+    assert_eq!(admins.get(1).unwrap(), admin1);
+    assert_eq!(admins.get(2).unwrap(), admin2);
+
+    // Adding duplicate does not duplicate entry in get_admins
+    client.set_role(&owner, &admin1, &Role::Admin, &true);
+    assert_eq!(client.get_admins().len(), 3);
+
+    // Verify instance storage remains pure
+    env.as_contract(&client.address, || {
+        assert!(!env.storage().instance().has(&crate::DataKey::Admin(admin1.clone())));
+        assert!(!env.storage().instance().has(&crate::DataKey::Admin(admin2.clone())));
+        assert!(env.storage().persistent().has(&crate::DataKey::Admin(admin1.clone())));
+        assert!(env.storage().persistent().has(&crate::DataKey::Admin(admin2.clone())));
+    });
+}
+
+#[test]
+fn test_lf156_admin_revocation_removes_key_without_tombstone() {
+    let (env, client, owner) = setup();
+
+    let admin1 = Address::generate(&env);
+    client.set_role(&owner, &admin1, &Role::Admin, &true);
+    assert!(client.is_admin(&Role::Admin, &admin1));
+    assert_eq!(client.get_admins().len(), 2);
+
+    // Revoke admin1
+    client.set_role(&owner, &admin1, &Role::Admin, &false);
+    assert!(!client.is_admin(&Role::Admin, &admin1));
+
+    // get_admins excludes revoked admin
+    let admins = client.get_admins();
+    assert_eq!(admins.len(), 1);
+    assert_eq!(admins.get(0).unwrap(), owner);
+
+    // On revoke, remove the entry instead of writing false (no tombstone!)
+    env.as_contract(&client.address, || {
+        assert!(
+            !env.storage()
+                .persistent()
+                .has(&crate::DataKey::Admin(admin1.clone())),
+            "Revocation must remove key from persistent storage (no false tombstone)"
+        );
+        assert!(
+            !env.storage()
+                .instance()
+                .has(&crate::DataKey::Admin(admin1.clone())),
+            "Instance storage must not contain revoked admin key"
+        );
+    });
+}
+
+#[test]
+fn test_lf156_owner_revoking_admin_maintains_owner_rights() {
+    let (_env, client, owner) = setup();
+
+    // Owner revokes own admin flag
+    client.set_role(&owner, &owner, &Role::Admin, &false);
+    assert!(!client.is_admin(&Role::Admin, &owner));
+    assert_eq!(client.get_admins().len(), 0);
+
+    // Owner can still manage roles and reinstate admin role
+    client.set_role(&owner, &owner, &Role::Admin, &true);
+    assert!(client.is_admin(&Role::Admin, &owner));
+    let admins = client.get_admins();
+    assert_eq!(admins.len(), 1);
+    assert_eq!(admins.get(0).unwrap(), owner);
+}
+
+#[test]
+fn test_lf156_accept_ownership_updates_persistent_admins() {
+    let (env, client, owner) = setup();
+
+    let new_owner = Address::generate(&env);
+    client.transfer_ownership(&owner, &new_owner);
+    client.accept_ownership(&new_owner);
+
+    assert_eq!(client.owner(), new_owner);
+    assert!(client.is_admin(&Role::Admin, &new_owner));
+
+    let admins = client.get_admins();
+    // Old owner and new owner are both admins
+    assert_eq!(admins.len(), 2);
+    assert_eq!(admins.get(0).unwrap(), owner);
+    assert_eq!(admins.get(1).unwrap(), new_owner);
+
+    env.as_contract(&client.address, || {
+        assert!(!env.storage().instance().has(&crate::DataKey::Admin(new_owner.clone())));
+        assert!(env.storage().persistent().has(&crate::DataKey::Admin(new_owner.clone())));
+    });
+}
+
+#[test]
+fn test_lf156_upgrade_migration_v3_to_v4() {
+    let (env, client, owner) = setup();
+
+    // Model a v3 deployment with owner admin flag stored in instance storage
+    env.as_contract(&client.address, || {
+        env.storage()
+            .instance()
+            .set(&crate::DataKey::SchemaVersion, &3u32);
+        env.storage()
+            .instance()
+            .set(&crate::DataKey::Admin(owner.clone()), &true);
+        env.storage()
+            .persistent()
+            .remove(&crate::DataKey::Admin(owner.clone()));
+        env.storage().persistent().remove(&crate::DataKey::Admins);
+    });
+
     assert_eq!(client.schema_version(), 3);
+
+    // Migrate from v3 to v4
+    client.migrate(&owner);
+
+    // Schema version bumped to 4
+    assert_eq!(client.schema_version(), 4);
+
+    // Admin moved to persistent storage and out of instance storage
+    env.as_contract(&client.address, || {
+        assert!(
+            !env.storage()
+                .instance()
+                .has(&crate::DataKey::Admin(owner.clone())),
+            "Migration must remove DataKey::Admin from instance storage"
+        );
+        assert_eq!(
+            env.storage()
+                .persistent()
+                .get::<_, bool>(&crate::DataKey::Admin(owner.clone())),
+            Some(true),
+            "Migration must set DataKey::Admin in persistent storage"
+        );
+    });
+
+    // get_admins now returns owner
+    let admins = client.get_admins();
+    assert_eq!(admins.len(), 1);
+    assert_eq!(admins.get(0).unwrap(), owner);
+
+    // Second call is an idempotent no-op
+    client.migrate(&owner);
+    assert_eq!(client.schema_version(), 4);
+}
+
+#[test]
+fn test_lf156_lazy_migration_of_legacy_admins() {
+    let (env, client, _owner) = setup();
+
+    let legacy_admin = Address::generate(&env);
+    let legacy_revoked = Address::generate(&env);
+
+    // Directly seed legacy instance storage entries
+    env.as_contract(&client.address, || {
+        env.storage()
+            .instance()
+            .set(&crate::DataKey::Admin(legacy_admin.clone()), &true);
+        env.storage()
+            .instance()
+            .set(&crate::DataKey::Admin(legacy_revoked.clone()), &false);
+    });
+
+    // Query active legacy admin
+    assert!(client.is_admin(&Role::Admin, &legacy_admin));
+    // Query revoked legacy admin
+    assert!(!client.is_admin(&Role::Admin, &legacy_revoked));
+
+    // Verify lazy migration cleaned up instance storage
+    env.as_contract(&client.address, || {
+        assert!(
+            !env.storage()
+                .instance()
+                .has(&crate::DataKey::Admin(legacy_admin.clone())),
+            "Instance storage legacy active entry must be removed"
+        );
+        assert!(
+            !env.storage()
+                .instance()
+                .has(&crate::DataKey::Admin(legacy_revoked.clone())),
+            "Instance storage legacy false entry must be removed"
+        );
+        assert!(
+            env.storage()
+                .persistent()
+                .has(&crate::DataKey::Admin(legacy_admin.clone())),
+            "Persistent storage must now hold active admin"
+        );
+        assert!(
+            !env.storage()
+                .persistent()
+                .has(&crate::DataKey::Admin(legacy_revoked.clone())),
+            "Revoked admin must not have persistent entry"
+        );
+    });
+
+    // Enumerable index now includes lazily-migrated active admin
+    let admins = client.get_admins();
+    let mut found = false;
+    for i in 0..admins.len() {
+        if admins.get(i).unwrap() == legacy_admin {
+            found = true;
+            break;
+        }
+    }
+    assert!(found, "get_admins must include lazily migrated admin");
 }
