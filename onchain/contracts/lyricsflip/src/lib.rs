@@ -18,6 +18,10 @@ pub use events::{
     OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
     RoundStarted, SchemaMigrated, Unpaused,
+    AnswerSubmitted, CardAdded, CardDrawn, CardRemoved, CardUpdated, CardsPerRoundUpdated,
+    ContractUpgraded, OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady,
+    RewardClaimed, RoleUpdated, RoundCancelled, RoundCompleted, RoundCreated, RoundJoined,
+    RoundLeft, RoundStarted, SchemaMigrated, Unpaused,
 };
 pub use types::{
     Answer, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone, PlayerStats,
@@ -33,6 +37,8 @@ use soroban_sdk::{
 pub const VERSION: u32 = 1;
 /// Current persisted storage layout. Kept separate from the code version.
 pub const SCHEMA_VERSION: u32 = 4;
+pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 2;
 
 pub const DEFAULT_ROUND_DURATION_SECONDS: u64 = 300;
 pub const MIN_ROUND_DURATION_SECONDS: u64 = 10;
@@ -710,6 +716,7 @@ impl LyricsFlip {
             owner: caller.clone(),
         }
         .publish(&env);
+        Paused { owner: caller.clone() }.publish(&env);
     }
 
     /// Owner-only. Resumes normal operation.
@@ -722,6 +729,7 @@ impl LyricsFlip {
             owner: caller.clone(),
         }
         .publish(&env);
+        Unpaused { owner: caller.clone() }.publish(&env);
     }
 
     /// Creates a round.
@@ -738,6 +746,7 @@ impl LyricsFlip {
             },
             None,
             seed,
+            invite_hash,
         )
     }
 
@@ -758,6 +767,7 @@ impl LyricsFlip {
         filter: RoundFilter,
         difficulty: Option<u32>,
         seed: u64,
+        invite_hash: Option<BytesN<32>>,
     ) -> u64 {
         caller.require_auth();
         if difficulty.is_some_and(|value| !(1..=3).contains(&value)) {
@@ -855,6 +865,7 @@ impl LyricsFlip {
             answer_window,
             lobby_timeout,
             round_duration,
+            solo: false,
         };
 
         let mut players: Vec<Address> = Vec::new(&env);
@@ -979,6 +990,20 @@ impl LyricsFlip {
     /// Joins round.
     pub fn join_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
+        // LF-162: private rounds require the preimage of RoundInviteHash.
+        if let Some(expected) = env
+            .storage()
+            .persistent()
+            .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
+        {
+            let provided = code
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let bytes = Bytes::from_slice(&env, provided.to_string().as_bytes());
+            let hash = env.crypto().sha256(&bytes);
+            if hash.to_array() != expected.to_array() {
+                panic_with_error!(env, Error::NotAuthorized); // invite_hash mismatch
+            }
+        }
         Self::require_not_paused(&env);
         let round = Self::read_round(&env, round_id);
 
@@ -1413,6 +1438,7 @@ impl LyricsFlip {
         let old_version = Self::version();
         env.deployer()
             .update_current_contract_wasm(new_wasm_hash.clone());
+        env.deployer().update_current_contract_wasm(new_wasm_hash.clone());
         ContractUpgraded {
             owner: caller,
             new_wasm_hash,
@@ -1478,6 +1504,8 @@ impl LyricsFlip {
                     bump_persistent(&env, &DataKey::Admins);
 
                     current_version = 4;
+                    // Future migrations from v1 to subsequent schema versions
+                    current_version = 2;
                 }
                 _ => break,
             }
@@ -2486,6 +2514,71 @@ impl LyricsFlip {
         }
         result
     }
+    /// LF-163: create and start a solo round in one call, return the first
+    /// question. Skipped from OpenRounds so it never appears in the
+    /// multiplayer lobby. Exactly ONE require_auth: create_round_internal
+    /// performs it, so we do not call it again here, and the first card is
+    /// drawn inline (next_card would require_auth a second time).
+    pub fn create_solo_round(
+        env: Env,
+        caller: Address,
+        genre: Option<Genre>,
+        seed: u64,
+    ) -> QuestionCard {
+        if genre.is_none() {
+            panic_with_error!(env, Error::NonExistingGenre);
+        }
+        // create_round_internal calls caller.require_auth() -> sig #1.
+        let round_id = Self::create_round_internal(
+            &env,
+            caller.clone(),
+            RoundFilter { genre, decade: None },
+            None,
+            seed,
+        );
+        // Never leave a solo round in the multiplayer lobby.
+        Self::remove_open_round(&env, round_id);
+
+        // Mark started immediately (mirrors start_round's writes for the
+        // 1-player case, but without touching require_auth).
+        let mut round = Self::read_round(&env, round_id);
+        let start_time = env.ledger().timestamp();
+        round.is_started = true;
+        round.start_time = start_time;
+        round.end_time = start_time + DEFAULT_ROUND_DURATION_SECONDS;
+        round.solo = true;
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(round_id), &round);
+        bump_persistent(&env, &DataKey::Round(round_id));
+
+        let mut stats = Self::get_player_stat(env.clone(), caller.clone());
+        stats.total_rounds += 1;
+        env.storage()
+            .persistent()
+            .set(&DataKey::PlayerStats(caller.clone()), &stats);
+        bump_persistent(&env, &DataKey::PlayerStats(caller.clone()));
+
+        RoundStarted { round_id, admin: caller.clone(), start_time }.publish(&env);
+
+        // Inline first-card draw (do NOT call next_card -> extra auth).
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let card_id = round_cards
+            .get(0)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
+        let card = Self::get_card(env.clone(), card_id);
+        env.storage().persistent().set(
+            &DataKey::PlayerCardIndex((round_id, caller.clone())),
+            &1u32,
+        );
+        env.storage().persistent().set(
+            &DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id)),
+            &env.ledger().timestamp(),
+        );
+        CardDrawn { round_id, player: caller.clone(), index: 0 }.publish(&env);
+
+        Self::build_question_card(env, card, round_id, QuestionKind::Title)
+    }
 }
 
 // LF-164: combined answer+draw. Reuses submit_answer's scoring path so
@@ -2629,3 +2722,4 @@ impl LyricsFlip {
         AnswerResult { correct, points, correct_option: 0, next }
     }
 }
+
