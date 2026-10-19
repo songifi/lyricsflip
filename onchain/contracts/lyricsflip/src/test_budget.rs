@@ -110,6 +110,16 @@ fn build_question_card_budget() {
 }
 
 #[test]
+fn create_solo_round_budget() {
+    let (env, client, owner) = setup_catalogue();
+    client.set_cards_per_round(&owner, &5);
+    measure(
+        &env,
+        "create_solo_round",
+        CREATE_SOLO_ROUND_MAX_CPU,
+        CREATE_SOLO_ROUND_MAX_MEM,
+        || {
+            client.create_solo_round(&owner, &Some(Genre::Pop), &42u64);
 fn answer_and_next_budget() {
     let (env, client, owner) = setup_catalogue();
     client.set_cards_per_round(&owner, &5);

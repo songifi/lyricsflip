@@ -666,6 +666,7 @@ impl LyricsFlip {
             end_time: 0,
             next_card_index: 0,
             is_cancelled: false,
+            solo: false,
         };
 
         let mut players: Vec<Address> = Vec::new(&env);
@@ -2056,6 +2057,71 @@ impl LyricsFlip {
             result.push_back(if for_index { v } else { v + 1 });
         }
         result
+    }
+    /// LF-163: create and start a solo round in one call, return the first
+    /// question. Skipped from OpenRounds so it never appears in the
+    /// multiplayer lobby. Exactly ONE require_auth: create_round_internal
+    /// performs it, so we do not call it again here, and the first card is
+    /// drawn inline (next_card would require_auth a second time).
+    pub fn create_solo_round(
+        env: Env,
+        caller: Address,
+        genre: Option<Genre>,
+        seed: u64,
+    ) -> QuestionCard {
+        if genre.is_none() {
+            panic_with_error!(env, Error::NonExistingGenre);
+        }
+        // create_round_internal calls caller.require_auth() -> sig #1.
+        let round_id = Self::create_round_internal(
+            &env,
+            caller.clone(),
+            RoundFilter { genre, decade: None },
+            None,
+            seed,
+        );
+        // Never leave a solo round in the multiplayer lobby.
+        Self::remove_open_round(&env, round_id);
+
+        // Mark started immediately (mirrors start_round's writes for the
+        // 1-player case, but without touching require_auth).
+        let mut round = Self::read_round(&env, round_id);
+        let start_time = env.ledger().timestamp();
+        round.is_started = true;
+        round.start_time = start_time;
+        round.end_time = start_time + DEFAULT_ROUND_DURATION_SECONDS;
+        round.solo = true;
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(round_id), &round);
+        bump_persistent(&env, &DataKey::Round(round_id));
+
+        let mut stats = Self::get_player_stat(env.clone(), caller.clone());
+        stats.total_rounds += 1;
+        env.storage()
+            .persistent()
+            .set(&DataKey::PlayerStats(caller.clone()), &stats);
+        bump_persistent(&env, &DataKey::PlayerStats(caller.clone()));
+
+        RoundStarted { round_id, admin: caller.clone(), start_time }.publish(&env);
+
+        // Inline first-card draw (do NOT call next_card -> extra auth).
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let card_id = round_cards
+            .get(0)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
+        let card = Self::get_card(env.clone(), card_id);
+        env.storage().persistent().set(
+            &DataKey::PlayerCardIndex((round_id, caller.clone())),
+            &1u32,
+        );
+        env.storage().persistent().set(
+            &DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id)),
+            &env.ledger().timestamp(),
+        );
+        CardDrawn { round_id, player: caller.clone(), index: 0 }.publish(&env);
+
+        Self::build_question_card(env, card, round_id, QuestionKind::Title)
     }
 }
 

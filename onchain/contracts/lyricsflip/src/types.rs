@@ -104,6 +104,8 @@ pub struct Round {
     pub end_time: u64,
     pub next_card_index: u32,
     pub is_cancelled: bool,
+    /// LF-163: solo rounds skip OpenRounds and start in the same call.
+    pub solo: bool,
 }
 
 /// NFT reward milestones a player can claim once each via `claim_reward`.
