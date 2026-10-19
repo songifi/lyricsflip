@@ -8,7 +8,7 @@
  *  - resetting the timer works
  */
 import { renderHook, act } from '@testing-library/react';
-import { useGameTimer } from '@/features/game/hooks/useGameTimer';
+import { useGameTimer } from '@/features/game/hooks/use-game-timer';
 import { useStore } from '@/store';
 
 // Reset the Zustand store to a known state before each test
@@ -35,7 +35,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('useGameTimer', () => {
+describe('use-game-timer', () => {
   it('exposes timeLeft, startTimer, stopTimer, resetTimer', () => {
     const { result } = renderHook(() => useGameTimer());
 
@@ -235,5 +235,93 @@ describe('tickTimer store action', () => {
     expect(state.timeLeft).toBe(0);
     expect(state.isTimerRunning).toBe(false);
     expect(state.isPlaying).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Round-deadline mode (LF-192 / issue #678)
+//
+// The single-player round timer must be derived from the contract's absolute
+// `end_time` so there is exactly one interval, it survives a refresh and it is
+// always torn down on unmount.
+// ---------------------------------------------------------------------------
+describe('useGameTimer – round deadline mode', () => {
+  const ONE_SECOND_MS = 1000;
+
+  it('derives the remaining time from the deadline and counts down', () => {
+    jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const endTimeSeconds = Math.floor(Date.now() / 1000) + 300;
+
+    const { result } = renderHook(() =>
+      useGameTimer({ endTimeSeconds: BigInt(endTimeSeconds) }),
+    );
+
+    expect(result.current.timeLeft).toBe(300);
+
+    act(() => {
+      jest.advanceTimersByTime(5 * ONE_SECOND_MS);
+    });
+
+    expect(result.current.timeLeft).toBe(295);
+  });
+
+  it('restores the correct remaining time after a remount (refresh)', () => {
+    jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const endTimeSeconds = Math.floor(Date.now() / 1000) + 300;
+
+    const first = renderHook(() =>
+      useGameTimer({ endTimeSeconds: BigInt(endTimeSeconds) }),
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(40 * ONE_SECOND_MS);
+    });
+    expect(first.result.current.timeLeft).toBe(260);
+
+    // Simulate a page refresh: the component unmounts and remounts while the
+    // contract clock keeps running.
+    first.unmount();
+
+    const second = renderHook(() =>
+      useGameTimer({ endTimeSeconds: BigInt(endTimeSeconds) }),
+    );
+
+    expect(second.result.current.timeLeft).toBe(260);
+  });
+
+  it('clamps at zero and stops the countdown once the deadline passes', () => {
+    jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const endTimeSeconds = Math.floor(Date.now() / 1000) + 2;
+
+    const { result } = renderHook(() =>
+      useGameTimer({ endTimeSeconds: BigInt(endTimeSeconds) }),
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(10 * ONE_SECOND_MS);
+    });
+
+    expect(result.current.timeLeft).toBe(0);
+    expect(result.current.isTimerRunning).toBe(false);
+  });
+
+  it('clears its interval on unmount and never leaks a timer', () => {
+    const clearSpy = jest.spyOn(global, 'clearInterval');
+    jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+    const endTimeSeconds = Math.floor(Date.now() / 1000) + 300;
+
+    const { result, unmount } = renderHook(() =>
+      useGameTimer({ endTimeSeconds: BigInt(endTimeSeconds) }),
+    );
+
+    expect(result.current.timeLeft).toBe(300);
+    clearSpy.mockClear();
+
+    unmount();
+
+    expect(clearSpy).toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+
+    clearSpy.mockRestore();
   });
 });

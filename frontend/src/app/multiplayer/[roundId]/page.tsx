@@ -2,22 +2,74 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Button } from '@/components/atoms/button';
-import { LyricCard } from '@/components/organisms/LyricCard';
-import { StatisticsPanel } from '@/components/molecules/statistics-panel';
-import { SongOptions } from '@/components/molecules/song-options';
 import ChallengeInvite from '@/components/organisms/challenge-invite';
-import { Button } from '@/components/atoms/button';
-import ChallengeInvite from '@/components/organisms/challangeInvite';
-import { useMultiplayerRoom } from '@/hooks/use-multiplayer-room';
-import { useRoundEvents } from '@/hooks/useRoundEvents';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { LyricCard } from '@/components/organisms/lyric-card';
+import RoundScoreboard from '@/components/organisms/round-scoreboard';
+import { SongOptions } from '@/components/molecules/song-options';
+import {
+  CARD_TIMEOUT_SECONDS,
+  useCardTimer,
+} from '@/features/game/hooks/use-card-timer';
+import { useRoundEvents } from '@/hooks/use-round-events';
+import { useRoundGameEvents } from '@/hooks/use-round-game-events';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { getContractErrorCode, parseContractError } from '@/lib/stellar/errors';
+import { getGenreDisplayName } from '@/lib/stellar/genres';
+import {
+  Answer,
+  type Card,
+  type QuestionCard,
+  type Round,
+} from '@/lib/stellar/types';
+import { formatTime } from '@/lib/utils';
+
+/** Contract error code for `NoMoreCards` — the player has drawn every card. */
+const NO_MORE_CARDS = 34;
+
+interface SongOption {
+  title: string;
+  artist: string;
+}
+
+type AnswerOutcome = 'correct' | 'wrong' | 'miss';
+import { useRoundEvents } from '@/hooks/use-round-events';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import type { Round } from '@/lib/stellar/types';
-import { ArrowLeft } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+
+function parseRoundId(raw: string): bigint | null {
+  return /^\d+$/.test(raw) ? BigInt(raw) : null;
+}
+
+/**
+ * Seconds left until an absolute unix-seconds deadline, updated once a second.
+ * `null` means "no deadline yet" (round not started / malformed value).
+ */
+function useDeadlineCountdown(deadlineSeconds: number | null): number | null {
+  const [nowSeconds, setNowSeconds] = useState(() =>
+    Math.floor(Date.now() / 1000),
+  );
+
+  useEffect(() => {
+    if (deadlineSeconds === null) return;
+    const tick = () => setNowSeconds(Math.floor(Date.now() / 1000));
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [deadlineSeconds]);
+
+  return deadlineSeconds === null
+    ? null
+    : Math.max(0, deadlineSeconds - nowSeconds);
+}
+
+const toDeadlineSeconds = (round: Round | null): number | null => {
+  if (!round) return null;
+  const seconds = Number(round.end_time);
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
+};
 
 export default function MultiplayerRoundPage() {
   const router = useRouter();
@@ -37,18 +89,56 @@ export default function MultiplayerRoundPage() {
     isValidId ? null : 'That invite link is not valid.',
   );
 
-  const events = useRoundEvents(round ? roundId : null);
-  const allPlayers = Array.from(new Set([...players, ...events.joined]));
-  const isStarted = !!round?.is_started || events.started;
-  const isReady = !!account && events.ready.includes(account.address);
+  // ── Game state (LF-195) ───────────────────────────────────────────────────
+  const [card, setCard] = useState<Card | null>(null);
+  const [question, setQuestion] = useState<QuestionCard | null>(null);
+  const [selectedOption, setSelectedOption] = useState<SongOption | null>(null);
+  const [answerOutcome, setAnswerOutcome] = useState<AnswerOutcome | null>(null);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasFinishedCards, setHasFinishedCards] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [gameError, setGameError] = useState<string | null>(null);
+  const [finalScoreFallback, setFinalScoreFallback] = useState<
+    Record<string, number> | null
+  >(null);
+  const hasDrawnFirstCard = useRef(false);
+  const refreshedForStart = useRef(false);
 
-  const { roomData, selectSong } = useMultiplayerRoom({
-    roomId: isStarted ? rawRoundId : '',
-    playerName: account?.address ?? 'Guest',
-  });
+  // Next.js keeps this page mounted when only the dynamic segment changes, so
+  // clear the previous round's game state when navigating to another round.
+  useEffect(() => {
+    hasDrawnFirstCard.current = false;
+    refreshedForStart.current = false;
+    setRound(null);
+    setPlayers([]);
+    setCard(null);
+    setQuestion(null);
+    setSelectedOption(null);
+    setAnswerOutcome(null);
+    setIsCardFlipped(false);
+    setHasFinishedCards(false);
+    setFinalScoreFallback(null);
+    setGameError(null);
+    setIsLoading(true);
+  }, [roundId]);
+
+  const lobbyEvents = useRoundEvents(round ? roundId : null);
+  const gameEvents = useRoundGameEvents(
+    round?.is_started ? roundId : null,
+  );
+  const allPlayers = Array.from(
+    new Set([...players, ...lobbyEvents.joined]),
+  );
+  const isStarted = !!round?.is_started || lobbyEvents.started;
+  const isReady = !!account && lobbyEvents.ready.includes(account.address);
+  const isParticipant =
+    !!account && players.includes(account.address);
+  const isCompleted = !!round?.is_completed || gameEvents.completed;
 
   const loadRound = useCallback(async () => {
-    if (!systemCalls || roundId === null) return;
+    if (!systemCalls || roundId === null) return null;
     try {
       const [roundData, roundPlayers] = await Promise.all([
         systemCalls.getRound(roundId),
@@ -59,6 +149,7 @@ export default function MultiplayerRoundPage() {
       return { roundData, roundPlayers };
     } catch {
       setError(`Round ${rawRoundId} does not exist or could not be loaded.`);
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -75,11 +166,9 @@ export default function MultiplayerRoundPage() {
       if (!loaded || !account) return;
       const { roundData, roundPlayers } = loaded;
       if (roundData.is_cancelled || roundData.is_completed) {
-        setError('This round is no longer open.');
         return;
       }
-      if (roundData.is_started || roundPlayers.includes(account.address))
-        return;
+      if (roundData.is_started || roundPlayers.includes(account.address)) return;
 
       try {
         setIsBusy(true);
@@ -92,76 +181,225 @@ export default function MultiplayerRoundPage() {
       }
     };
 
-    run();
+    void run();
   }, [systemCalls, roundId, account, loadRound]);
 
-  const handleReady = async () => {
+  const handleReady = useCallback(async () => {
     if (!systemCalls || roundId === null) return;
     setIsBusy(true);
     setError(null);
     try {
       await systemCalls.startRound(roundId);
+      await loadRound();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to mark ready');
     } finally {
       setIsBusy(false);
     }
-  };
-
-  const handleBack = () => router.push('/multiplayer');
-
-  const shell = (content: ReactNode) => (
-    <div className="container mx-auto mt-16 px-4 py-8 md:mt-20">
-    void loadRound();
   }, [systemCalls, roundId, loadRound]);
 
-  const handleReady = useCallback(async () => {
-    if (!systemCalls || roundId === null || !account) return;
-    setIsBusy(true);
+  // Another player may start the round: the lobby stream sees `RoundStarted`
+  // before our cached round does, so refresh it once to pick up `end_time`.
+  useEffect(() => {
+    if (!lobbyEvents.started || !round || round.is_started) return;
+    if (!systemCalls || refreshedForStart.current) return;
+    refreshedForStart.current = true;
+    void loadRound();
+  }, [lobbyEvents.started, round, systemCalls, loadRound]);
+
+  // ── Card play ─────────────────────────────────────────────────────────────
+  const drawCard = useCallback(async () => {
+    if (!systemCalls || roundId === null) return;
+    setIsDrawing(true);
+    setGameError(null);
+    setSelectedOption(null);
+    setAnswerOutcome(null);
+    setIsCardFlipped(false);
+    setQuestion(null);
+    setCard(null);
     try {
-      await systemCalls.readyUp(roundId);
-      await events.refresh();
+      const nextCard = await systemCalls.nextCard(roundId);
+      const questionCard = await systemCalls.buildQuestionCard(
+        nextCard,
+        'Title',
+      );
+      setCard(nextCard);
+      setQuestion(questionCard);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to ready up');
+      if (getContractErrorCode(err) === NO_MORE_CARDS) {
+        // Every card in the round has been drawn for this player; the round
+        // is finalized by any player (or the keeper) once the deadline passes.
+        setHasFinishedCards(true);
+      } else {
+        setGameError(parseContractError(err).message);
+      }
     } finally {
-      setIsBusy(false);
+      setIsDrawing(false);
     }
-  }, [systemCalls, roundId, account, events]);
+  }, [systemCalls, roundId]);
 
-  const handleBack = () => router.push('/multiplayer');
+  // Draw the first card once the round has started, for players only.
+  useEffect(() => {
+    if (!round?.is_started || !isParticipant || !systemCalls) return;
+    if (hasDrawnFirstCard.current) return;
+    hasDrawnFirstCard.current = true;
+    void drawCard();
+  }, [round?.is_started, isParticipant, systemCalls, drawCard]);
 
-  const shell = (content: React.ReactNode) => (
-    <div className="container mx-auto px-4 py-8 mt-16 md:mt-20">
+  const handleCardTimeout = useCallback(() => {
+    setIsCardFlipped(true);
+    setAnswerOutcome('miss');
+  }, []);
+
+  const cardTimerActive =
+    !!question && selectedOption === null && !isCardFlipped && !isSubmitting;
+
+  const {
+    timeLeft: cardTimeLeft,
+    reset: resetCardTimer,
+  } = useCardTimer({
+    isActive: cardTimerActive,
+    onTimeout: handleCardTimeout,
+  });
+
+  const handleAnswer = useCallback(
+    async (option: SongOption) => {
+      if (!systemCalls || roundId === null || !card || selectedOption !== null) {
+        return;
+      }
+      setSelectedOption(option);
+      setIsCardFlipped(true);
+      setAnswerOutcome(null);
+      setIsSubmitting(true);
+      try {
+        const isCorrect = await systemCalls.submitAnswer(
+          roundId,
+          Answer.title(option.title),
+        );
+        setAnswerOutcome(isCorrect ? 'correct' : 'wrong');
+      } catch (err) {
+        setGameError(parseContractError(err).message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [card, roundId, selectedOption, systemCalls],
+  );
+
+  const handleNextCard = useCallback(async () => {
+    resetCardTimer();
+    await drawCard();
+  }, [drawCard, resetCardTimer]);
+
+  // ── Round deadline / finalization ─────────────────────────────────────────
+  const secondsLeft = useDeadlineCountdown(toDeadlineSeconds(round));
+  const deadlinePassed = secondsLeft === 0;
+  const canFinalize = isParticipant && deadlinePassed && !isCompleted;
+
+  const handleFinalize = useCallback(async () => {
+    if (!systemCalls || roundId === null) return;
+    setIsFinalizing(true);
+    setGameError(null);
+    try {
+      await systemCalls.finalizeRound(roundId);
+      await loadRound();
+    } catch (err) {
+      setGameError(parseContractError(err).message);
+    } finally {
+      setIsFinalizing(false);
+    }
+  }, [systemCalls, roundId, loadRound]);
+
+  // ── Scoreboard data ───────────────────────────────────────────────────────
+  // `RoundCompleted` carries the authoritative scores, but if the event stream
+  // was unavailable fall back to the contract's `get_round_scores` view.
+  useEffect(() => {
+    if (!isCompleted || gameEvents.finalScores) return;
+    if (!systemCalls || roundId === null) return;
+    let cancelled = false;
+    systemCalls
+      .getRoundScores(roundId)
+      .then((scores) => {
+        if (!cancelled) setFinalScoreFallback(scores);
+      })
+      .catch(() => {
+        // The event-derived scores already on screen are the fallback.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isCompleted, gameEvents.finalScores, systemCalls, roundId]);
+
+  const mergedScores = useMemo(() => {
+    if (gameEvents.finalScores) return gameEvents.finalScores;
+    if (finalScoreFallback) return finalScoreFallback;
+    return gameEvents.scores;
+  }, [gameEvents.finalScores, gameEvents.scores, finalScoreFallback]);
+
+  const winners = useMemo(() => {
+    if (gameEvents.winners) return gameEvents.winners;
+    if (!isCompleted) return null;
+    const best = Math.max(0, ...Object.values(mergedScores));
+    if (best === 0) return [];
+    return Object.entries(mergedScores)
+      .filter(([, points]) => points === best)
+      .map(([player]) => player);
+  }, [gameEvents.winners, isCompleted, mergedScores]);
+
+  const scoreboardPlayers = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...allPlayers,
+          ...Object.keys(mergedScores),
+          ...Object.keys(gameEvents.answered),
+        ]),
+      ),
+    [allPlayers, mergedScores, gameEvents.answered],
+  );
+
+  const options: SongOption[] = question
+    ? [
+        question.option_one,
+        question.option_two,
+        question.option_three,
+        question.option_four,
+      ].map((title) => ({ title, artist: '' }))
+    : [];
+
+  const shell = useCallback(
+    (content: ReactNode) => (
+      <div className="container mx-auto mt-16 px-4 py-8 md:mt-20">
+        <button
+          onClick={() => router.push('/multiplayer')}
+          className="mb-4 flex min-h-[44px] items-center text-gray-600"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+        </button>
+        {content}
+      </div>
+    ),
+    [router],
+  );
+
+  if (!isValidId) {
+    return shell(
+      <p className="mx-auto max-w-md text-center text-red-500">{error}</p>,
+    );
+  const shell = (content: ReactNode) => (
+    <div className="container mx-auto mt-16 px-4 py-8 md:mt-20">
       <button
-        onClick={handleBack}
+        onClick={() => router.push('/multiplayer')}
         className="mb-4 flex min-h-[44px] items-center text-gray-600"
       >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back
       </button>
       {content}
     </div>
   );
 
-  if (error && !round) {
-    return shell(<p className="text-red-500">{error}</p>);
-  }
-
-  if (isLoading || !round) {
-    return shell(<p>Loading round…</p>);
-      <h1 className="text-3xl font-bold mb-4">Multiplayer Round</h1>
-      <p className="text-gray-600 mb-4">Round ID: {rawRoundId || 'unknown'}</p>
-
-      {content}
-    </div>
-  );
-
   if (!isValidId) {
-    return shell(
-      <div className="max-w-md mx-auto text-center">
-        <p className="text-red-500">{error}</p>
-      </div>,
-    );
+    return shell(<p className="mx-auto max-w-md text-center text-red-500">{error}</p>);
   }
 
   if (!account) {
@@ -179,82 +417,284 @@ export default function MultiplayerRoundPage() {
     return shell(<p className="text-gray-600">Loading round…</p>);
   }
 
-  if (!isStarted) {
+  if (!round) {
+    return shell(<p className="text-red-500">{error ?? 'Round not found.'}</p>);
+  }
+
+  if (round.is_cancelled) {
     return shell(
-      <>
-        <div className="mx-auto mb-6 max-w-md">
-          <h2 className="mb-2 text-xl font-bold">
-            Players ({allPlayers.length})
-          </h2>
-          <ul className="space-y-1">
-            {allPlayers.map((player) => (
-              <li key={player} className="flex justify-between text-sm">
-                <span className="mr-2 truncate">
-                  {player === account.address ? `${player} (you)` : player}
-                </span>
-                <span
-                  className={
-                    events.ready.includes(player)
-                      ? 'text-green-600'
-                      : 'text-gray-500'
-                  }
-                >
-                  {events.ready.includes(player) ? 'Ready' : 'Not ready'}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {error && <p className="mt-4 text-red-500">{error}</p>}
-          {events.error && (
-            <p className="mt-2 text-sm text-red-500">{events.error}</p>
-          )}
-        </div>
-        <ChallengeInvite
-          round={round}
-          players={allPlayers}
-          isReady={isReady}
-          isBusy={isBusy}
-          onReady={handleReady}
-        />
-      </>,
+      <p className="mx-auto max-w-md text-center text-red-500">
+        This round was cancelled.
+      </p>,
     );
   }
 
+  // ── Final results ─────────────────────────────────────────────────────────
+  if (isCompleted) {
+    return shell(
+      <div className="mx-auto flex max-w-2xl flex-col gap-6">
+        <header>
+          <h1 className="text-2xl font-bold">Round {rawRoundId} results</h1>
+          <p className="text-gray-600">{getGenreDisplayName(round.genre)}</p>
+        </header>
+
+        <p role="status" className="text-lg font-semibold">
+          {winners && winners.length > 0
+            ? winners.includes(account.address)
+              ? 'You won!'
+              : `${winners.length} winner${winners.length === 1 ? '' : 's'}`
+            : 'Round complete — no points were scored.'}
+        </p>
+
+        <RoundScoreboard
+          players={scoreboardPlayers}
+          scores={mergedScores}
+          answered={gameEvents.answered}
+          currentAddress={account.address}
+          winners={winners}
+        />
+
+        <Button
+          onClick={() => router.push('/multiplayer')}
+          variant="purple"
+          className="min-h-[44px]"
+        >
+          Back to lobby
+        </Button>
+      </div>,
+    );
+  }
+
+  // ── Game screen ───────────────────────────────────────────────────────────
+  if (isStarted) {
+    const waitingForOthers = !isParticipant || hasFinishedCards;
+
+    return shell(
+      <div className="mx-auto flex max-w-4xl flex-col gap-6">
+        <header className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h1 className="text-2xl font-bold">Round {rawRoundId}</h1>
+            <p className="text-sm text-gray-600">
+              {getGenreDisplayName(round.genre)} ·{' '}
+              {allPlayers.length} player{allPlayers.length === 1 ? '' : 's'}
+            </p>
+          </div>
+          <p
+            className="text-sm text-gray-600"
+            data-testid="round-deadline"
+            aria-live="polite"
+          >
+            {secondsLeft === null
+              ? 'Round deadline pending'
+              : `Round ends in ${formatTime(secondsLeft)}`}
+          </p>
+        </header>
+
+        <p aria-live="polite" className="sr-only">
+          {answerOutcome === 'correct'
+            ? 'Correct'
+            : answerOutcome === 'wrong'
+              ? 'Wrong'
+              : answerOutcome === 'miss'
+                ? "Time's up"
+                : ''}
+        </p>
+
+        {gameError && (
+          <p role="alert" className="text-sm text-red-500">
+            {gameError}
+          </p>
+        )}
+        {gameEvents.error && (
+          <p className="text-xs text-gray-500">
+            Live scores temporarily unavailable: {gameEvents.error}
+          </p>
+        )}
+
+        {isParticipant && !hasFinishedCards && (
+          <section
+            aria-label="Your card"
+            className="flex flex-col gap-4 rounded-2xl border border-gray-200 p-4"
+          >
+            {isDrawing && <p className="text-gray-600">Drawing next card…</p>}
+
+            {question && card && (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">
+                    {selectedOption === null
+                      ? 'Answer before the card timer runs out'
+                      : 'Answer submitted'}
+                  </span>
+                  <span
+                    className={
+                      cardTimeLeft <= 3
+                        ? 'font-bold text-red-600'
+                        : 'font-medium text-gray-700'
+                    }
+                    data-testid="card-time-left"
+                  >
+                    {cardTimeLeft}s / {CARD_TIMEOUT_SECONDS}s
+                  </span>
+                </div>
+
+                <LyricCard
+                  lyrics={[
+                    {
+                      text: question.lyric,
+                      title: card.title,
+                      artist: card.artist,
+                    },
+                  ]}
+                  isFlipped={isCardFlipped}
+                />
+
+                <SongOptions
+                  options={options}
+                  selectedOption={selectedOption}
+                  // Only reveal the answer once the card is flipped (answered
+                  // or timed out); passing it earlier would highlight the
+                  // correct option before the player picks.
+                  correctOption={
+                    isCardFlipped
+                      ? { title: card.title, artist: card.artist }
+                      : null
+                  }
+                  disabled={selectedOption !== null || isSubmitting}
+                  onSelect={handleAnswer}
+                />
+
+                <div className="flex items-center justify-between">
+                  <span
+                    role="status"
+                    className="text-sm font-medium"
+                    data-testid="answer-outcome"
+                  >
+                    {isSubmitting
+                      ? 'Submitting…'
+                      : answerOutcome === 'correct'
+                        ? 'Correct'
+                        : answerOutcome === 'wrong'
+                          ? 'Wrong'
+                          : answerOutcome === 'miss'
+                            ? "Time's up"
+                            : ''}
+                  </span>
+                  {selectedOption !== null && !isSubmitting && (
+                    <Button
+                      onClick={() => void handleNextCard()}
+                      variant="purple"
+                      className="min-h-[44px]"
+                    >
+                      Next card
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+        )}
+
+        {waitingForOthers && !isDrawing && (
+          <p role="status" className="text-gray-600" data-testid="waiting-state">
+            {isParticipant
+              ? hasFinishedCards
+                ? 'You have answered every card — waiting for other players…'
+                : 'Waiting for other players…'
+              : 'You are spectating this round.'}
+          </p>
+        )}
+
+        <RoundScoreboard
+          players={scoreboardPlayers}
+          scores={mergedScores}
+          answered={gameEvents.answered}
+          currentAddress={account.address}
+        />
+
+        {deadlinePassed && (
+          <section
+            aria-label="Finalize round"
+            className="rounded-2xl border border-gray-200 p-4"
+          >
+            {canFinalize ? (
+              <div className="flex flex-col gap-2">
+                <p className="text-sm text-gray-600">
+                  The round deadline has passed. Finalize to publish the
+                  results and award the pot.
+                </p>
+                <Button
+                  onClick={() => void handleFinalize()}
+                  disabled={isFinalizing}
+                  variant="purple"
+                  className="min-h-[44px]"
+                >
+                  {isFinalizing ? 'Finalizing…' : 'Finalize round'}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-600">
+                {isParticipant
+                  ? 'Waiting for a player or the keeper to finalize…'
+                  : 'Waiting for the keeper to finalize…'}
+              </p>
+            )}
+          </section>
+        )}
+  if (error && (round.is_cancelled || round.is_completed)) {
+    return shell(<p className="text-red-500">{error}</p>);
+  }
+
+  if (isStarted) {
+    return shell(
+      <div className="mx-auto max-w-md text-center">
+        <h1 className="mb-2 text-2xl font-bold">Round {rawRoundId}</h1>
+        <p className="text-gray-600">This round is in progress.</p>
+      </div>,
+    );
+  }
+
+  // ── Lobby ─────────────────────────────────────────────────────────────────
   return shell(
     <>
-      <h1 className="mb-6 text-2xl font-bold">
-        {roomData?.name || `Round ${rawRoundId}`}
-      </h1>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <div className="order-2 md:order-1 lg:col-span-1">
-          <StatisticsPanel
-            time={roomData?.timeLeft || '00:00'}
-            potWin={round.wager_amount.toString()}
-            potWin={`${round?.wager_amount.toString() ?? '0'}`}
-            scores={`${roomData?.scores || 0}`}
-          />
-        </div>
-        <div className="order-1 md:order-2 lg:col-span-1">
-          <LyricCard
-            lyrics={[
-              {
-                text:
-                  roomData?.currentLyric?.text || 'Waiting for the first card…',
-                title: roomData?.currentLyric?.title || '',
-                artist: roomData?.currentLyric?.artist || '',
-              },
-            ]}
-            isFlipped={false}
-          />
-        </div>
+      <div className="mx-auto mb-6 max-w-md">
+        <h2 className="mb-2 text-xl font-bold">
+          Players ({allPlayers.length})
+        </h2>
+        <ul className="space-y-1">
+          {allPlayers.map((player) => (
+            <li key={player} className="flex justify-between text-sm">
+              <span className="mr-2 truncate">
+                {player === account.address ? `${player} (you)` : player}
+              </span>
+              <span
+                className={
+                  lobbyEvents.ready.includes(player)
+                  events.ready.includes(player)
+                    ? 'text-green-600'
+                    : 'text-gray-500'
+                }
+              >
+                {lobbyEvents.ready.includes(player) ? 'Ready' : 'Not ready'}
+                {events.ready.includes(player) ? 'Ready' : 'Not ready'}
+              </span>
+            </li>
+          ))}
+        </ul>
+        {error && <p className="mt-4 text-red-500">{error}</p>}
+        {lobbyEvents.error && (
+          <p className="mt-2 text-sm text-red-500">{lobbyEvents.error}</p>
+        {events.error && (
+          <p className="mt-2 text-sm text-red-500">{events.error}</p>
+        )}
       </div>
-      {roomData?.songOptions && (
-        <SongOptions
-          options={roomData.songOptions}
-          onSelect={(_, index) => selectSong(index)}
-        />
-      )}
-      {error && <p className="mt-4 text-red-500">{error}</p>}
+      <ChallengeInvite
+        round={round}
+        players={allPlayers}
+        isReady={isReady}
+        isBusy={isBusy}
+        onReady={handleReady}
+      />
     </>,
   );
 }

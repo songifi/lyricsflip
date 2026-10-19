@@ -1,4 +1,4 @@
-//! Unit tests for the `lyricsflip` contract.
+﻿//! Unit tests for the `lyricsflip` contract.
 //!
 //! Coverage targets:
 //! - Every public function (happy path + key error paths).
@@ -416,11 +416,11 @@ fn next_card_errors_when_round_completed() {
 }
 
 // ---------------------------------------------------------------------------
-// build_question_card â LF-029
+// build_question_card Ã¢Â€Â” LF-029
 // ---------------------------------------------------------------------------
 
 /// Seed cards with enough variety that all three question kinds can find
-/// 3 unique distractors. We need â¥4 distinct titles, artists, and years.
+/// 3 unique distractors. We need Ã¢Â‰Â¥4 distinct titles, artists, and years.
 fn seed_diverse_cards(env: &Env, client: &LyricsFlipClient, owner: &Address) {
     let data = [
         (Genre::Pop, "Drake", "God's Plan", 2018u64),
@@ -537,7 +537,7 @@ fn build_question_card_year_distractors_are_close_to_correct_year() {
     let card = client.get_card(&1); // year = 2018
     let q = client.build_question_card(&card, &3u64, &QuestionKind::Year);
 
-    // All four options should be within Â±5 years of the correct year.
+    // All four options should be within Ã‚Â±5 years of the correct year.
     let options = [
         q.option_one.clone(),
         q.option_two.clone(),
@@ -567,11 +567,11 @@ fn parse_year_u64(s: &soroban_sdk::String) -> u64 {
 }
 
 // ---------------------------------------------------------------------------
-// build_question_card â LF-010 small card sets
+// build_question_card Ã¢Â€Â” LF-010 small card sets
 // ---------------------------------------------------------------------------
 
-/// 4 distinct cards: a question card must still have 4 unique options â
-/// including the correct one â without panicking with `AmountExceedsLimit`.
+/// 4 distinct cards: a question card must still have 4 unique options Ã¢Â€Â”
+/// including the correct one Ã¢Â€Â” without panicking with `AmountExceedsLimit`.
 #[test]
 fn build_question_card_with_four_distinct_cards_has_four_unique_options() {
     let (env, client, owner) = setup();
@@ -1235,11 +1235,11 @@ fn error_codes_are_stable() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-011 â partial Fisher-Yates is O(limit), not O(coupon-collector)
+// LF-011 Ã¢Â€Â“ partial Fisher-Yates is O(limit), not O(coupon-collector)
 // ---------------------------------------------------------------------------
 
-/// Confirms that `get_random_numbers(amount=50, limit=50)` â the worst-case
-/// scenario that caused the coupon-collector blowup â now runs in a fixed
+/// Confirms that `get_random_numbers(amount=50, limit=50)` Ã¢Â€Â” the worst-case
+/// scenario that caused the coupon-collector blowup Ã¢Â€Â” now runs in a fixed
 /// number of iterations. We check this indirectly: seed the contract with 50
 /// cards, call `get_cards_of_genre` (which internally calls
 /// `get_random_numbers(amount=50, limit=50)`), and assert the result is
@@ -1306,7 +1306,7 @@ fn get_random_numbers_returns_correct_count_for_various_inputs() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-012 â persistent storage survives a ledger advance past default TTL
+// LF-012 Ã¢Â€Â“ persistent storage survives a ledger advance past default TTL
 // ---------------------------------------------------------------------------
 
 /// After gameplay entries (cards, round, player stats) are written and the
@@ -2062,7 +2062,7 @@ fn ownership_transfer_end_to_end() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-174 â Emergency pause
+// LF-174 Ã¢Â€Â” Emergency pause
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -2426,7 +2426,7 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-004 â Players cannot answer the same card more than once (#421)
+// LF-004 Ã¢Â€Â” Players cannot answer the same card more than once (#421)
 // ---------------------------------------------------------------------------
 
 /// A second submit_answer for the same card by the same player must fail
@@ -2504,7 +2504,7 @@ fn lf004_streak_cannot_grow_more_than_one_per_card() {
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &13u64);
     client.start_round(&owner, &round_id);
 
-    // Draw and answer cards 1, 2, and 3 â one answer per card.
+    // Draw and answer cards 1, 2, and 3 Ã¢Â€Â” one answer per card.
     for i in 0..3u64 {
         env.ledger().set_timestamp(NOW + 5 + i * 30);
         let card = client.next_card(&owner, &round_id);
@@ -2517,7 +2517,7 @@ fn lf004_streak_cannot_grow_more_than_one_per_card() {
     }
 
     let stats = client.get_player_stat(&owner);
-    // Answered 3 cards correctly, 1 answer per card â streak must be exactly 3.
+    // Answered 3 cards correctly, 1 answer per card Ã¢Â†Â’ streak must be exactly 3.
     assert_eq!(
         stats.current_streak, 3,
         "streak must equal the number of cards answered, not double from re-submissions"
@@ -2525,7 +2525,7 @@ fn lf004_streak_cannot_grow_more_than_one_per_card() {
     assert_eq!(stats.max_streak, 3);
 }
 
-/// Other players can still answer the same card â AlreadyAnswered is
+/// Other players can still answer the same card Ã¢Â€Â” AlreadyAnswered is
 /// per-player, not per-card.
 #[test]
 fn lf004_other_players_can_still_answer_same_card() {
@@ -2548,6 +2548,7 @@ fn lf004_other_players_can_still_answer_same_card() {
 
     // player2 can still answer the same card â AlreadyAnswered is per-player.
     let p2_card = client.next_card(&player2, &round_id);
+    // player2 can still answer the same card Ã¢Â€Â” AlreadyAnswered is per-player.
     env.ledger().set_timestamp(NOW + 10);
     assert!(
         client.submit_answer(&player2, &round_id, &Answer::Title(p2_card.title.clone())),
@@ -2564,10 +2565,10 @@ fn lf004_other_players_can_still_answer_same_card() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-003 â Last card of a round can be answered (#420)
+// LF-003 Ã¢Â€Â” Last card of a round can be answered (#420)
 // ---------------------------------------------------------------------------
 
-/// cards_per_round = 1: draw the only card then submit an answer â must succeed.
+/// cards_per_round = 1: draw the only card then submit an answer Ã¢Â€Â” must succeed.
 /// Before the fix, next_card set is_completed = true immediately, causing
 /// submit_answer to reject with RoundCompleted on the very first answer.
 #[test]
@@ -2591,7 +2592,7 @@ fn lf003_single_card_round_can_be_answered() {
         "answer to the only card in a 1-card round must be accepted"
     );
 
-    // Round is not yet completed â only finalize_round sets is_completed.
+    // Round is not yet completed Ã¢Â€Â” only finalize_round sets is_completed.
     let round = client.get_round(&round_id);
     assert!(
         !round.is_completed,
@@ -2640,11 +2641,11 @@ fn lf003_three_card_round_last_card_is_answerable() {
     let last_card = client.next_card(&owner, &round_id);
     let p2_last_card = client.next_card(&player2, &round_id);
 
-    // Round must NOT be completed yet â players must still be able to answer.
+    // Round must NOT be completed yet Ã¢Â€Â” players must still be able to answer.
     let round = client.get_round(&round_id);
     assert!(
         !round.is_completed,
-        "round must not be completed after drawing the last card â answer window is still open"
+        "round must not be completed after drawing the last card Ã¢Â€Â” answer window is still open"
     );
 
     // Both players can answer the last card.
@@ -2959,7 +2960,7 @@ fn lf159_first_ledger_answer_gets_max_points() {
 }
 
 // ---------------------------------------------------------------------------
-// LF-161  normalize title/artist before duplicate checks
+// LF-161 Â– normalize title/artist before duplicate checks
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -3155,7 +3156,7 @@ fn lf161_rejects_control_characters() {
     );
 }
 // ---------------------------------------------------------------------------
-// LF-160  year distractors stay within [MIN_CARD_YEAR, current_year]
+// LF-160 Â– year distractors stay within [MIN_CARD_YEAR, current_year]
 // ---------------------------------------------------------------------------
 
 fn parse_all_year_options(q: &crate::QuestionCard) -> std::vec::Vec<u64> {

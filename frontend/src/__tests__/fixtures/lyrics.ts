@@ -1,4 +1,4 @@
-import type { LyricData } from '@/store/Types';
+import type { LyricData } from '@/store/types';
 
 export const MOCK_LYRICS: LyricData[] = [
   {

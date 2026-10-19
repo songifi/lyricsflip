@@ -23,10 +23,10 @@ import {
   Copy,
   Check,
 } from 'lucide-react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import { useProfileStore } from '@/store/useProfileStore';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { useProfileStore } from '@/store/use-profile-store';
 import type { PlayerStats } from '@/lib/stellar/types';
-import { Skeleton } from '@/components/atoms/Skeleton';
+import { Skeleton } from '@/components/atoms/skeleton';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -95,9 +95,10 @@ const StatCard = ({ icon, label, value, accent = 'text-purplePrimary5' }: StatCa
 // ---------------------------------------------------------------------------
 
 export default function ProfilePage() {
-  const params = useParams();
+  const params = useParams<{ address?: string | string[] }>();
   const router = useRouter();
-  const address = typeof params.address === 'string' ? params.address : '';
+  const rawAddress = Array.isArray(params?.address) ? params.address[0] : params?.address;
+  const address = typeof rawAddress === 'string' ? rawAddress : '';
 
   const { account, systemCalls, isLoading: walletLoading } = useStellar();
   const { getUsername } = useProfileStore();

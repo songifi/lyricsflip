@@ -12,6 +12,9 @@ export const formatTime = (seconds: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 };
 
+/** Number of open rounds shown per page of the multiplayer lobby. */
+export const LOBBY_PAGE_SIZE = 5;
+
 /** Code of the Stellar asset used for wagers (e.g. `XLM`). */
 export const WAGER_ASSET_CODE = env.NEXT_PUBLIC_WAGER_ASSET_CODE;
 

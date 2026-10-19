@@ -12,6 +12,8 @@ interface SongOptionsProps {
   onSelect: (option: SongOption, index: number) => void;
   selectedOption?: SongOption | null;
   correctOption?: SongOption | null;
+  /** Disables input, e.g. while an answer is being submitted on-chain. */
+  disabled?: boolean;
 }
 
 export function SongOptions({
@@ -19,15 +21,17 @@ export function SongOptions({
   onSelect,
   selectedOption = null,
   correctOption = null,
+  disabled = false,
 }: SongOptionsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const isLocked = disabled || selectedOption !== null;
 
   // 1–4 hotkeys and arrow-key navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore when an answer is already selected
-      if (selectedOption !== null) return;
+      // Ignore when an answer is already selected or being submitted
+      if (isLocked) return;
 
       const key = e.key;
 
@@ -37,21 +41,6 @@ export function SongOptions({
         if (options[idx]) {
           e.preventDefault();
           onSelect(options[idx], idx);
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-      {options.map((option, index) => {
-        const isSelected = selectedOption?.title === option.title;
-        const isCorrect = correctOption?.title === option.title;
-
-        let buttonClasses =
-          'text-left p-4 rounded-lg transition-all duration-200 min-h-[44px] w-full ';
-
-        if (isCorrect) {
-          buttonClasses += 'bg-green-100 dark:bg-green-900 border-2 border-green-500';
-        } else if (isSelected) {
-          buttonClasses += 'bg-red-100 dark:bg-red-900 border-2 border-red-500';
-        } else {
-          buttonClasses += 'bg-purple-50 dark:bg-gray-700 border border-purple-100 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500';
         }
         return;
       }
@@ -74,7 +63,7 @@ export function SongOptions({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [options, onSelect, selectedOption]);
+  }, [isLocked, options, onSelect]);
 
   // Derive an accessible status message for screen readers
   const getLiveMessage = () => {
@@ -111,10 +100,10 @@ export function SongOptions({
         {options.map((option, index) => {
           const isSelected = selectedOption?.title === option.title;
           const isCorrect = correctOption?.title === option.title;
-          const isDisabled = selectedOption !== null;
+          const isDisabled = isLocked;
 
           let buttonClasses =
-            'text-left p-4 rounded-lg transition-all duration-200 ' +
+            'text-left p-4 rounded-lg transition-all duration-200 min-h-[44px] w-full ' +
             // Visible focus ring – meets WCAG 2.4.11 (Focus Appearance)
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-purple-500 ';
 
@@ -162,18 +151,5 @@ export function SongOptions({
         })}
       </div>
     </section>
-        return (
-          <button
-            key={index}
-            onClick={() => onSelect(option, index)}
-            className={buttonClasses}
-            disabled={selectedOption !== null}
-          >
-            <h3 className="font-medium text-gray-900 dark:text-gray-100">{option.title}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{option.artist}</p>
-          </button>
-        );
-      })}
-    </div>
   );
 }
