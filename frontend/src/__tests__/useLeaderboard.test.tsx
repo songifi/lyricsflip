@@ -10,7 +10,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useLeaderboard } from '@/hooks/useLeaderboard';
+import { useLeaderboard } from '@/hooks/use-leaderboard';
 
 // ── Mock services/api ──────────────────────────────────────────────────────
 
@@ -64,7 +64,7 @@ const MOCK_ENTRIES = [
 
 // ── Tests ──────────────────────────────────────────────────────────────────
 
-describe('useLeaderboard', () => {
+describe('use-leaderboard', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });

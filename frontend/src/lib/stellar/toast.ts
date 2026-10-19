@@ -78,7 +78,24 @@ async function assertSufficientBalance(
  * prompt to catch unfunded / low-balance accounts early and show a friendly
  * error instead of an opaque simulation failure.
  */
-export async function withTxToast<T>(
+export interface TxResult<T> {
+  result: T;
+  /**
+   * Ledger close time (unix seconds) of the ledger the transaction landed in,
+   * i.e. the instant the network executed the call. `null` when the RPC
+   * response did not include it.
+   */
+  closedAtSeconds: number | null;
+  txHash?: string;
+}
+
+/**
+ * Same as {@link withTxToast}, but also reports when the transaction was
+ * included in a ledger. The contract's card/answer windows are measured in
+ * ledger time, so callers that need to agree with it (e.g. the 15 s answer
+ * window) must anchor on `closedAtSeconds` rather than the local clock.
+ */
+export async function withTxToastResult<T>(
   build: () => Promise<contract.AssembledTransaction<T>>,
   networkPassphrase: string,
   errors: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
@@ -106,9 +123,26 @@ export async function withTxToast<T>(
           }
         : undefined,
     });
-    return sent.result;
+    // `createdAt` only exists on the success variant of the response union.
+    const txResponse = sent.getTransactionResponse;
+    const closedAtSeconds =
+      txResponse && 'createdAt' in txResponse ? txResponse.createdAt : null;
+    return {
+      result: sent.result,
+      closedAtSeconds,
+      txHash: hash,
+    };
   } catch (err) {
     toast.error(`Failed: ${parseContractError(err, errors).message}`, { id });
     throw err;
   }
+}
+
+export async function withTxToast<T>(
+  build: () => Promise<contract.AssembledTransaction<T>>,
+  networkPassphrase: string,
+  errors: Record<number, ContractErrorInfo> = LYRICSFLIP_ERRORS,
+): Promise<T> {
+  const { result } = await withTxToastResult(build, networkPassphrase, errors);
+  return result;
 }

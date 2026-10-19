@@ -26,7 +26,7 @@ const interV = localFont({
   variable: '--font-interv',
 });
 
-const DynamicStellarProvider = dynamic(() => import('@/lib/stellar/StellarProvider').then(mod => mod.StellarProvider), {
+const DynamicStellarProvider = dynamic(() => import('@/lib/stellar/stellar-provider').then(mod => mod.StellarProvider), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center min-h-screen">
@@ -54,8 +54,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} ${jetBrainsMono.variable} ${interV.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors`}>
-        <ClientProvider>
-          <ThemeProvider>
+        <ThemeProvider>
             <Suspense fallback={
               <div className="flex items-center justify-center min-h-screen">
                 <div className="text-center">

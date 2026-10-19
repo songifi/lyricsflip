@@ -108,3 +108,21 @@ fn build_question_card_budget() {
         );
     }
 }
+
+#[test]
+fn answer_and_next_budget() {
+    let (env, client, owner) = setup_catalogue();
+    client.set_cards_per_round(&owner, &5);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64);
+    client.start_round(&owner, &round_id);
+    let card = client.next_card(&round_id);
+    measure(
+        &env,
+        "answer_and_next",
+        ANSWER_AND_NEXT_MAX_CPU,
+        ANSWER_AND_NEXT_MAX_MEM,
+        || {
+            client.answer_and_next(&owner, &round_id, &Answer::Title(card.title.clone()));
+        },
+    );
+}
