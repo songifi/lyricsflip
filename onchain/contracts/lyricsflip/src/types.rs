@@ -95,6 +95,7 @@ impl soroban_sdk::TryFromVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter
     fn try_from_val(env: &soroban_sdk::Env, val: &soroban_sdk::Val) -> Result<Self, Self::Error> {
         let map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> =
             soroban_sdk::Map::try_from_val(env, val)?;
+        let map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> = soroban_sdk::Map::try_from_val(env, val)?;
         let genre_sym = soroban_sdk::Symbol::new(env, "genre");
         let decade_sym = soroban_sdk::Symbol::new(env, "decade");
         let genre = if let Some(v) = map.get(genre_sym) {
@@ -115,6 +116,7 @@ impl soroban_sdk::IntoVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
     fn into_val(&self, env: &soroban_sdk::Env) -> soroban_sdk::Val {
         let mut map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> =
             soroban_sdk::Map::new(env);
+        let mut map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> = soroban_sdk::Map::new(env);
         let genre_val: soroban_sdk::Val = self.genre.into_val(env);
         let decade_val: soroban_sdk::Val = self.decade.into_val(env);
         map.set(soroban_sdk::Symbol::new(env, "genre"), genre_val);
@@ -183,6 +185,10 @@ impl From<LegacyRound> for Round {
             round_duration: 300,
         }
     }
+    /// LF-162: true when the round requires an invite code to join.
+    pub is_private: bool,
+    /// LF-163: solo rounds skip OpenRounds and start in the same call.
+    pub solo: bool,
 }
 
 /// NFT reward milestones a player can claim once each via `claim_reward`.
@@ -284,6 +290,8 @@ pub enum DataKey {
     RoundCardStartedAt((u64, u64)),
     RoundPlayerAnswered((u64, Address, u64)),
     RoundFinalized(u64),
+    /// LF-162: preimage hash for private rounds. Present only if private.
+    RoundInviteHash(u64),
     PlayerStats(Address),
     RoundReady((u64, Address)),
     RoundReadyCount(u64),
