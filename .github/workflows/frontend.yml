@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths: ["frontend/**", ".github/workflows/frontend.yml"]
   pull_request:
+    paths: ["frontend/**", "onchain/**", ".github/workflows/frontend.yml"]
 
 concurrency:
   group: frontend-${{ github.ref }}
@@ -38,7 +39,29 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
-      - run: npm test -- --ci
+      - name: Unit tests with coverage
+        run: npm test -- --ci --coverage
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e '
+              const s = require("./coverage/coverage-summary.json").total;
+              const rows = ["lines", "statements", "functions", "branches"]
+                .map((k) => `| ${k} | ${s[k].pct}% | ${s[k].covered}/${s[k].total} |`)
+                .join("\n");
+              process.stdout.write(`### Coverage\n\n| Metric | % | Covered |\n| --- | --- | --- |\n${rows}\n`);
+            ' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No coverage summary found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+          if-no-files-found: warn
       - name: Knip report (non-blocking)
         run: npx knip || true
         continue-on-error: true
@@ -46,16 +69,91 @@ jobs:
         env:
           NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
           NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+      - name: Bundle size budget
+        run: npm run size
+      - name: Build Storybook
+        run: npm run build-storybook
+      - name: Upload Storybook
+        uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: frontend/storybook-static
+          if-no-files-found: warn
+
+  e2e:
+    name: Frontend e2e
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Start Stellar quickstart
+        run: |
+          docker run -d --name stellar -p 8000:8000 \
+            stellar/quickstart:latest --local --enable-soroban-rpc
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/soroban/rpc -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' > /dev/null; then
+              echo "Stellar quickstart is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Stellar quickstart did not become ready in time."
+          docker logs stellar
+          exit 1
+
+      - name: Deploy and seed contracts
+        run: npm run contracts:deploy:local && npm run contracts:seed:local
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+          NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          if-no-files-found: warn
+
+      - name: Upload Playwright traces
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: frontend/test-results
+          if-no-files-found: warn
 
   ci-summary:
     name: Frontend CI
     if: always()
-    needs: [frontend]
+    needs: [frontend, e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Require frontend checks
         run: |
           if [[ "${{ needs.frontend.result }}" != "success" ]]; then
             echo "Frontend checks did not pass."
+            exit 1
+          fi
+          if [[ "${{ needs.e2e.result }}" != "success" && "${{ needs.e2e.result }}" != "skipped" ]]; then
+            echo "Frontend e2e checks did not pass."
             exit 1
           fi

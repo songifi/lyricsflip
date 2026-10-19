@@ -1,4 +1,7 @@
 const webpack = require('webpack');
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
 const testnetDeployment = require('../deployments/testnet.json');
 
 // Build-time check: fail next build in production mode when contract IDs are empty
@@ -43,4 +46,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);
