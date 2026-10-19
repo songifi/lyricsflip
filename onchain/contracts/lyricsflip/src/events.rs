@@ -1,5 +1,5 @@
 use crate::types::{Genre, Milestone, Role};
-use soroban_sdk::{contractevent, Address, Map, Vec};
+use soroban_sdk::{contractevent, Address, BytesN, Map, Vec};
 
 #[contractevent]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -171,4 +171,23 @@ pub struct Paused {
 pub struct Unpaused {
     #[topic]
     pub owner: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContractUpgraded {
+    #[topic]
+    pub owner: Address,
+    pub new_wasm_hash: BytesN<32>,
+    pub old_version: u32,
+    pub new_version: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SchemaMigrated {
+    #[topic]
+    pub caller: Address,
+    pub old_schema_version: u32,
+    pub new_schema_version: u32,
 }

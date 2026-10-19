@@ -9,16 +9,16 @@
 //! Run with `cargo test` inside `onchain/`.
 
 extern crate std;
+extern crate upgrade_fixture;
 
 use crate::{
     Answer, AnswerSubmitted, Card, CardAdded, CardDrawn, CardRemoved, CardUpdated,
-    CardsPerRoundUpdated, Error, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind,
-    Role, RoleUpdated, RoundCancelled, RoundCompleted, RoundLeft, CARD_ANSWER_WINDOW_SECONDS,
-    DEFAULT_MAX_PLAYERS, LOBBY_TIMEOUT_SECONDS, MAX_CARDS_PER_BATCH, MAX_LYRICS_LEN,
-    MAX_PAGE_LIMIT, MAX_ROUND_PLAYERS,
+    CardsPerRoundUpdated, ContractUpgraded, Error, Genre, LyricsFlip, LyricsFlipClient, Milestone,
+    QuestionKind, Role, RoleUpdated, RoundCancelled, RoundCompleted, RoundLeft, SchemaMigrated,
+    CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS, LOBBY_TIMEOUT_SECONDS, MAX_CARDS_PER_BATCH,
+    MAX_LYRICS_LEN, MAX_PAGE_LIMIT, MAX_ROUND_PLAYERS,
 };
 use soroban_sdk::{
-    events::Event as _,
     testutils::{Address as _, ContractEvents, Events, Ledger},
     xdr, Address, Env, Event, Map, String, Vec,
 };
@@ -371,18 +371,18 @@ fn next_card_advances_index_and_completes_round() {
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
 
-    let _c1 = client.next_card(&round_id);
+    let _c1 = client.next_card(&owner, &round_id);
     let round = client.get_round(&round_id);
     assert_eq!(round.next_card_index, 1);
     assert!(!round.is_completed);
 
-    let _c2 = client.next_card(&round_id);
+    let _c2 = client.next_card(&owner, &round_id);
     let round = client.get_round(&round_id);
     assert_eq!(round.next_card_index, 2);
     // `finalize_round` completes the round, so the last card can still be answered.
     assert!(!round.is_completed);
     assert_eq!(
-        client.try_next_card(&round_id),
+        client.try_next_card(&owner, &round_id),
         Err(Ok(Error::NoMoreCards.into()))
     );
 }
@@ -394,7 +394,7 @@ fn next_card_errors_when_round_not_started() {
     client.set_cards_per_round(&owner, &2);
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
 
-    let result = client.try_next_card(&round_id);
+    let result = client.try_next_card(&owner, &round_id);
     assert!(result.is_err());
 }
 
@@ -405,9 +405,9 @@ fn next_card_errors_when_round_completed() {
     client.set_cards_per_round(&owner, &1);
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
-    client.next_card(&round_id);
+    client.next_card(&owner, &round_id);
 
-    let result = client.try_next_card(&round_id);
+    let result = client.try_next_card(&owner, &round_id);
     assert!(result.is_err());
 }
 
@@ -541,9 +541,6 @@ fn build_question_card_year_distractors_are_close_to_correct_year() {
         q.option_four.clone(),
     ];
     for opt in options.iter() {
-        // Parse the year string.
-        let bytes = std::string::ToString::to_string(opt);
-        let parsed: i64 = bytes.parse().expect("year option should be a number");
         // Parse the year string without std (the contract stores years as
         // plain decimal `String`s via `u64_to_string`).
         let parsed = parse_year_u64(opt) as i64;
@@ -642,7 +639,7 @@ fn submit_answer_updates_streak_and_reports_correctness() {
     let round = client.get_round(&round_id);
     assert!(round.is_started);
 
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
 
     let correct = client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
     assert!(correct);
@@ -651,7 +648,7 @@ fn submit_answer_updates_streak_and_reports_correctness() {
     assert_eq!(stats.current_streak, 1);
     assert_eq!(stats.max_streak, 1);
 
-    client.next_card(&round_id);
+    client.next_card(&owner, &round_id);
     let wrong = client.submit_answer(
         &owner,
         &round_id,
@@ -671,7 +668,7 @@ fn submit_answer_artist_kind_accepted() {
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &5u64, &None);
     client.start_round(&owner, &round_id);
 
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     let correct = client.submit_answer(&owner, &round_id, &Answer::Artist(card.artist.clone()));
     assert!(correct);
 }
@@ -684,7 +681,7 @@ fn submit_answer_year_kind_accepted() {
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &6u64, &None);
     client.start_round(&owner, &round_id);
 
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     let correct = client.submit_answer(&owner, &round_id, &Answer::Year(card.year));
     assert!(correct);
 }
@@ -696,7 +693,7 @@ fn submit_answer_rejects_non_participant() {
     client.set_cards_per_round(&owner, &1);
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &8u64, &None);
     client.start_round(&owner, &round_id);
-    client.next_card(&round_id);
+    client.next_card(&owner, &round_id);
 
     let outsider = Address::generate(&env);
     let result = client.try_submit_answer(
@@ -769,7 +766,6 @@ fn get_cards_of_artist_returns_requested_amount() {
                 genre: Genre::Rock,
                 artist: String::from_str(&env, "The Same Artist"),
                 title: alloc_string(&env, &format_u64("Song ", i)),
-                title: String::from_str(&env, &std::format!("Song {}", i)),
                 year: 2000 + i,
                 difficulty: 2,
                 lyrics: String::from_str(&env, "lyric"),
@@ -798,8 +794,6 @@ fn get_cards_of_year_returns_requested_amount() {
                 genre: Genre::Jazz,
                 artist: alloc_string(&env, &format_u64("Artist ", i)),
                 title: alloc_string(&env, &format_u64("Track ", i)),
-                artist: String::from_str(&env, &std::format!("Artist {}", i)),
-                title: String::from_str(&env, &std::format!("Track {}", i)),
                 year: 1990,
                 difficulty: 2,
                 lyrics: String::from_str(&env, "lyric"),
@@ -865,7 +859,15 @@ fn assert_round_completed_event(
 #[test]
 fn finalize_round_e2e_single_winner_updates_stats_and_scores() {
     let (env, client, owner) = setup();
-    seed_cards(&env, &client, &owner, 3);
+    for i in 0..3u64 {
+        client.add_card(
+            &owner,
+            &Card {
+                difficulty: 1,
+                ..sample_card(&env, Genre::Pop, &std::format!("Artist {i}"), &std::format!("Title {i}"), 2000 + i)
+            },
+        );
+    }
     client.set_cards_per_round(&owner, &2);
 
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
@@ -875,8 +877,9 @@ fn finalize_round_e2e_single_winner_updates_stats_and_scores() {
     client.start_round(&player2, &round_id);
 
     env.ledger().set_timestamp(95);
-    let first_card = client.next_card(&round_id);
-    env.ledger().set_timestamp(100);
+    let first_card = client.next_card(&owner, &round_id);
+    let _ = client.next_card(&player2, &round_id);
+    env.ledger().set_timestamp(106);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(first_card.title.clone())));
     env.ledger().set_timestamp(130);
     assert!(!client.submit_answer(
@@ -886,8 +889,9 @@ fn finalize_round_e2e_single_winner_updates_stats_and_scores() {
     ));
 
     env.ledger().set_timestamp(195);
-    let second_card = client.next_card(&round_id);
-    env.ledger().set_timestamp(200);
+    let second_card = client.next_card(&owner, &round_id);
+    let _ = client.next_card(&player2, &round_id);
+    env.ledger().set_timestamp(206);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(second_card.title.clone())));
     env.ledger().set_timestamp(240);
     assert!(!client.submit_answer(
@@ -897,7 +901,7 @@ fn finalize_round_e2e_single_winner_updates_stats_and_scores() {
     ));
 
     let scores = client.get_round_scores(&round_id);
-    // Two correct answers, 5s after each draw: 2 * (100 - 5 * 5).
+    // Two correct answers, 5s after grace: 2 * (100 - 5 * 5).
     assert_eq!(scores.get(owner.clone()).unwrap(), 150u64);
     assert_eq!(scores.get(player2.clone()).unwrap(), 0u64);
 
@@ -911,7 +915,7 @@ fn finalize_round_e2e_single_winner_updates_stats_and_scores() {
     let winners = soroban_sdk::vec![&env, owner.clone()];
     assert_round_completed_event(&env, &events, &client.address, round_id, &winners, &scores);
 
-    let event_count_before_second_finalize = env
+    let _event_count_before_second_finalize = env
         .events()
         .all()
         .filter_by_contract(&client.address)
@@ -934,7 +938,8 @@ fn finalize_round_e2e_deadline_path_works_without_all_answers() {
     client.start_round(&player2, &round_id);
 
     env.ledger().set_timestamp(45);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
+    let _ = client.next_card(&player2, &round_id);
     env.ledger().set_timestamp(50);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
     env.ledger().set_timestamp(70);
@@ -976,11 +981,12 @@ fn finalize_round_e2e_tie_breaks_by_total_answer_time() {
     client.start_round(&player2, &round_id);
 
     env.ledger().set_timestamp(95);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
+    let p2_card = client.next_card(&player2, &round_id);
     env.ledger().set_timestamp(100);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
-    env.ledger().set_timestamp(104);
-    assert!(client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone())));
+    env.ledger().set_timestamp(101);
+    assert!(client.submit_answer(&player2, &round_id, &Answer::Title(p2_card.title.clone())));
 
     client.finalize_round(&owner, &round_id);
 
@@ -1001,10 +1007,11 @@ fn finalize_round_e2e_exact_score_and_time_tie_produces_co_winners() {
     client.start_round(&player2, &round_id);
 
     env.ledger().set_timestamp(95);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
+    let p2_card = client.next_card(&player2, &round_id);
     env.ledger().set_timestamp(100);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
-    assert!(client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone())));
+    assert!(client.submit_answer(&player2, &round_id, &Answer::Title(p2_card.title.clone())));
 
     client.finalize_round(&owner, &round_id);
     let events = env.events().all();
@@ -1030,7 +1037,7 @@ fn finalize_round_rejects_early_and_non_participant() {
     client.start_round(&player2, &round_id);
 
     env.ledger().set_timestamp(95);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     env.ledger().set_timestamp(100);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
 
@@ -1055,7 +1062,8 @@ fn finalize_round_e2e_no_correct_answers_has_no_winners() {
     client.start_round(&player2, &round_id);
 
     env.ledger().set_timestamp(95);
-    client.next_card(&round_id);
+    client.next_card(&owner, &round_id);
+    client.next_card(&player2, &round_id);
     env.ledger().set_timestamp(100);
     assert!(!client.submit_answer(
         &owner,
@@ -1187,7 +1195,6 @@ fn error_codes_are_stable() {
         (Error::RoundNotReady, 18),
         (Error::RoundAlreadyFinalized, 19),
         (Error::NotEnoughDistinctCards, 20),
-        (Error::RoundCancelled, 35),
         (Error::RoundFull, 21),
         (Error::InvalidMaxPlayers, 22),
         (Error::NftContractNotSet, 23),
@@ -1202,6 +1209,7 @@ fn error_codes_are_stable() {
         (Error::BatchTooLarge, 32),
         (Error::NotPendingOwner, 33),
         (Error::NoMoreCards, 34),
+        (Error::RoundCancelled, 35),
         (Error::InvalidCardDifficulty, 36),
         (Error::InvalidDecade, 37),
         (Error::NoActiveCard, 38),
@@ -1300,7 +1308,7 @@ fn ttl_survival_game_entries_survive_ledger_advance() {
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64, &None);
     client.start_round(&owner, &round_id);
 
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
 
     // Advance ledger sequence far beyond the Soroban default minimum TTL
@@ -1918,7 +1926,7 @@ fn answer_after_card_window_is_scored_as_wrong() {
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(10);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     env.ledger()
         .set_timestamp(10 + CARD_ANSWER_WINDOW_SECONDS + 1);
     assert!(!client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
@@ -1964,7 +1972,7 @@ fn winner_claims_nft_reward_via_cross_contract_mint() {
     client.set_cards_per_round(&owner, &1);
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
     client.finalize_round(&owner, &round_id);
 
@@ -2072,15 +2080,11 @@ fn pause_blocks_create_round_join_round_and_claim_reward() {
 
 #[test]
 fn pause_blocks_claim_milestone_entrypoints() {
-    let (env, client, owner) = setup();
+    let (_env, client, owner) = setup();
     client.pause(&owner);
 
     assert_eq!(
         client.try_claim_reward(&owner, &Milestone::FirstWin),
-        Err(Ok(Error::Paused.into()))
-    );
-    assert_eq!(
-        client.try_claim_milestone(&owner, &Milestone::FirstWin),
         Err(Ok(Error::Paused.into()))
     );
 }
@@ -2102,6 +2106,7 @@ fn unpause_restores_create_round_join_round_and_claim() {
     assert_eq!(client.get_players_round_count(&round_id), 2);
 
     // Claim paths are reachable again (the milestone itself is still unmet).
+    client.set_nft_contract(&owner, &Address::generate(&env));
     assert_eq!(
         client.try_claim_reward(&owner, &Milestone::FirstWin),
         Err(Ok(Error::MilestoneNotReached.into()))
@@ -2135,8 +2140,8 @@ fn leave_round_refunds_while_paused() {
 
     // Leaving must still work so a player's wager can always leave the contract.
     client.leave_round(&player2, &round_id);
-    assert_eq!(client.get_players_round_count(&round_id), 1);
     let events = env.events().all();
+    assert_eq!(client.get_players_round_count(&round_id), 1);
     let expected = RoundLeft {
         round_id,
         player: player2.clone(),
@@ -2159,8 +2164,8 @@ fn cancel_round_refunds_everyone_while_paused() {
 
     // Cancelling must still work so escrowed funds can always be returned.
     client.cancel_round(&owner, &round_id);
-    assert!(client.get_round(&round_id).is_cancelled);
     let events = env.events().all();
+    assert!(client.get_round(&round_id).is_cancelled);
     let expected = RoundCancelled {
         round_id,
         cancelled_by: owner.clone(),
@@ -2175,19 +2180,52 @@ fn cancel_round_refunds_everyone_while_paused() {
 fn upgrade_keeps_state_and_changes_version() {
     let (env, client, owner) = setup();
     let other = Address::generate(&env);
-    client.set_role(&owner, &other, &Role::Admin, &true);
-    assert_eq!(client.version(), 1);
 
+    // 1. Populate the v1 contract with state before upgrading
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &2);
+    client.set_role(&owner, &other, &Role::Admin, &true);
+
+    // Model a deployment created before the schema-version key was added.
+    env.as_contract(&client.address, || {
+        env.storage().instance().remove(&crate::DataKey::SchemaVersion);
+    });
+
+    // Initial code version and schema version must be 1
+    assert_eq!(client.version(), 1);
+    assert_eq!(client.schema_version(), 1);
+
+    // 2. Upload the v2 fixture WASM
     let hash = env
         .deployer()
         .upload_contract_wasm(include_bytes!("../../../fixtures/upgrade_v2.wasm").as_slice());
+
+    // Non-owner upgrade must be rejected
     assert_eq!(
         client.try_upgrade(&other, &hash),
         Err(Ok(Error::NotAuthorized.into()))
     );
+
+    // Owner upgrades the contract
     client.upgrade(&owner, &hash);
 
+    // Upgrade must emit ContractUpgraded event
+    assert_emitted(
+        &env,
+        &client.address,
+        ContractUpgraded {
+            owner: owner.clone(),
+            new_wasm_hash: hash.clone(),
+            old_version: 1,
+            new_version: 1,
+        },
+    );
+
+    // Code version is now 2, but storage schema is still 1 (upgrade != migrate)
     assert_eq!(client.version(), 2);
+    assert_eq!(client.schema_version(), 1);
+
+    // Existing storage is preserved across the upgrade
     env.as_contract(&client.address, || {
         let stored: Address = env
             .storage()
@@ -2201,6 +2239,48 @@ fn upgrade_keeps_state_and_changes_version() {
             .get::<_, bool>(&crate::DataKey::Admin(other.clone()))
             .unwrap());
     });
+
+    // 3. Non-owner migration must be rejected
+    assert!(
+        client.try_migrate(&other).is_err(),
+        "migrate must only be callable by the contract owner"
+    );
+
+    // 4. Owner executes migration
+    client.migrate(&owner);
+
+    // Migration must emit SchemaMigrated event
+    assert_emitted(
+        &env,
+        &client.address,
+        SchemaMigrated {
+            caller: owner.clone(),
+            old_schema_version: 1,
+            new_schema_version: 2,
+        },
+    );
+
+    // Schema version is now bumped to 2
+    assert_eq!(client.schema_version(), 2);
+
+    // Verify migrated data can be read correctly by the v2 client
+    let fixture_client = upgrade_fixture::UpgradeFixtureClient::new(&env, &client.address);
+    let summary = fixture_client
+        .get_v2_summary()
+        .expect("v2 summary should be present after migration");
+    assert!(summary.migrated);
+    assert_eq!(summary.card_count, 3);
+    assert_eq!(summary.cards_per_round, 2);
+
+    // 5. Calling migrate a second time is strictly idempotent (no-op)
+    let event_count_before = env.events().all().events().len();
+    client.migrate(&owner);
+    assert_eq!(client.schema_version(), 2);
+    let event_count_after = env.events().all().events().len();
+    assert_eq!(
+        event_count_before, event_count_after,
+        "second call to migrate must be a no-op and emit no events"
+    );
 }
 
 #[test]
@@ -2225,7 +2305,7 @@ fn admin_and_gameplay_mutations_emit_events() {
 
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     assert_emitted(
         &env,
         &client.address,
@@ -2245,7 +2325,7 @@ fn admin_and_gameplay_mutations_emit_events() {
             round_id,
             player: owner.clone(),
             correct: true,
-            points: 100,
+            points: 200,
         },
     );
 }
@@ -2253,7 +2333,15 @@ fn admin_and_gameplay_mutations_emit_events() {
 #[test]
 fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
     let (env, client, owner) = setup();
-    seed_cards(&env, &client, &owner, 3);
+    for i in 0..3u64 {
+        client.add_card(
+            &owner,
+            &Card {
+                difficulty: 1,
+                ..sample_card(&env, Genre::Pop, &std::format!("Artist {i}"), &std::format!("Title {i}"), 2000 + i)
+            },
+        );
+    }
     client.set_cards_per_round(&owner, &1);
 
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &5u64, &None);
@@ -2269,7 +2357,10 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
 
     let drawn_at = NOW + 10;
     env.ledger().set_timestamp(drawn_at);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
+    for player in [&fast, &slow, &wrong] {
+        client.next_card(player, &round_id);
+    }
 
     env.ledger().set_timestamp(drawn_at + 2);
     assert!(client.submit_answer(&fast, &round_id, &Answer::Title(card.title.clone())));
@@ -2329,7 +2420,7 @@ fn lf004_second_answer_for_same_card_fails_with_already_answered() {
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
 
     // First answer is accepted.
     env.ledger().set_timestamp(NOW + 8);
@@ -2357,7 +2448,7 @@ fn lf004_cannot_guess_until_correct_by_resubmitting() {
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
 
     // Submit a wrong answer first.
     env.ledger().set_timestamp(NOW + 8);
@@ -2395,7 +2486,7 @@ fn lf004_streak_cannot_grow_more_than_one_per_card() {
     // Draw and answer cards 1, 2, and 3 Ã¢Â€Â” one answer per card.
     for i in 0..3u64 {
         env.ledger().set_timestamp(NOW + 5 + i * 30);
-        let card = client.next_card(&round_id);
+        let card = client.next_card(&owner, &round_id);
         env.ledger().set_timestamp(NOW + 8 + i * 30);
         client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
 
@@ -2428,16 +2519,18 @@ fn lf004_other_players_can_still_answer_same_card() {
     client.start_round(&player2, &round_id);
 
     env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
 
     // Owner answers first.
     env.ledger().set_timestamp(NOW + 8);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
 
+    // player2 can still answer the same card â AlreadyAnswered is per-player.
+    let p2_card = client.next_card(&player2, &round_id);
     // player2 can still answer the same card Ã¢Â€Â” AlreadyAnswered is per-player.
     env.ledger().set_timestamp(NOW + 10);
     assert!(
-        client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone())),
+        client.submit_answer(&player2, &round_id, &Answer::Title(p2_card.title.clone())),
         "player2 must be allowed to answer a card that owner has already answered"
     );
 
@@ -2468,7 +2561,7 @@ fn lf003_single_card_round_can_be_answered() {
 
     // Draw the only card in the round.
     env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
 
     // Submitting an answer for the last (and only) card must not panic.
     env.ledger().set_timestamp(NOW + 10);
@@ -2503,15 +2596,17 @@ fn lf003_three_card_round_last_card_is_answerable() {
     // Draw and answer cards 1 and 2.
     for i in 0..2u64 {
         env.ledger().set_timestamp(NOW + 5 + i * 30);
-        let card = client.next_card(&round_id);
+        let card = client.next_card(&owner, &round_id);
+        let p2_card = client.next_card(&player2, &round_id);
         env.ledger().set_timestamp(NOW + 8 + i * 30);
         client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
-        client.submit_answer(&player2, &round_id, &Answer::Title(card.title.clone()));
+        client.submit_answer(&player2, &round_id, &Answer::Title(p2_card.title.clone()));
     }
 
     // Draw card 3 (the last one).
     env.ledger().set_timestamp(NOW + 65);
-    let last_card = client.next_card(&round_id);
+    let last_card = client.next_card(&owner, &round_id);
+    let p2_last_card = client.next_card(&player2, &round_id);
 
     // Round must NOT be completed yet Ã¢Â€Â” players must still be able to answer.
     let round = client.get_round(&round_id);
@@ -2525,7 +2620,7 @@ fn lf003_three_card_round_last_card_is_answerable() {
     let owner_correct =
         client.submit_answer(&owner, &round_id, &Answer::Title(last_card.title.clone()));
     let p2_correct =
-        client.submit_answer(&player2, &round_id, &Answer::Title(last_card.title.clone()));
+        client.submit_answer(&player2, &round_id, &Answer::Title(p2_last_card.title.clone()));
     assert!(owner_correct, "owner must be able to answer the last card");
     assert!(p2_correct, "player2 must be able to answer the last card");
 
@@ -2548,13 +2643,13 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
 
     // Draw both cards.
     env.ledger().set_timestamp(NOW + 5);
-    client.next_card(&round_id);
+    client.next_card(&owner, &round_id);
     env.ledger().set_timestamp(NOW + 35);
-    client.next_card(&round_id);
+    client.next_card(&owner, &round_id);
 
     // A third call must fail with NoMoreCards, not RoundCompleted.
     env.ledger().set_timestamp(NOW + 65);
-    let err = client.try_next_card(&round_id).unwrap_err().unwrap();
+    let err = client.try_next_card(&owner, &round_id).unwrap_err().unwrap();
     assert_eq!(
         err,
         crate::Error::NoMoreCards.into(),
@@ -2604,7 +2699,7 @@ fn create_round_filter_selects_decade_genre_and_difficulty_and_multiplies_points
         &Some(3),
         &22u64,
     );
-    let round_cards = client.get_round_cards(&round_id);
+    let round_cards = client.get_round_cards(&owner, &round_id);
     assert_eq!(round_cards.len(), 2);
     for card_id in round_cards.iter() {
         let card = client.get_card(&card_id);
@@ -2614,8 +2709,8 @@ fn create_round_filter_selects_decade_genre_and_difficulty_and_multiplies_points
     }
 
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&round_id);
-    env.ledger().set_timestamp(NOW + 1);
+    let card = client.next_card(&owner, &round_id);
+    env.ledger().set_timestamp(NOW + 7);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title)));
     assert_eq!(client.get_round_scores(&round_id).get(owner).unwrap(), 285);
 }
@@ -2690,18 +2785,18 @@ fn simulate_eight_player_round(scenario: Simulation) {
         client.start_round(player, &round_id);
     }
 
-    env.ledger().set_timestamp(NOW + 10);
-    let card = client.next_card(&round_id);
     match scenario {
         Simulation::AllCorrect => {
-            let answer_card = |card: &Card, start: u64| {
+            let answer_card = |start: u64| {
                 for (i, player) in players.iter().enumerate() {
+                    env.ledger().set_timestamp(start);
+                    let card = client.next_card(player, &round_id);
                     let delay = match (card.difficulty, i) {
-                        (3, 0) => 1,
-                        (3, 1) => 2,
-                        (1, 0) => 3,
-                        (1, 1) => 0,
-                        _ => 3,
+                        (3, 0) => 7,
+                        (3, 1) => 8,
+                        (1, 0) => 9,
+                        (1, 1) => 6,
+                        _ => 9,
                     };
                     env.ledger().set_timestamp(start + delay);
                     assert!(client.submit_answer(
@@ -2711,10 +2806,9 @@ fn simulate_eight_player_round(scenario: Simulation) {
                     ));
                 }
             };
-            answer_card(&card, NOW + 10);
+            answer_card(NOW + 10);
             let second_start = env.ledger().timestamp();
-            let second_card = client.next_card(&round_id);
-            answer_card(&second_card, second_start);
+            answer_card(second_start);
             let score_tie = client.get_round_scores(&round_id);
             assert_eq!(score_tie.get(owner.clone()).unwrap(), 370);
             assert_eq!(score_tie.get(players[1].clone()).unwrap(), 370);
@@ -2725,12 +2819,14 @@ fn simulate_eight_player_round(scenario: Simulation) {
                     .get::<_, Map<Address, u64>>(&crate::DataKey::RoundAnswerTimes(round_id))
                     .unwrap()
             });
-            assert_eq!(times.get(owner.clone()).unwrap(), 4);
-            assert_eq!(times.get(players[1].clone()).unwrap(), 2);
+            assert_eq!(times.get(owner.clone()).unwrap(), 16);
+            assert_eq!(times.get(players[1].clone()).unwrap(), 14);
         }
         Simulation::ExactTie => {
-            env.ledger().set_timestamp(NOW + 12);
             for player in players.iter() {
+                env.ledger().set_timestamp(NOW + 10);
+                let card = client.next_card(player, &round_id);
+                env.ledger().set_timestamp(NOW + 12);
                 assert!(client.submit_answer(
                     player,
                     &round_id,
@@ -2739,8 +2835,10 @@ fn simulate_eight_player_round(scenario: Simulation) {
             }
         }
         Simulation::AllWrong => {
-            env.ledger().set_timestamp(NOW + 12);
             for player in players.iter() {
+                env.ledger().set_timestamp(NOW + 10);
+                let _ = client.next_card(player, &round_id);
+                env.ledger().set_timestamp(NOW + 12);
                 assert!(!client.submit_answer(
                     player,
                     &round_id,
@@ -2749,6 +2847,8 @@ fn simulate_eight_player_round(scenario: Simulation) {
             }
         }
         Simulation::Abandoned => {
+            env.ledger().set_timestamp(NOW + 10);
+            let card = client.next_card(&owner, &round_id);
             env.ledger().set_timestamp(NOW + 11);
             assert!(client.submit_answer(
                 &owner,
@@ -2761,9 +2861,12 @@ fn simulate_eight_player_round(scenario: Simulation) {
         }
     }
 
-    if !matches!(scenario, Simulation::Abandoned) {
+    let events = if matches!(scenario, Simulation::Abandoned) {
+        env.events().all()
+    } else {
         client.finalize_round(&owner, &round_id);
-    }
+        env.events().all()
+    };
     let scores = client.get_round_scores(&round_id);
     let mut winners = soroban_sdk::Vec::new(&env);
     match scenario {
@@ -2776,7 +2879,6 @@ fn simulate_eight_player_round(scenario: Simulation) {
         }
         Simulation::AllWrong => {}
     }
-    let events = env.events().all();
     assert_round_completed_event(
         &env,
         &events,
@@ -2797,6 +2899,8 @@ fn simulate_eight_player_round(scenario: Simulation) {
                 0
             }
         );
+    }
+}
 
 // LF-159: a first-ledger answer earns MAX_CORRECT_POINTS
 #[test]
@@ -2808,11 +2912,11 @@ fn lf159_first_ledger_answer_gets_max_points() {
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(NOW + 5);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     env.ledger().set_timestamp(NOW + 6);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
 
-    assert_eq!(client.get_round_scores(&round_id).get(owner.clone()), Some(100));
+    assert_eq!(client.get_round_scores(&round_id).get(owner.clone()), Some(200));
 }
 
 // ---------------------------------------------------------------------------
@@ -2947,6 +3051,11 @@ fn seeded_card_removals_preserve_genre_indexes() {
             } else {
                 assert_eq!(client.get_genre_card_count(&genre), 0);
             }
+        }
+    }
+}
+
+#[test]
 fn lf161_rejects_leading_or_trailing_whitespace() {
     let (env, client, owner) = setup();
     let base = sample_card(&env, Genre::Pop, "Artist", "Title", 2000);

@@ -198,25 +198,34 @@ is also granted the admin role, and `set_role` is owner-only regardless of the
 owner's own admin flag, so the owner cannot lock themselves out. `set_role`
 emits `RoleUpdated { address, role, enabled }`.
 
-Both contracts expose `version() -> u32` and an owner-only
-`upgrade(caller, new_wasm_hash)` that replaces the code in place and keeps all
-storage (cards, stats, NFTs). Bump `VERSION` in the contract on each release,
-then:
+Both contracts expose `version() -> u32` (contract code version), `schema_version() -> u32` (storage schema version, defaulting to 1 for unmigrated legacy state), an owner-only `upgrade(caller, new_wasm_hash)`, and an owner-only `migrate(caller)` hook.
+
+### Upgrade then migrate sequence
+
+When deploying a new contract release that introduces changes to storage structures or layouts (LF-157), execute the two-step upgrade sequence:
+
+1. **Upgrade WASM code:** Replace the running contract WASM with the new bytecode. The `upgrade` invocation verifies owner authorization, invokes `env.deployer().update_current_contract_wasm(new_wasm_hash)`, and emits `ContractUpgraded { owner, new_wasm_hash, old_version, new_version }`.
+2. **Migrate storage layout:** Invoke `migrate` to step stored records through sequential schema versions until reaching `SCHEMA_VERSION`. Code version and schema version are tracked independently. The hook updates `DataKey::SchemaVersion`, emits `SchemaMigrated { caller, old_schema_version, new_schema_version }`, and is strictly **idempotent** (calling `migrate` multiple times after migration is a safe no-op).
 
 ```bash
+# 1. Build and upload new WASM bytecode
 cargo build --target wasm32v1-none --release
 HASH=$(stellar contract upload \
   --wasm target/wasm32v1-none/release/lyricsflip.wasm \
   --source <OWNER_IDENTITY> --network testnet)
+
+# 2. Step 1: Upgrade contract code in place (keeps all existing storage)
 stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> \
   --source <OWNER_IDENTITY> --network testnet \
   -- upgrade --caller <OWNER_ADDRESS> --new_wasm_hash $HASH
+
+# 3. Step 2: Migrate storage layout to current SCHEMA_VERSION (idempotent)
+stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> \
+  --source <OWNER_IDENTITY> --network testnet \
+  -- migrate --caller <OWNER_ADDRESS>
 ```
 
-A release that changes the layout of stored data must migrate it; there is no
-storage schema version key yet, so add one alongside the first such change.
-`fixtures/upgrade_v2.wasm` (built from `contracts/upgrade-fixture`) is the
-stand-in new code used by the upgrade tests.
+`fixtures/upgrade_v2.wasm` (built from `contracts/upgrade-fixture`) is the stand-in v2 code used by automated upgrade fixture integration tests to verify state preservation, schema migration, and idempotency.
 
 ## Build & test
 
