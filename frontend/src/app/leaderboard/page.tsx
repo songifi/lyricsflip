@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { useLeaderboard, type LeaderboardFilter } from '@/hooks/useLeaderboard';
+import { useLeaderboard, type LeaderboardFilter } from '@/hooks/use-leaderboard';
 import { GENRE_VALUES } from '@/lib/stellar/types';
 import { ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
 import { useRouter } from 'next/navigation';

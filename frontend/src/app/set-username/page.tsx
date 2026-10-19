@@ -6,8 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CircleCheck, CircleX } from 'lucide-react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import { useProfileStore } from '@/store/useProfileStore';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { useProfileStore } from '@/store/use-profile-store';
 
 export default function SetUsername() {
   const router = useRouter();

@@ -7,7 +7,7 @@ import { MdCancel } from 'react-icons/md';
 import { Button } from '@/components/atoms/button';
 import { Modal } from './modal';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { WAGER_ASSET_CODE } from '@/lib/utils';
 
 interface GameResultPopupProps {
@@ -81,7 +81,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
 
     try {
       setIsLoading(true);
-      await systemCalls.claimEarnings();
+      await systemCalls.claimEarnings(BigInt(roundId));
       alert('Earnings claimed successfully!');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to claim earnings');

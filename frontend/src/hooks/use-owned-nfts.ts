@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
-import { createConfig } from '../lib/stellar/stellarConfig';
+import { createConfig } from '../lib/stellar/stellar-config';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

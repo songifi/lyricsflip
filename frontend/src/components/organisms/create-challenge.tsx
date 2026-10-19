@@ -1,9 +1,9 @@
 import { X } from 'lucide-react';
 import { useState } from 'react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import type { Genre } from '@/lib/stellar/types';
 import { useRouter } from 'next/navigation';
-import { useXlmBalance } from '@/lib/stellar/hooks/useXlmBalance';
+import { useXlmBalance } from '@/lib/stellar/hooks/use-xlm-balance';
 
 // Maps the form's genre <select> values to the contract's Genre variants.
 const FORM_GENRE_TO_CONTRACT_GENRE: Record<string, Genre> = {

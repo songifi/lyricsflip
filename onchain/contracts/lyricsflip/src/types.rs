@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, BytesN, String};
+﻿use soroban_sdk::{contracttype, Address, BytesN, String};
 
 /// Ported from `onchain/src/utils/types.cairo`. `felt252`/`ByteArray` fields
 /// become `String`; Starknet's `u8` fields become `u32` since Soroban has no
@@ -264,4 +264,13 @@ pub enum DataKey {
     PlayerCardStartedAt((u64, Address, u64)),
     /// LF-157: Stored storage schema version for migration hooks.
     SchemaVersion,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnswerResult {
+    pub correct: bool,
+    pub points: u64,
+    pub correct_option: u32,
+    pub next: Option<Card>,
 }

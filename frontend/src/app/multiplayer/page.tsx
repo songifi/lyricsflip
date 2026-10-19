@@ -2,11 +2,25 @@
 
 import { Button } from '@/components/atoms/button';
 import { GENRE_VALUES, type Genre } from '@/lib/stellar/types';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { getGenreDisplayName } from '@/lib/stellar/genres';
+import {
+  formatAmount,
+  LOBBY_PAGE_SIZE,
+  WAGER_ASSET_CODE,
+} from '@/lib/utils';
+import { useOpenRounds, type OpenRound } from '@/hooks/use-open-rounds';
+
+const relativeAge = (createdAtSeconds: number | null, nowSeconds: number) => {
+  if (createdAtSeconds === null) return 'just now';
+  const elapsed = Math.max(0, nowSeconds - createdAtSeconds);
+  if (elapsed < 60) return `${elapsed}s ago`;
+  if (elapsed < 3600) return `${Math.floor(elapsed / 60)}m ago`;
+  return `${Math.floor(elapsed / 3600)}h ago`;
+};
 
 export default function MultiplayerLobbyPage() {
   const router = useRouter();
@@ -15,6 +29,25 @@ export default function MultiplayerLobbyPage() {
   const [roundId, setRoundId] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorState, setError] = useState<string | null>(null);
+  const [busyRoundId, setBusyRoundId] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+
+  const openRounds = useOpenRounds({ systemCalls });
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(openRounds.rounds.length / LOBBY_PAGE_SIZE),
+  );
+  const currentPage = Math.min(page, totalPages - 1);
+  const visibleRounds = useMemo(
+    () =>
+      openRounds.rounds.slice(
+        currentPage * LOBBY_PAGE_SIZE,
+        currentPage * LOBBY_PAGE_SIZE + LOBBY_PAGE_SIZE,
+      ),
+    [currentPage, openRounds.rounds],
+  );
+  const nowSeconds = Math.floor(Date.now() / 1000);
 
   const handleCreateRound = async () => {
     if (!account) {
@@ -32,6 +65,7 @@ export default function MultiplayerLobbyPage() {
 
     try {
       const id = await systemCalls.createRound(genre);
+      await openRounds.refresh();
       router.push(`/multiplayer/${id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create round');
@@ -47,6 +81,44 @@ export default function MultiplayerLobbyPage() {
     }
 
     router.push(`/multiplayer/${roundId.trim()}`);
+  };
+
+  const handleJoinFromList = async (entry: OpenRound) => {
+    const id = entry.round.round_id;
+    if (!account) {
+      await connect();
+      return;
+    }
+    if (!systemCalls) return;
+
+    setBusyRoundId(id.toString());
+    setError(null);
+    try {
+      if (!entry.players.includes(account.address)) {
+        await systemCalls.joinRound(id);
+      }
+      await openRounds.refresh();
+      router.push(`/multiplayer/${id.toString()}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to join round');
+    } finally {
+      setBusyRoundId(null);
+    }
+  };
+
+  const handleCancelFromList = async (entry: OpenRound) => {
+    if (!systemCalls) return;
+    const id = entry.round.round_id;
+    setBusyRoundId(id.toString());
+    setError(null);
+    try {
+      await systemCalls.cancelRound(id);
+      await openRounds.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel round');
+    } finally {
+      setBusyRoundId(null);
+    }
   };
 
   return (
@@ -95,6 +167,7 @@ export default function MultiplayerLobbyPage() {
           <input
             type="text"
             inputMode="numeric"
+            aria-label="Round ID"
             value={roundId}
             onChange={(e) => setRoundId(e.target.value)}
             placeholder="Enter Round ID"
@@ -109,6 +182,114 @@ export default function MultiplayerLobbyPage() {
           </Button>
         </div>
       </div>
+
+      {/* Open rounds */}
+      <section className="mx-auto mt-12 max-w-3xl" aria-labelledby="open-rounds-heading">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 id="open-rounds-heading" className="text-xl font-bold">
+            Open rounds
+          </h2>
+          <button
+            onClick={() => void openRounds.refresh()}
+            className="text-sm text-purple-600 underline"
+          >
+            Refresh
+          </button>
+        </div>
+
+        {openRounds.isLoading && (
+          <p className="text-gray-500">Loading open rounds…</p>
+        )}
+
+        {!openRounds.isLoading && openRounds.rounds.length === 0 && (
+          <p className="text-gray-500">
+            No open rounds right now. Create one to get started.
+          </p>
+        )}
+
+        {openRounds.rounds.length > 0 && (
+          <>
+            <ul className="space-y-3" data-testid="open-rounds-list">
+              {visibleRounds.map((entry) => {
+                const id = entry.round.round_id.toString();
+                const isOwner = entry.round.admin === account?.address;
+                const isPlayer = !!account && entry.players.includes(account.address);
+                const isBusy = busyRoundId === id;
+
+                return (
+                  <li
+                    key={id}
+                    className="flex flex-col gap-2 rounded border border-gray-200 p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="text-sm">
+                      <p className="font-semibold">
+                        Round {id} ·{' '}
+                        {getGenreDisplayName(entry.round.genre)}
+                      </p>
+                      <p className="text-gray-500">
+                        {entry.playerCount}/{entry.maxPlayers} players ·{' '}
+                        {formatAmount(entry.round.wager_amount)}{' '}
+                        {WAGER_ASSET_CODE} ·{' '}
+                        {relativeAge(entry.createdAtSeconds, nowSeconds)}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {isOwner && (
+                        <Button
+                          onClick={() => void handleCancelFromList(entry)}
+                          disabled={isBusy}
+                          className="min-h-[44px]"
+                        >
+                          {isBusy ? 'Cancelling…' : 'Cancel'}
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => void handleJoinFromList(entry)}
+                        disabled={isBusy}
+                        className="min-h-[44px]"
+                      >
+                        {isBusy
+                          ? 'Joining…'
+                          : isPlayer
+                            ? 'Open'
+                            : 'Join'}
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-center gap-4 text-sm">
+                <button
+                  onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                  disabled={currentPage === 0}
+                  className="disabled:opacity-40"
+                >
+                  Previous
+                </button>
+                <span aria-live="polite">
+                  Page {currentPage + 1} of {totalPages}
+                </span>
+                <button
+                  onClick={() =>
+                    setPage((prev) => Math.min(totalPages - 1, prev + 1))
+                  }
+                  disabled={currentPage >= totalPages - 1}
+                  className="disabled:opacity-40"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
+
+        {openRounds.error && (
+          <p className="mt-4 text-sm text-red-500">{openRounds.error}</p>
+        )}
+      </section>
 
       {errorState && <p className="text-red-500 mt-4 text-center">{errorState}</p>}
     </div>

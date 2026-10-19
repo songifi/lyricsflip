@@ -11,13 +11,13 @@ import { useModalStore } from '@/store/modal-store';
 import { useEffect, useState } from 'react';
 import { Input } from '../atoms/input';
 import { Modal } from './modal';
-import { WagerSummaryContent } from './WagerSummaryModal';
+import { WagerSummaryContent } from './wager-summary-modal';
 import { WagerDetails, useStore } from '@/store';
 import { useRouter } from 'next/navigation';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { GENRE_OPTIONS } from '@/lib/stellar/genres';
 import type { Genre } from '@/lib/stellar/types';
-import { useXlmBalance } from '@/lib/stellar/hooks/useXlmBalance';
+import { useXlmBalance } from '@/lib/stellar/hooks/use-xlm-balance';
 import { WAGER_ASSET_CODE } from '@/lib/utils';
 
 // Map form genre values (the Genre variant string itself) to contract Genre
