@@ -3,6 +3,11 @@ import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
 import { LyricCard } from '@/components/organisms/lyric-card';
 import BadgeModal from '@/components/organisms/new-badge-modal';
+import {
+  useCardTimer,
+  CARD_TIMEOUT_SECONDS,
+  CARD_LEDGER_LATENCY_SECONDS,
+} from '@/features/game/hooks/use-card-timer';
 import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/use-card-timer';
 import { fireConfetti } from '@/lib/confetti';
 import { formatAmount, formatTime, WAGER_ASSET_CODE } from '@/lib/utils';
@@ -32,17 +37,12 @@ const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.Streak5]: 'Streak Master',
   [MILESTONES.TenWins]: 'Music Connoisseur',
 };
-// Default round duration in seconds (5 minutes)
-const DEFAULT_ROUND_SECONDS = 300;
 
 export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundId = searchParams?.get('roundId') ?? null;
   const { account, systemCalls } = useStellar();
-
-  // Use the single shared timer — no local setInterval here.
-  const { timeLeft, startTimer, stopTimer, resetTimer } = useGameTimer();
 
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,13 +57,19 @@ export default function SinglePlayerGame() {
   const [correctOption, setCorrectOption] = useState<SongOption | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
+  // Ledger close time (unix ms) that opened the current card's answer window.
+  const [cardStartedAtMs, setCardStartedAtMs] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [answerResult, setAnswerResult] = useState<
+    'correct' | 'wrong' | 'late' | null
+  >(null);
 
-  // Stop the timer when the component unmounts (e.g. user navigates away).
-  useEffect(() => {
-    return () => {
-      stopTimer();
-    };
-  }, [stopTimer]);
+  // Exactly one round timer: it derives the remaining time from the round's
+  // on-chain `end_time`, so a page refresh resumes with the correct value
+  // instead of restarting the countdown.
+  const { timeLeft } = useGameTimer({
+    endTimeSeconds: round ? round.end_time : null,
+  });
 
   // Badge modal state (Issue #476)
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
@@ -78,7 +84,11 @@ export default function SinglePlayerGame() {
    *   - the card isn't already flipped
    */
   const cardTimerActive =
-    isGameStarted && question !== null && selectedOption === null && !isCardFlipped;
+    isGameStarted &&
+    question !== null &&
+    selectedOption === null &&
+    !isCardFlipped &&
+    !isSubmitting;
 
   const handleCardTimeout = useCallback(() => {
     // Time ran out – flip the card to reveal the answer and count as a miss
@@ -91,17 +101,17 @@ export default function SinglePlayerGame() {
     setAnsweredCount((prev) => prev + 1);
   }, [card]);
 
-  const { timeLeft: cardTimeLeft, reset: resetCardTimer } = useCardTimer({
+  const {
+    timeLeft: cardTimeLeft,
+    isExpired: isCardWindowClosed,
+    reset: resetCardTimer,
+  } = useCardTimer({
     isActive: cardTimerActive,
     onTimeout: handleCardTimeout,
+    // Anchor the countdown to the ledger that included `next_card` instead of
+    // the moment this component rendered (LF-193).
+    startedAtMs: cardStartedAtMs,
   });
-
-  // Reset per-card timer when a new card loads
-  useEffect(() => {
-    if (question !== null) {
-      resetCardTimer();
-    }
-  }, [question, resetCardTimer]);
 
   // ── Contract data fetching ────────────────────────────────────────────────
   const loadNextCard = useCallback(async () => {
@@ -109,15 +119,21 @@ export default function SinglePlayerGame() {
     const id = BigInt(roundId);
     setSelectedOption(null);
     setCorrectOption(null);
+    setAnswerResult(null);
     setIsCardFlipped(false);
+    setCardStartedAtMs(null);
+    resetCardTimer();
     setTxStatus('Drawing next card…');
-    const nextCard = await systemCalls.nextCard(id);
+    const { result: nextCard, startedAtMs } = await systemCalls.nextCardWithMeta(id);
     setTxStatus('Building question…');
     const questionCard = await systemCalls.buildQuestionCard(nextCard, 'Title');
     setCard(nextCard);
     setQuestion(questionCard);
+    // The contract's 15 s window started when `next_card` closed in a ledger,
+    // which is several seconds before this line runs.
+    setCardStartedAtMs(startedAtMs);
     setTxStatus(null);
-  }, [roundId, systemCalls]);
+  }, [roundId, systemCalls, resetCardTimer]);
 
   useEffect(() => {
     const fetchRoundData = async () => {
@@ -143,10 +159,6 @@ export default function SinglePlayerGame() {
         setAnsweredCount(roundData.next_card_index);
         setIsGameStarted(true);
 
-        // Initialise and start the shared timer for this round.
-        resetTimer(DEFAULT_ROUND_SECONDS);
-        startTimer();
-
         if (roundData.next_card_index < cards.length) {
           await loadNextCard();
         }
@@ -158,7 +170,7 @@ export default function SinglePlayerGame() {
       }
     };
     fetchRoundData();
-  }, [roundId, systemCalls, loadNextCard, resetTimer, startTimer]);
+  }, [roundId, systemCalls, loadNextCard]);
 
   // ── Milestone / badge check ───────────────────────────────────────────────
   const checkMilestoneAndShowBadge = useCallback(
@@ -206,25 +218,46 @@ export default function SinglePlayerGame() {
       setSelectedOption(option);
       setIsCardFlipped(true);
       setCorrectOption({ title: card.title, artist: card.artist });
-
-      const isCorrect = option.title === card.title;
-      if (isCorrect) {
-        setScore((prev) => prev + 1);
-        fireConfetti();
-      }
+      setAnswerResult(null);
 
       try {
         const id = BigInt(roundId);
+        // Show "Submitting…" until the transaction is included in a ledger;
+        // the contract, not the client clock, decides whether it was in time.
+        setIsSubmitting(true);
         setTxStatus('Submitting answer…');
+        const { result: isCorrect, closedAtMs } =
+          await systemCalls.submitAnswerWithMeta(id, Answer.title(option.title));
+
+        // `submit_answer` returns false for a wrong answer *and* for an answer
+        // that landed after the card window. The ledger close time of the
+        // submission tells the two apart (LF-193).
+        const windowClosesAtMs =
+          cardStartedAtMs === null
+            ? null
+            : cardStartedAtMs + CARD_TIMEOUT_SECONDS * 1000;
+        const wasLate =
+          !isCorrect &&
+          closedAtMs !== null &&
+          windowClosesAtMs !== null &&
+          closedAtMs > windowClosesAtMs;
+
+        if (isCorrect) {
+          setScore((prev) => prev + 1);
+          fireConfetti();
+        }
+        setAnswerResult(isCorrect ? 'correct' : wasLate ? 'late' : 'wrong');
         await systemCalls.submitAnswer(id, Answer.title(option.title));
         setAnsweredCount((prev) => prev + 1);
         setTxStatus(null);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to submit answer');
         setTxStatus(null);
+      } finally {
+        setIsSubmitting(false);
       }
     },
-    [card, roundId, selectedOption, systemCalls],
+    [card, cardStartedAtMs, roundId, selectedOption, systemCalls],
   );
 
   const handleNextCard = useCallback(async () => {
@@ -298,11 +331,44 @@ export default function SinglePlayerGame() {
             isFlipped={isCardFlipped}
           />
 
+          <p className="text-xs text-gray-500">
+            Answers close {CARD_LEDGER_LATENCY_SECONDS}s early to cover one
+            ledger of submission latency.
+          </p>
+
+          {isSubmitting && (
+            <p role="status" className="text-sm font-medium text-purple-600">
+              Submitting…
+            </p>
+          )}
+
+          {answerResult && !isSubmitting && (
+            <p
+              role="status"
+              className={
+                answerResult === 'correct'
+                  ? 'text-sm font-semibold text-green-600'
+                  : 'text-sm font-semibold text-red-600'
+              }
+            >
+              {answerResult === 'correct'
+                ? 'Correct'
+                : answerResult === 'late'
+                  ? 'Too late'
+                  : 'Wrong'}
+            </p>
+          )}
+
           <SongOptions
             options={options}
             selectedOption={selectedOption}
             correctOption={correctOption}
-            disabled={selectedOption !== null}
+            disabled={
+              selectedOption !== null ||
+              isSubmitting ||
+              isCardWindowClosed ||
+              isCardFlipped
+            }
             onSelect={handleAnswer}
           />
 
