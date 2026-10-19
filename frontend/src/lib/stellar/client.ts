@@ -104,6 +104,10 @@ export interface SystemCalls {
    */
   claimReward: (milestone: Milestone) => Promise<bigint>;
   /**
+   * Returns whether the player has already claimed the NFT for `milestone` (LF-191).
+   */
+  isMilestoneClaimed: (player: string, milestone: Milestone) => Promise<boolean>;
+  /**
    * Claims the connected wallet's share of a wagered round's pot (LF-014).
    * Pull payment: the contract transfers the caller's share and marks it
    * claimed, so a winner can only claim once. Returns the amount paid out.
@@ -209,6 +213,7 @@ type LyricsFlipContract = {
   get_cards_of_a_year: (args: { year: bigint; seed: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
   build_question_card: (args: { card: WireCard; seed: bigint; kind: number }) => Promise<contract.AssembledTransaction<QuestionCard>>;
   claim_reward: (args: { caller: string; milestone: number }) => Promise<contract.AssembledTransaction<bigint>>;
+  is_milestone_claimed: (args: { player: string; milestone: number }) => Promise<contract.AssembledTransaction<boolean>>;
   claim_winnings: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
 };
 
@@ -463,6 +468,12 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       return submit(() => client.claim_reward({ caller, milestone }));
+    },
+
+    isMilestoneClaimed: async (player, milestone) => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.is_milestone_claimed({ player, milestone });
+      return res.result;
     },
 
     claimWinnings,

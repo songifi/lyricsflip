@@ -92,6 +92,7 @@ const mockContractMethods = {
   get_cards_of_a_year: jest.fn(),
   build_question_card: jest.fn(),
   claim_reward: jest.fn(),
+  is_milestone_claimed: jest.fn(),
 };
 
 beforeEach(() => {
@@ -246,6 +247,19 @@ describe('read-only calls (no wallet required)', () => {
     expect(scores).toEqual({ [TEST_ADDRESS]: 120, GOTHERADDRESS: 60 });
     expect(mockContractMethods.get_round_scores).toHaveBeenCalledWith({
       round_id: BigInt(1),
+    });
+  });
+
+  it('isMilestoneClaimed queries contract with player and milestone', async () => {
+    mockContractMethods.is_milestone_claimed.mockResolvedValue(makeAssembled(true));
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+    const claimed = await calls.isMilestoneClaimed(TEST_ADDRESS, 0);
+
+    expect(claimed).toBe(true);
+    expect(mockContractMethods.is_milestone_claimed).toHaveBeenCalledWith({
+      player: TEST_ADDRESS,
+      milestone: 0,
     });
   });
 
