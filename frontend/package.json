@@ -4,6 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
+    "release": "echo \"Releases are managed by release-please (see .github/workflows/release.yml)\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
