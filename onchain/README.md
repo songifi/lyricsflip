@@ -103,24 +103,14 @@ non-fungible interface, with method names and events matching OpenZeppelin's
 library, to avoid tying the workspace's `soroban-sdk` version to the
 library's.
 
-| Function | Description |
-| --- | --- |
-| `mint(caller, recipient, kind: u32) -> u128` | Minter-only; mints the next token id and records the achievement kind (LF-168) |
-| `token_kind(token_id) -> u32` | Returns the achievement kind for a minted token (LF-168) |
-| `owner_of(token_id) -> Address` | Owner of a token |
-| `balance(owner) -> u32` | Number of tokens held by `owner` |
-| `transfer(from, to, token_id)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
-| `transfer_from(spender, from, to, token_id)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
-| `approve(approver, approved, token_id, live_until_ledger)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
-| `approve_for_all(owner, operator, live_until_ledger)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
-| `get_approved(token_id) -> Option<Address>` | Always `None` — approvals are disabled (LF-169) |
-| `is_approved_for_all(owner, operator) -> bool` | Always `false` — operator approvals are disabled (LF-169) |
-| `tokens_of_owner(owner, start, limit) -> Vec<u128>` | Returns up to `limit` (≤ 50) token ids held by `owner` starting at index `start`; replaces the O(N) `owner_of` loop (LF-170) |
-| `token_name()`, `token_symbol()`, `base_uri()`, `token_count()` | Metadata |
-| `token_uri(token_id) -> String` | `base_uri` + `kind` + `.json`; `TokenDoesNotExist` for unminted tokens (LF-168) |
-| `set_base_uri(caller, base_uri)` | Owner-only; at most 200 bytes |
-| `set_minter(caller, new_minter)` | Owner-only; the old minter can no longer mint |
-| `owner()`, `minter()`, `pending_owner()` | Administration views |
+The full function list, signatures, events and error codes are generated from
+the contract source into [`docs/api.md`](docs/api.md). Regenerate it with
+`./scripts/gen-api-docs.sh` after changing any public interface.
+
+Highlights: `mint` is minter-only and records an achievement `kind`;
+`token_kind` exposes it; `tokens_of_owner` paginates an owner's tokens (≤ 50
+per page); all transfer and approval entry points panic with
+`NonTransferable` (LF-169); `set_base_uri` and `set_minter` are owner-only.
 
 #### LF-168 – Token kind
 
@@ -322,16 +312,12 @@ environment variables (see `frontend/src/lib/stellar/stellarConfig.ts`).
 
 ## Views for lobbies and catalogue size
 
-| Function | Returns |
-| --- | --- |
-| `get_cards_count()` | Number of live cards, i.e. added and not removed (`u64`) |
-| `get_round_count()` | Total number of rounds created (`u64`) |
-| `get_genre_card_count(genre)` | Number of cards in `genre` (`u32`) |
-| `get_rounds(start, limit)` | Up to `limit` rounds from round id `start` (ids begin at 1), ascending |
-| `get_open_rounds(start, limit)` | Ids of created-but-not-started rounds, oldest first; `start` is an offset |
-
-Both paginated views clamp `limit` to `MAX_PAGE_LIMIT` (50) and return an
-empty list once `start` is past the end.
+`get_cards_count`, `get_round_count` and `get_genre_card_count` return catalogue
+and round totals. `get_rounds(start, limit)` and `get_open_rounds(start, limit)`
+paginate rounds (ids begin at 1; `start` is an offset for open rounds). Both
+paginated views clamp `limit` to `MAX_PAGE_LIMIT` (50) and return an empty list
+once `start` is past the end. See [`docs/api.md`](docs/api.md) for exact
+signatures and return types.
 
 ## Card catalogue
 
@@ -367,6 +353,8 @@ runs a full batch with Mainnet limits enforced.
 
 Topics are listed in order after the event name, which soroban-sdk adds as the
 first topic (snake_case, e.g. `card_added`). Data is a map of the remaining
+fields. The complete event list — with topics and data fields — is generated in
+[`docs/api.md`](docs/api.md).
 fields.
 
 | Event | Emitted by | Topics | Data |
@@ -452,9 +440,11 @@ sequence past the default TTL and verifies that entries touched during gameplay
 Contract errors reach clients as `Error(Contract, #<code>)`, and the frontend
 maps on the numeric code (`frontend/src/lib/stellar/errors.ts`). **Codes are
 stable: never renumber or reuse one.** New variants take the next free number
-and must be added here, in `errors.ts`, and in the `error_codes_are_stable`
-test of the contract, which fails CI on any renumbering.
+and must be added in `errors.ts` and in the `error_codes_are_stable` test of
+the contract, which fails CI on any renumbering.
 
+The complete, generated list of error codes for both contracts lives in
+[`docs/api.md`](docs/api.md).
 Every variant is currently referenced by the contract. The ones marked
 *defensive* guard states that can't happen in practice.
 

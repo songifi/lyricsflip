@@ -115,12 +115,18 @@ npm run migration:generate -- src/migrations/DescriptiveName   # generate one fr
 
 ## API docs and health
 
+The HTTP API is described by the generated Swagger document; contract-facing
+functions, events and errors live in the generated
+[`onchain/docs/api.md`](../onchain/docs/api.md). This README intentionally does
+not copy endpoint tables or signatures — treat the generated docs as the source
+of truth.
+
 - Swagger UI: `http://localhost:3000/api/docs` (disabled when `NODE_ENV=production`)
 - Health: `GET /health` (public) — reports `database`, `redis` and `stellarRpc`; returns `200` when all are up and `503` otherwise.
 
 ## WebSocket protocol
 
-Real-time multiplayer uses Socket.IO on the same port. Events, payloads and error codes are documented in [`docs/realtime-protocol.md`](../docs/realtime-protocol.md).
+Real-time multiplayer uses Socket.IO on the same port. Events, payloads and error codes are documented in [`docs/realtime-protocol.md`](../docs/realtime-protocol.md); the namespace map above is the only event summary kept here.
 
 ## Tests
 
