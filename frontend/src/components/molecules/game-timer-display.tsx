@@ -1,7 +1,9 @@
 // src/components/GameTimerDisplay.tsx
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/store';
 import { useGameTimer } from '../../features/game/hooks/use-game-timer';
+
+const ANNOUNCEMENT_THRESHOLDS = [10, 5, 0];
 
 export const GameTimerDisplay = () => {
   const { score, level, isPlaying } = useStore(state => state.game);
@@ -14,6 +16,24 @@ export const GameTimerDisplay = () => {
     stopTimer,
     resetTimer,
   } = useGameTimer();
+
+  const [announcement, setAnnouncement] = useState('');
+  const previousTimeLeft = useRef(timeLeft);
+
+  // Announce the countdown only at 10s, 5s and 0s
+  useEffect(() => {
+    const previous = previousTimeLeft.current;
+    previousTimeLeft.current = timeLeft;
+
+    if (previous === timeLeft) return;
+    if (!ANNOUNCEMENT_THRESHOLDS.includes(timeLeft)) return;
+
+    if (timeLeft === 0) {
+      setAnnouncement("Time's up! Game over!");
+    } else {
+      setAnnouncement(`${timeLeft} seconds remaining`);
+    }
+  }, [timeLeft]);
 
   // Show alert when time runs out
   useEffect(() => {
@@ -68,10 +88,33 @@ export const GameTimerDisplay = () => {
         ) : (
           <span style={{ color: 'red' }}>Game Over</span>
         )}</p>
-        <p>Time Left: <span style={{ 
-          fontWeight: 'bold',
-          color: timeLeft <= 5 ? 'red' : 'black',
-        }}>{timeLeft}s</span></p>
+        <p>Time Left: <span
+          aria-hidden="true"
+          style={{ 
+            fontWeight: 'bold',
+            color: timeLeft <= 5 ? 'red' : 'black',
+          }}
+        >{timeLeft}s</span></p>
+      </div>
+
+      {/* Polite live region: only announces at 10s, 5s and 0s */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        role="status"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          padding: 0,
+          margin: '-1px',
+          overflow: 'hidden',
+          clip: 'rect(0, 0, 0, 0)',
+          whiteSpace: 'nowrap',
+          border: 0,
+        }}
+      >
+        {announcement}
       </div>
 
       <div style={{ 
