@@ -42,14 +42,6 @@ impl From<LegacyCard> for Card {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RoundFilter {
-    pub genre: Option<Genre>,
-    /// The first year of a decade, for example 1990.
-    pub decade: Option<u64>,
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlayerStats {
     pub total_rounds: u64,
     pub rounds_won: u64,
@@ -89,6 +81,50 @@ pub enum Genre {
     Afrobeat = 10,
     Gospel = 11,
     Folk = 12,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundFilter {
+    pub genre: Option<Genre>,
+    /// The first year of a decade, for example 1990.
+    pub decade: Option<u64>,
+}
+
+impl soroban_sdk::TryFromVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
+    type Error = soroban_sdk::ConversionError;
+    fn try_from_val(env: &soroban_sdk::Env, val: &soroban_sdk::Val) -> Result<Self, Self::Error> {
+        let map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> = soroban_sdk::Map::try_from_val(env, val)?;
+        let genre_sym = soroban_sdk::Symbol::new(env, "genre");
+        let decade_sym = soroban_sdk::Symbol::new(env, "decade");
+        let genre = if let Some(v) = map.get(genre_sym) {
+            Option::<Genre>::try_from_val(env, &v)?
+        } else {
+            None
+        };
+        let decade = if let Some(v) = map.get(decade_sym) {
+            Option::<u64>::try_from_val(env, &v)?
+        } else {
+            None
+        };
+        Ok(RoundFilter { genre, decade })
+    }
+}
+
+impl soroban_sdk::IntoVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
+    fn into_val(&self, env: &soroban_sdk::Env) -> soroban_sdk::Val {
+        let mut map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> = soroban_sdk::Map::new(env);
+        let genre_val: soroban_sdk::Val = self.genre.into_val(env);
+        let decade_val: soroban_sdk::Val = self.decade.into_val(env);
+        map.set(soroban_sdk::Symbol::new(env, "genre"), genre_val);
+        map.set(soroban_sdk::Symbol::new(env, "decade"), decade_val);
+        map.into_val(env)
+    }
+}
+
+impl soroban_sdk::IntoVal<soroban_sdk::Env, soroban_sdk::Val> for &RoundFilter {
+    fn into_val(&self, env: &soroban_sdk::Env) -> soroban_sdk::Val {
+        (*self).clone().into_val(env)
+    }
 }
 
 #[contracttype]
@@ -222,4 +258,10 @@ pub enum DataKey {
     /// Global emergency-pause flag. While set, round creation/joining and
     /// reward claims are blocked; refund and cancel paths stay open.
     Paused,
+    /// LF-141: Tracks the next card index per-player for a round.
+    PlayerCardIndex((u64, Address)),
+    /// LF-141: Ledger timestamp when a player drew a card in a round.
+    PlayerCardStartedAt((u64, Address, u64)),
+    /// LF-157: Stored storage schema version for migration hooks.
+    SchemaVersion,
 }

@@ -14,9 +14,9 @@ mod test_budget;
 pub use errors::Error;
 pub use events::{
     AnswerSubmitted, CardAdded, CardDrawn, CardRemoved, CardUpdated, CardsPerRoundUpdated,
-    OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady, RewardClaimed,
-    RoleUpdated, RoundCancelled, RoundCompleted, RoundCreated, RoundJoined, RoundLeft,
-    RoundStarted, Unpaused,
+    ContractUpgraded, OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady,
+    RewardClaimed, RoleUpdated, RoundCancelled, RoundCompleted, RoundCreated, RoundJoined,
+    RoundLeft, RoundStarted, SchemaMigrated, Unpaused,
 };
 pub use types::{
     Answer, Card, CardPos, DataKey, Genre, LegacyCard, Milestone, PlayerStats, QuestionCard,
@@ -30,6 +30,8 @@ use soroban_sdk::{
 
 /// Bumped on every release that changes the contract's code; see `upgrade`.
 pub const VERSION: u32 = 1;
+/// Current persisted storage layout. Kept separate from the code version.
+pub const SCHEMA_VERSION: u32 = 2;
 
 const DEFAULT_ROUND_DURATION_SECONDS: u64 = 300;
 
@@ -216,6 +218,9 @@ impl LyricsFlip {
         env.storage().instance().set(&DataKey::Owner, &owner);
         env.storage().instance().set(&DataKey::Admin(owner), &true);
         env.storage().instance().set(&DataKey::Paused, &false);
+        env.storage()
+            .instance()
+            .set(&DataKey::SchemaVersion, &SCHEMA_VERSION);
         bump_instance(&env);
     }
 
@@ -426,47 +431,26 @@ impl LyricsFlip {
     /// Returns the card.
     pub fn get_card(env: Env, card_id: u64) -> Card {
         let stored: Val = env
-    ///
-    /// LF-142: card contents (title/artist/year) are hidden from non-admins
-    /// while any round that includes this card is active. Callers should use
-    /// `get_question` for the caller's current card instead.
-    pub fn get_card(env: Env, caller: Address, card_id: u64) -> Card {
-        caller.require_auth();
-        if !Self::is_admin(env.clone(), Role::Admin, caller.clone()) {
-            let round_count = Self::get_round_count(env.clone());
-            let mut round_id: u64 = 1;
-            while round_id <= round_count {
-                let round = Self::read_round(&env, round_id);
-                let finalized: bool = env
-                    .storage()
-                    .persistent()
-                    .get(&DataKey::RoundFinalized(round_id))
-                    .unwrap_or(false);
-                if round.is_started && !finalized {
-                    let cards = Self::read_round_cards(&env, round_id);
-                    if cards.contains(&card_id) {
-                        panic_with_error!(env, Error::NotAuthorized);
-                    }
-                }
-                round_id += 1;
-            }
-        }
-        let card: Card = env
             .storage()
             .persistent()
             .get(&DataKey::Card(card_id))
             .unwrap_or_else(|| panic_with_error!(env, Error::NonExistingCard));
-        let card = match Card::try_from_val(&env, &stored) {
-            Ok(card) => card,
-            Err(_) => {
-                let legacy = LegacyCard::try_from_val(&env, &stored)
-                    .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard));
-                let card = Card::from(legacy);
-                env.storage()
-                    .persistent()
-                    .set(&DataKey::Card(card_id), &card);
-                card
-            }
+        let map: soroban_sdk::Map<soroban_sdk::Val, soroban_sdk::Val> =
+            match soroban_sdk::Map::try_from_val(&env, &stored) {
+                Ok(m) => m,
+                Err(_) => panic_with_error!(env, Error::NonExistingCard),
+            };
+        let card = if map.len() == 6 {
+            let legacy = LegacyCard::try_from_val(&env, &stored)
+                .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard));
+            let card = Card::from(legacy);
+            env.storage()
+                .persistent()
+                .set(&DataKey::Card(card_id), &card);
+            card
+        } else {
+            Card::try_from_val(&env, &stored)
+                .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard))
         };
         bump_persistent(&env, &DataKey::Card(card_id));
         card
@@ -559,7 +543,7 @@ impl LyricsFlip {
         Self::assert_owner(&env, &caller);
         env.storage().instance().set(&DataKey::Paused, &true);
         bump_instance(&env);
-        Paused {}.publish(&env);
+        Paused { owner: caller.clone() }.publish(&env);
     }
 
     /// Owner-only. Resumes normal operation.
@@ -568,7 +552,7 @@ impl LyricsFlip {
         Self::assert_owner(&env, &caller);
         env.storage().instance().set(&DataKey::Paused, &false);
         bump_instance(&env);
-        Unpaused {}.publish(&env);
+        Unpaused { owner: caller.clone() }.publish(&env);
     }
 
     /// Creates a round.
@@ -617,10 +601,6 @@ impl LyricsFlip {
             }
         }
         Self::require_not_paused(&env);
-        let genre = match genre {
-            Some(g) => g,
-            None => panic_with_error!(env, Error::NonExistingGenre),
-        };
 
         let amount = Self::get_cards_per_round((*env).clone()) as u64;
         let source = filter
@@ -946,7 +926,7 @@ impl LyricsFlip {
         if !Self::is_round_player(&env, round_id, &caller) {
             panic_with_error!(env, Error::NotAParticipant);
         }
-        let mut round = Self::read_round(&env, round_id);
+        let round = Self::read_round(&env, round_id);
         if !round.is_started {
             panic_with_error!(env, Error::RoundNotStarted);
         }
@@ -974,8 +954,8 @@ impl LyricsFlip {
 
         CardDrawn {
             round_id,
-            player: caller.clone(),
             index: player_index,
+            card_id,
         }
         .publish(&env);
 
@@ -991,6 +971,9 @@ impl LyricsFlip {
             .persistent()
             .set(&player_index_key, &(player_index + 1));
         bump_persistent(&env, &player_index_key);
+
+        let mut round = round;
+        round.next_card_index = round.next_card_index.max(player_index + 1);
 
         // Do NOT set is_completed here. The round is completed only by
         // finalize_round, which lets players answer the last card after it
@@ -1142,6 +1125,14 @@ impl LyricsFlip {
         VERSION
     }
 
+    /// Returns the stored storage schema version. Unmigrated / legacy deployments default to 1.
+    pub fn schema_version(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&DataKey::SchemaVersion)
+            .unwrap_or(1)
+    }
+
     /// Step one of an ownership transfer; `new_owner` must then call
     /// `accept_ownership`. Calling again replaces the pending owner.
     pub fn transfer_ownership(env: Env, caller: Address, new_owner: Address) {
@@ -1178,11 +1169,55 @@ impl LyricsFlip {
     }
 
     /// Owner-only. Replaces this contract's code in place, keeping all
-    /// storage.
+    /// storage. Emits `ContractUpgraded`.
     pub fn upgrade(env: Env, caller: Address, new_wasm_hash: BytesN<32>) {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
-        env.deployer().update_current_contract_wasm(new_wasm_hash);
+        let old_version = Self::version();
+        env.deployer().update_current_contract_wasm(new_wasm_hash.clone());
+        ContractUpgraded {
+            owner: caller,
+            new_wasm_hash,
+            old_version,
+            new_version: old_version,
+        }
+        .publish(&env);
+    }
+
+    /// Owner-only. Migrates stored state step-by-step from the stored
+    /// schema version up to `SCHEMA_VERSION`. Strictly idempotent: calling it
+    /// multiple times after migration is a no-op.
+    pub fn migrate(env: Env, caller: Address) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+
+        let stored_version = Self::schema_version(env.clone());
+        if stored_version >= SCHEMA_VERSION {
+            return;
+        }
+
+        let mut current_version = stored_version;
+        while current_version < SCHEMA_VERSION {
+            match current_version {
+                1 => {
+                    // Future migrations from v1 to subsequent schema versions
+                    current_version = 2;
+                }
+                _ => break,
+            }
+        }
+
+        env.storage()
+            .instance()
+            .set(&DataKey::SchemaVersion, &current_version);
+        bump_instance(&env);
+
+        SchemaMigrated {
+            caller,
+            old_schema_version: stored_version,
+            new_schema_version: current_version,
+        }
+        .publish(&env);
     }
 
     /// Submits a round answer.
@@ -1500,24 +1535,23 @@ impl LyricsFlip {
         let genre_index = Index::Genre(card.genre);
         let genre_len = Self::index_len(env, &genre_index) as u64;
 
-        let mut genre_ids: Vec<u64> = Vec::new(env);
-        for i in 0..genre_len {
-            genre_ids.push_back(Self::index_get(env, &genre_index, i as u32));
-        }
-
         let mut candidates: Vec<u64> = Vec::new(env);
 
         if genre_len > 0 {
-            let indices = Self::get_random_numbers(env, seed, genre_len, genre_len, true);
+            let sample_len = core::cmp::min(genre_len, 6);
+            let indices = Self::get_random_numbers(env, seed, sample_len, genre_len, true);
             for idx in indices.iter() {
-                candidates.push_back(genre_ids.get(idx as u32).unwrap());
+                candidates.push_back(Self::index_get(env, &genre_index, idx as u32));
             }
         }
 
-        let shuffled_all = Self::get_random_numbers(env, seed + 1, cards_count, cards_count, false);
-        for id in shuffled_all.iter() {
-            if !genre_ids.contains(&id) {
-                candidates.push_back(id);
+        if candidates.len() < 4 && cards_count > candidates.len() as u64 {
+            let needed = core::cmp::min(cards_count, 10);
+            let shuffled_all = Self::get_random_numbers(env, seed + 1, needed, cards_count, false);
+            for id in shuffled_all.iter() {
+                if !candidates.contains(&id) {
+                    candidates.push_back(id);
+                }
             }
         }
         candidates
@@ -1553,7 +1587,7 @@ impl LyricsFlip {
 
         let mut false_years: Vec<String> = Vec::new(env);
 
-        let mut try_push = |year: i64, out: &mut Vec<String>| -> bool {
+        let try_push = |year: i64, out: &mut Vec<String>| -> bool {
             if year < min_year || year > max_year || year == correct_year {
                 return false;
             }
@@ -1594,7 +1628,7 @@ impl LyricsFlip {
                 let _ = try_push(y, &mut false_years);
                 y += 1;
             }
-        }        }
+        }
 
         let correct_str = Self::u64_to_string(env, card.year);
         let mut options: Vec<String> = Vec::new(env);
@@ -1811,12 +1845,7 @@ impl LyricsFlip {
         }
 
         for player in players.iter() {
-            let player_index: u32 = env
-                .storage()
-                .persistent()
-                .get(&DataKey::PlayerCardIndex((round_id, player.clone())))
-                .unwrap_or(0);
-            for card_id in round_cards.iter().take(player_index) {
+            for card_id in round_cards.iter() {
                 let answered: bool = env
                     .storage()
                     .persistent()
