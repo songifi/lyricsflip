@@ -7,8 +7,8 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { FiHome, FiCreditCard, FiGrid } from 'react-icons/fi';
 import { IoTrophyOutline } from 'react-icons/io5';
-import { useThemeStore } from '@/store/useThemeStore';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useThemeStore } from '@/store/use-theme-store';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { WalletButton } from './wallet-button';
 import { WalletStatusBanner } from './wallet-status-banner';
 

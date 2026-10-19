@@ -1,8 +1,8 @@
 "use client";
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import { useProfileStore } from '@/store/useProfileStore';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import { useProfileStore } from '@/store/use-profile-store';
 
 export default function SignInPage() {
   const router = useRouter();

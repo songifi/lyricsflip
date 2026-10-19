@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/atoms/button";
 import { Input } from "@/components/atoms/input";
-import { useStellar } from "@/lib/stellar/hooks/useStellar";
+import { useStellar } from "@/lib/stellar/hooks/use-stellar";
 import { GENRE_VALUES, type Card, type Genre } from "@/lib/stellar/types";
 
 type NewCard = Omit<Card, "card_id">;

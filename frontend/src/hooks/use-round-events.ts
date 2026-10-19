@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { nativeToScVal, rpc, scValToNative } from '@stellar/stellar-sdk';
-import { createConfig } from '@/lib/stellar/stellarConfig';
+import { createConfig } from '@/lib/stellar/stellar-config';
 
 export interface RoundEventsState {
   /** Players seen in `RoundJoined` events. */

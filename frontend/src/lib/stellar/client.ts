@@ -8,7 +8,8 @@
 
 import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
-import type { StellarConfig } from './stellarConfig';
+import type { StellarConfig } from './stellar-config';
+import { withTxToast, withTxToastResult, type TxResult } from './toast';
 import { withTxToast } from './toast';
 import {
   type Answer,
@@ -28,6 +29,25 @@ import {
   questionKindToWire,
 } from './types';
 
+/**
+ * Metadata returned alongside a mutating call that the contract scores by
+ * ledger time (LF-193). The ledger close time is the only clock that agrees
+ * with the contract's answer window.
+ */
+export interface TimedResult<T> {
+  result: T;
+  /** Ledger close time (unix milliseconds) or `null` when unavailable. */
+  closedAtMs: number | null;
+}
+
+export interface NextCardResult extends TimedResult<Card> {
+  /**
+   * Ledger close time (unix milliseconds) of the `next_card` transaction —
+   * the moment the contract opened the 15 s answer window for this card.
+   */
+  startedAtMs: number;
+}
+
 export interface SystemCalls {
   createRound: (genre: Genre, seed?: bigint) => Promise<bigint>;
   createRoundWithFilter: (
@@ -38,7 +58,20 @@ export interface SystemCalls {
   joinRound: (roundId: bigint) => Promise<void>;
   startRound: (roundId: bigint) => Promise<void>;
   nextCard: (roundId: bigint) => Promise<Card>;
+  /**
+   * `next_card` plus the ledger close time that started the card's on-chain
+   * answer window (LF-193).
+   */
+  nextCardWithMeta: (roundId: bigint) => Promise<NextCardResult>;
   submitAnswer: (roundId: bigint, answer: Answer) => Promise<boolean>;
+  /**
+   * `submit_answer` plus the ledger close time of the submission, so the UI
+   * can distinguish a late answer from a wrong one (LF-193).
+   */
+  submitAnswerWithMeta: (
+    roundId: bigint,
+    answer: Answer,
+  ) => Promise<TimedResult<boolean>>;
   addCard: (card: Omit<Card, 'card_id'>) => Promise<void>;
   /** Adds up to `MAX_CARDS_PER_BATCH` (20) cards in one transaction. */
   addCards: (cards: Omit<Card, 'card_id'>[]) => Promise<bigint[]>;
@@ -50,6 +83,14 @@ export interface SystemCalls {
   isOwner: (address: string) => Promise<boolean>;
   isRoundPlayer: (roundId: bigint, address: string) => Promise<boolean>;
   getRound: (roundId: bigint) => Promise<Round>;
+  /**
+   * Ids of rounds that are created but not yet started (oldest first) — the
+   * contract's `get_open_rounds`. `start` is an offset into that list.
+   */
+  getOpenRounds: (start: number, limit: number) => Promise<bigint[]>;
+  getMaxPlayers: () => Promise<number>;
+  /** Cancels one of your own lobbies and refunds every participant. */
+  cancelRound: (roundId: bigint) => Promise<void>;
   getRoundCards: (roundId: bigint) => Promise<bigint[]>;
   getRoundPlayers: (roundId: bigint) => Promise<string[]>;
   getPlayerStat: (address: string) => Promise<PlayerStats>;
@@ -69,6 +110,18 @@ export interface SystemCalls {
    * claimed, so a winner can only claim once. Returns the amount paid out.
    */
   claimWinnings: (roundId: bigint) => Promise<bigint>;
+  /**
+   * Scores for every player in the round, as `{ address: points }`. The
+   * contract's `get_round_scores` view fills in zero for players who have not
+   * answered yet, so the scoreboard can render the full roster.
+   */
+  getRoundScores: (roundId: bigint) => Promise<Record<string, number>>;
+  /**
+   * Finalizes a round once every required card has been answered or the
+   * round's `end_time` has passed (LF-195). Only players in the round may
+   * finalize; this publishes `RoundCompleted` with the winners and scores.
+   */
+  finalizeRound: (roundId: bigint) => Promise<void>;
   /**
    * `getCategories`, `getSongs`, `getLeaderboard`, and `claimEarnings` were
    * already referenced by some UI components on the Starknet/Dojo version of
@@ -116,6 +169,12 @@ type LyricsFlipContract = {
     seed: bigint;
   }) => Promise<contract.AssembledTransaction<bigint>>;
   join_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
+  cancel_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
+  get_open_rounds: (args: {
+    start: number;
+    limit: number;
+  }) => Promise<contract.AssembledTransaction<bigint[]>>;
+  get_max_players: () => Promise<contract.AssembledTransaction<number>>;
   start_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   next_card: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
   submit_answer: (args: {
@@ -136,6 +195,13 @@ type LyricsFlipContract = {
   }) => Promise<contract.AssembledTransaction<null>>;
   is_admin: (args: { role: number; address: string }) => Promise<contract.AssembledTransaction<boolean>>;
   get_round: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<WireRound>>;
+  get_round_scores: (args: {
+    round_id: bigint;
+  }) => Promise<contract.AssembledTransaction<Map<string, bigint>>>;
+  finalize_round: (args: {
+    caller: string;
+    round_id: bigint;
+  }) => Promise<contract.AssembledTransaction<null>>;
   get_round_cards: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<bigint[]>>;
   get_round_players: (args: { round_id: bigint }) => Promise<contract.AssembledTransaction<string[]>>;
   get_player_stat: (args: { player: string }) => Promise<contract.AssembledTransaction<PlayerStats>>;
@@ -183,6 +249,42 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     return submit(() => client.claim_winnings({ caller, round_id: roundId }));
   };
 
+  /** Signs + submits a mutating call and also reports the ledger close time. */
+  const submitTimed = <T>(
+    build: () => Promise<contract.AssembledTransaction<T>>,
+  ): Promise<TxResult<T>> => withTxToastResult(build, config.networkPassphrase);
+
+  const nextCardWithMeta = async (roundId: bigint): Promise<NextCardResult> => {
+    const caller = requireAccount();
+    const client = await getGameClient(config, caller);
+    const sent = await submitTimed(() =>
+      client.next_card({ caller, round_id: roundId }),
+    );
+    const closedAtMs =
+      sent.closedAtSeconds === null ? null : sent.closedAtSeconds * 1000;
+    return {
+      result: cardFromWire(sent.result),
+      closedAtMs,
+      startedAtMs: closedAtMs ?? Date.now(),
+    };
+  };
+
+  const submitAnswerWithMeta = async (
+    roundId: bigint,
+    answer: Answer,
+  ): Promise<TimedResult<boolean>> => {
+    const caller = requireAccount();
+    const client = await getGameClient(config, caller);
+    const sent = await submitTimed(() =>
+      client.submit_answer({ caller, round_id: roundId, answer }),
+    );
+    return {
+      result: sent.result,
+      closedAtMs:
+        sent.closedAtSeconds === null ? null : sent.closedAtSeconds * 1000,
+    };
+  };
+
   return {
     createRound: async (genre, seed = randomSeed()) => {
       const caller = requireAccount();
@@ -219,17 +321,18 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     },
 
     nextCard: async (roundId) => {
-      const caller = requireAccount();
-      const client = await getGameClient(config, caller);
-      const card = await submit(() => client.next_card({ caller, round_id: roundId }));
-      return cardFromWire(card);
+      const { result } = await nextCardWithMeta(roundId);
+      return result;
     },
 
+    nextCardWithMeta,
+
     submitAnswer: async (roundId, answer) => {
-      const caller = requireAccount();
-      const client = await getGameClient(config, caller);
-      return submit(() => client.submit_answer({ caller, round_id: roundId, answer }));
+      const { result } = await submitAnswerWithMeta(roundId, answer);
+      return result;
     },
+
+    submitAnswerWithMeta,
 
     addCard: async (card) => {
       const caller = requireAccount();
@@ -293,6 +396,24 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       return roundFromWire(round.result);
     },
 
+    getOpenRounds: async (start, limit) => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.get_open_rounds({ start, limit });
+      return res.result;
+    },
+
+    getMaxPlayers: async () => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.get_max_players();
+      return res.result;
+    },
+
+    cancelRound: async (roundId) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.cancel_round({ caller, round_id: roundId }));
+    },
+
     getRoundCards: async (roundId) => {
       const client = await getGameClient(config, publicKey);
       const res = await client.get_round_cards({ round_id: roundId });
@@ -346,6 +467,22 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     },
 
     claimWinnings,
+
+    getRoundScores: async (roundId) => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.get_round_scores({ round_id: roundId });
+      const scores: Record<string, number> = {};
+      res.result.forEach((points, player) => {
+        scores[String(player)] = Number(points);
+      });
+      return scores;
+    },
+
+    finalizeRound: async (roundId) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.finalize_round({ caller, round_id: roundId }));
+    },
 
     getCategories: notImplemented('getCategories'),
     getSongs: notImplemented('getSongs'),

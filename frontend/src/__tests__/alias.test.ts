@@ -1,6 +1,6 @@
 // src/__tests__/alias.test.ts
 import { render } from '@testing-library/react';
-import { ConfigErrorScreen } from '@/components/organisms/ConfigErrorScreen';
+import { ConfigErrorScreen } from '@/components/organisms/config-error-screen';
 import React from 'react';
 
 describe('Alias resolution', () => {

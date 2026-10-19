@@ -11,7 +11,7 @@ import {
 import { Button } from '../atoms/button';
 import { Input } from '../atoms/input';
 import { Card, CardContent } from '../atoms/card';
-import { useXlmBalance } from '@/lib/stellar/hooks/useXlmBalance';
+import { useXlmBalance } from '@/lib/stellar/hooks/use-xlm-balance';
 import { WAGER_ASSET_CODE } from '@/lib/utils';
 
 export default function ChallengeModal() {

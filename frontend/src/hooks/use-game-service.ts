@@ -1,4 +1,4 @@
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import type { Genre } from '@/lib/stellar/types';
 import { useModalStore } from '@/store/modal-store';
 import { useStore } from '@/store';

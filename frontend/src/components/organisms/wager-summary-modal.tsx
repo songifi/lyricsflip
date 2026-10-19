@@ -3,9 +3,9 @@
 import { useModalStore } from '@/store/modal-store';
 import { Modal } from './modal';
 import { Button } from '@/components/atoms/button';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useEffect, useState } from 'react';
-import { GENRE_MAPPING, GenreKey } from './WagerModal';
+import { GENRE_MAPPING, GenreKey } from './wager-modal';
 import { WagerDetails } from '@/store';
 import { WAGER_ASSET_CODE } from '@/lib/utils';
 

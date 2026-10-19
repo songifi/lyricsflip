@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/atoms/button";
 import { Input } from "@/components/atoms/input";
-import { useStellar } from "@/lib/stellar/hooks/useStellar";
+import { useStellar } from "@/lib/stellar/hooks/use-stellar";
 
 export const AdminConfig = () => {
     const { systemCalls } = useStellar();
