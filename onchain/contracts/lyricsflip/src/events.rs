@@ -191,3 +191,27 @@ pub struct SchemaMigrated {
     pub old_schema_version: u32,
     pub new_schema_version: u32,
 }
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AnswerWindowUpdated {
+    pub value: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LobbyTimeoutUpdated {
+    pub value: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundDurationUpdated {
+    pub value: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundBufferUpdated {
+    pub value: u64,
+}

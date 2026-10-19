@@ -93,7 +93,8 @@ pub struct RoundFilter {
 impl soroban_sdk::TryFromVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
     type Error = soroban_sdk::ConversionError;
     fn try_from_val(env: &soroban_sdk::Env, val: &soroban_sdk::Val) -> Result<Self, Self::Error> {
-        let map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> = soroban_sdk::Map::try_from_val(env, val)?;
+        let map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> =
+            soroban_sdk::Map::try_from_val(env, val)?;
         let genre_sym = soroban_sdk::Symbol::new(env, "genre");
         let decade_sym = soroban_sdk::Symbol::new(env, "decade");
         let genre = if let Some(v) = map.get(genre_sym) {
@@ -112,7 +113,8 @@ impl soroban_sdk::TryFromVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter
 
 impl soroban_sdk::IntoVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
     fn into_val(&self, env: &soroban_sdk::Env) -> soroban_sdk::Val {
-        let mut map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> = soroban_sdk::Map::new(env);
+        let mut map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> =
+            soroban_sdk::Map::new(env);
         let genre_val: soroban_sdk::Val = self.genre.into_val(env);
         let decade_val: soroban_sdk::Val = self.decade.into_val(env);
         map.set(soroban_sdk::Symbol::new(env, "genre"), genre_val);
@@ -140,6 +142,47 @@ pub struct Round {
     pub end_time: u64,
     pub next_card_index: u32,
     pub is_cancelled: bool,
+    /// LF-158: Snapshotted answer window (seconds per card).
+    pub answer_window: u64,
+    /// LF-158: Snapshotted lobby timeout (seconds before non-admin can cancel).
+    pub lobby_timeout: u64,
+    /// LF-158: Snapshotted round duration (seconds from start to deadline).
+    pub round_duration: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyRound {
+    pub round_id: u64,
+    pub admin: Address,
+    pub genre: Genre,
+    pub wager_amount: i128,
+    pub start_time: u64,
+    pub is_started: bool,
+    pub is_completed: bool,
+    pub end_time: u64,
+    pub next_card_index: u32,
+    pub is_cancelled: bool,
+}
+
+impl From<LegacyRound> for Round {
+    fn from(r: LegacyRound) -> Self {
+        Self {
+            round_id: r.round_id,
+            admin: r.admin,
+            genre: r.genre,
+            wager_amount: r.wager_amount,
+            start_time: r.start_time,
+            is_started: r.is_started,
+            is_completed: r.is_completed,
+            end_time: r.end_time,
+            next_card_index: r.next_card_index,
+            is_cancelled: r.is_cancelled,
+            answer_window: 15,
+            lobby_timeout: 600,
+            round_duration: 300,
+        }
+    }
 }
 
 /// NFT reward milestones a player can claim once each via `claim_reward`.
@@ -264,4 +307,12 @@ pub enum DataKey {
     PlayerCardStartedAt((u64, Address, u64)),
     /// LF-157: Stored storage schema version for migration hooks.
     SchemaVersion,
+    /// LF-158: Owner-configured answer window in seconds per card.
+    AnswerWindow,
+    /// LF-158: Owner-configured lobby timeout in seconds.
+    LobbyTimeout,
+    /// LF-158: Owner-configured round duration override in seconds (or None/0 for dynamic).
+    RoundDuration,
+    /// LF-158: Owner-configured latency buffer added per card in seconds.
+    RoundBuffer,
 }

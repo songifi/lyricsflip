@@ -54,9 +54,14 @@ to the finalization time, or kept at the deadline if the round timed out.
 - **Player cap:** `join_round` fails with `RoundFull` once a round has
   `get_max_players()` players (default `8`; the owner can change it with
   `set_max_players(caller, value)`, minimum 2).
-- **Round deadline:** a round's `end_time` is `start_time + 300s`. After it,
-  `submit_answer` fails with `RoundCompleted`, and the round can be finalized.
-- **Card answer window:** players have `CARD_ANSWER_WINDOW_SECONDS` (15s) after
+- **Round deadline:** a round's `end_time` is `start_time + round_duration`.
+  The duration is snapshotted onto the round at creation. By default, it scales dynamically
+  as `cards_per_round × (answer_window + round_buffer)` (default buffer `15s`; e.g., 20 cards
+  yield `600s`), or can be overridden globally by the owner via `set_round_duration(caller, value)`
+  (`set_round_buffer(caller, value)` tunes the latency buffer). After it, `submit_answer` fails
+  with `RoundCompleted`, and the round can be finalized.
+- **Card answer window:** players have `round.answer_window` (default `15s`, snapshotted at
+  creation, owner-configurable via `set_answer_window(caller, value)` within `[5, 180]s`) after
   `next_card` to answer. **Late answers are accepted but scored as wrong**
   (they break the streak), so the player still counts as having answered and
   the round can finalize early.
@@ -65,8 +70,9 @@ to the finalization time, or kept at the deadline if the round timed out.
   emits `RoundLeft { round_id, player, refunded }`.
 - **Cancelling:** `cancel_round(caller, round_id)` works before start. The
   round admin can call it at any time; anyone else can call it once the lobby
-  has been open for `LOBBY_TIMEOUT_SECONDS` (600s). It sets `is_cancelled`,
-  drops the round from `get_open_rounds`, refunds every player and emits
+  has been open for `round.lobby_timeout` (default `600s`, snapshotted at creation,
+  owner-configurable via `set_lobby_timeout(caller, value)` within `[30, 86400]s`). It sets
+  `is_cancelled`, drops the round from `get_open_rounds`, refunds every player and emits
   `RoundCancelled { round_id, cancelled_by, refunded_players, refund_per_player }`.
   A cancelled round can't be joined, started, or finalized (`RoundCancelled`).
 
@@ -366,6 +372,10 @@ fields.
 | `CardRemoved` | `remove_card` | `card_id: u64` | – |
 | `RoleUpdated` | `set_role` | `account: Address` | `role: Role`, `enabled: bool` |
 | `CardsPerRoundUpdated` | `set_cards_per_round` | – | `value: u32` |
+| `AnswerWindowUpdated` | `set_answer_window` | – | `value: u64` |
+| `LobbyTimeoutUpdated` | `set_lobby_timeout` | – | `value: u64` |
+| `RoundDurationUpdated` | `set_round_duration` | – | `value: u64` |
+| `RoundBufferUpdated` | `set_round_buffer` | – | `value: u64` |
 ## TTL policy (LF-012)
 
 Soroban persistent and instance storage entries are **archived** when their
@@ -478,6 +488,10 @@ Every variant is currently referenced by the contract. The ones marked
 | 37 | `InvalidDecade` | Round decade is not a valid decade start year |
 | 38 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
 | 39 | `AlreadyAnswered` | Player submitted more than one answer for the same card |
+| 40 | `Paused` | Contract is currently paused |
+| 41 | `InvalidAnswerWindow` | `set_answer_window` called with value outside [5, 180]s |
+| 42 | `InvalidLobbyTimeout` | `set_lobby_timeout` called with value outside [30, 86400]s |
+| 43 | `InvalidRoundDuration` | `set_round_duration` or `set_round_buffer` called with out-of-bounds value |
 
 ### `lyricsflip-nft`
 

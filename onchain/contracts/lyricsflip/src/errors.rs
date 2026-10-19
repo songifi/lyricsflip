@@ -83,4 +83,10 @@ pub enum Error {
     NoActiveCard = 38,
     AlreadyAnswered = 39,
     Paused = 40,
+    /// LF-158: The answer window is invalid (outside [MIN_ANSWER_WINDOW_SECONDS, MAX_ANSWER_WINDOW_SECONDS]).
+    InvalidAnswerWindow = 41,
+    /// LF-158: The lobby timeout is invalid (outside [MIN_LOBBY_TIMEOUT_SECONDS, MAX_LOBBY_TIMEOUT_SECONDS]).
+    InvalidLobbyTimeout = 42,
+    /// LF-158: The round duration or buffer is invalid.
+    InvalidRoundDuration = 43,
 }
