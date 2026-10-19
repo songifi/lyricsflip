@@ -4,9 +4,9 @@
  */
 import React from 'react';
 import { renderHook } from '@testing-library/react';
-import { StellarContext } from '@/lib/stellar/StellarProvider';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
-import type { StellarContextType } from '@/lib/stellar/StellarProvider';
+import { StellarContext } from '@/lib/stellar/stellar-provider';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
+import type { StellarContextType } from '@/lib/stellar/stellar-provider';
 import type { SystemCalls } from '@/lib/stellar/client';
 
 const mockConnect = jest.fn();
@@ -22,6 +22,8 @@ const buildContextValue = (overrides: Partial<StellarContextType> = {}): Stellar
   warnings: [],
   connect: mockConnect,
   disconnect: mockDisconnect,
+  isAuthenticated: false,
+  authError: null,
   ...overrides,
 });
 
@@ -30,7 +32,7 @@ const makeWrapper =
   ({ children }: { children: React.ReactNode }) =>
     React.createElement(StellarContext.Provider, { value: contextValue }, children);
 
-describe('useStellar', () => {
+describe('use-stellar', () => {
   it('returns null systemCalls when setup is null', () => {
     const { result } = renderHook(() => useStellar(), {
       wrapper: makeWrapper(buildContextValue({ setup: null })),

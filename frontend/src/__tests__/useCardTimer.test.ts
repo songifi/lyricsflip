@@ -9,9 +9,9 @@
  */
 
 import { renderHook, act } from '@testing-library/react';
-import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
+import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/use-card-timer';
 
-describe('useCardTimer', () => {
+describe('use-card-timer', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });

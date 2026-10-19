@@ -3,7 +3,7 @@ import { Modal } from './modal';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useState, useEffect } from 'react';
 import { WAGER_ASSET_CODE } from '@/lib/utils';
 

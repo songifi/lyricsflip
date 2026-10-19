@@ -5,7 +5,7 @@
 import { createSystemCalls } from '@/lib/stellar/client';
 import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
-import type { StellarConfig } from '@/lib/stellar/stellarConfig';
+import type { StellarConfig } from '@/lib/stellar/stellar-config';
 import type { WireCard, WireRound } from '@/lib/stellar/types';
 
 // ---------------------------------------------------------------------------
@@ -45,9 +45,16 @@ const makeWireRound = (overrides: Partial<WireRound> = {}): WireRound => ({
   ...overrides,
 });
 
-// Helper: build an assembled-transaction mock that returns a value on `.result`
+// Helper: build an assembled-transaction mock that returns a value on `.result`.
+// `sign()` / `send()` mirror the calls `withTxToast` makes for mutating calls.
 const makeAssembled = <T>(result: T, signAndSend?: () => Promise<{ result: T }>) => ({
   result,
+  sign: jest.fn().mockResolvedValue(undefined),
+  send: jest.fn().mockResolvedValue({
+    result,
+    sendTransactionResponse: { hash: 'TEST_TX_HASH' },
+    getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1 },
+  }),
   signAndSend: signAndSend ?? (() => Promise.resolve({ result })),
 });
 
@@ -332,10 +339,10 @@ describe('not-implemented stubs', () => {
     );
   });
 
-  it('claimEarnings throws with helpful message', async () => {
+  it('claimEarnings is a legacy alias for claimWinnings', async () => {
     const calls = createSystemCalls(TEST_CONFIG, null);
-    await expect(calls.claimEarnings()).rejects.toThrow(
-      'claimEarnings is not implemented on-chain',
+    await expect(calls.claimEarnings(BigInt(1))).rejects.toThrow(
+      'Connect a Stellar wallet before performing this action.',
     );
   });
 });

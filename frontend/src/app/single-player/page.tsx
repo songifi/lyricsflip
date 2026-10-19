@@ -1,12 +1,12 @@
 "use client";
 import { SongOptions } from '@/components/molecules/song-options';
 import { StatisticsPanel } from '@/components/molecules/statistics-panel';
-import { LyricCard } from '@/components/organisms/LyricCard';
+import { LyricCard } from '@/components/organisms/lyric-card';
 import BadgeModal from '@/components/organisms/new-badge-modal';
-import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/useCardTimer';
+import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/use-card-timer';
 import { fireConfetti } from '@/lib/confetti';
-import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
-import { useStellar } from '@/lib/stellar/hooks/useStellar';
+import { formatAmount, formatTime, WAGER_ASSET_CODE } from '@/lib/utils';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { getGenreDisplayName } from '@/lib/stellar/genres';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -20,7 +20,7 @@ import {
   type QuestionCard,
   type Round,
 } from '@/lib/stellar/types';
-import { useGameTimer } from '@/features/game/hooks/useGameTimer';
+import { useGameTimer } from '@/features/game/hooks/use-game-timer';
 
 interface SongOption {
   title: string;
@@ -32,17 +32,12 @@ const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.Streak5]: 'Streak Master',
   [MILESTONES.TenWins]: 'Music Connoisseur',
 };
-// Default round duration in seconds (5 minutes)
-const DEFAULT_ROUND_SECONDS = 300;
 
 export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundId = searchParams?.get('roundId') ?? null;
   const { account, systemCalls } = useStellar();
-
-  // Use the single shared timer — no local setInterval here.
-  const { timeLeft, startTimer, stopTimer, resetTimer } = useGameTimer();
 
   const [round, setRound] = useState<Round | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,12 +53,12 @@ export default function SinglePlayerGame() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
   const [score, setScore] = useState(0);
 
-  // Stop the timer when the component unmounts (e.g. user navigates away).
-  useEffect(() => {
-    return () => {
-      stopTimer();
-    };
-  }, [stopTimer]);
+  // Exactly one round timer: it derives the remaining time from the round's
+  // on-chain `end_time`, so a page refresh resumes with the correct value
+  // instead of restarting the countdown.
+  const { timeLeft } = useGameTimer({
+    endTimeSeconds: round ? round.end_time : null,
+  });
 
   // Badge modal state (Issue #476)
   const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
@@ -143,10 +138,6 @@ export default function SinglePlayerGame() {
         setAnsweredCount(roundData.next_card_index);
         setIsGameStarted(true);
 
-        // Initialise and start the shared timer for this round.
-        resetTimer(DEFAULT_ROUND_SECONDS);
-        startTimer();
-
         if (roundData.next_card_index < cards.length) {
           await loadNextCard();
         }
@@ -158,7 +149,7 @@ export default function SinglePlayerGame() {
       }
     };
     fetchRoundData();
-  }, [roundId, systemCalls, loadNextCard, resetTimer, startTimer]);
+  }, [roundId, systemCalls, loadNextCard]);
 
   // ── Milestone / badge check ───────────────────────────────────────────────
   const checkMilestoneAndShowBadge = useCallback(
@@ -216,7 +207,7 @@ export default function SinglePlayerGame() {
       try {
         const id = BigInt(roundId);
         setTxStatus('Submitting answer…');
-        await systemCalls.submitAnswer(id, isCorrect ? Answer.Correct : Answer.Wrong);
+        await systemCalls.submitAnswer(id, Answer.title(option.title));
         setAnsweredCount((prev) => prev + 1);
         setTxStatus(null);
       } catch (err) {
@@ -280,23 +271,22 @@ export default function SinglePlayerGame() {
       <p ref={statusRef} aria-live="polite" className="sr-only" />
 
       <StatisticsPanel
-        score={score}
-        answeredCount={answeredCount}
-        totalCards={totalCards}
-        timeLeft={timeLeft}
-        wagerLabel={`${formatAmount(round?.wager ?? 0)} ${WAGER_ASSET_CODE}`}
+        time={formatTime(timeLeft)}
+        potWin={`${formatAmount(round?.wager_amount ?? 0)} ${WAGER_ASSET_CODE}`}
+        scores={`${score} / ${totalCards}`}
       />
 
       {question && (
         <section className="flex flex-col gap-4">
           <LyricCard
-            card={card}
-            question={question}
+            lyrics={[
+              {
+                text: question.lyric,
+                title: card?.title ?? '',
+                artist: card?.artist ?? '',
+              },
+            ]}
             isFlipped={isCardFlipped}
-            correctOption={correctOption}
-            selectedOption={selectedOption}
-            timeLeft={cardTimeLeft}
-            timeoutSeconds={CARD_TIMEOUT_SECONDS}
           />
 
           <SongOptions
