@@ -52,14 +52,12 @@ const makeAssembled = <T>(
   signAndSend?: () => Promise<{ result: T }>,
   txResponse?: { createdAt?: number; ledger?: number },
 ) => ({
-const makeAssembled = <T>(result: T, signAndSend?: () => Promise<{ result: T }>) => ({
   result,
   sign: jest.fn().mockResolvedValue(undefined),
   send: jest.fn().mockResolvedValue({
     result,
     sendTransactionResponse: { hash: 'TEST_TX_HASH' },
     getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1, ...txResponse },
-    getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1 },
   }),
   signAndSend: signAndSend ?? (() => Promise.resolve({ result })),
 });

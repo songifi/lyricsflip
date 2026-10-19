@@ -35,9 +35,6 @@ interface SongOption {
 }
 
 type AnswerOutcome = 'correct' | 'wrong' | 'miss';
-import { useRoundEvents } from '@/hooks/use-round-events';
-import { useStellar } from '@/lib/stellar/hooks/use-stellar';
-import type { Round } from '@/lib/stellar/types';
 
 function parseRoundId(raw: string): bigint | null {
   return /^\d+$/.test(raw) ? BigInt(raw) : null;
@@ -386,20 +383,6 @@ export default function MultiplayerRoundPage() {
     return shell(
       <p className="mx-auto max-w-md text-center text-red-500">{error}</p>,
     );
-  const shell = (content: ReactNode) => (
-    <div className="container mx-auto mt-16 px-4 py-8 md:mt-20">
-      <button
-        onClick={() => router.push('/multiplayer')}
-        className="mb-4 flex min-h-[44px] items-center text-gray-600"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-      </button>
-      {content}
-    </div>
-  );
-
-  if (!isValidId) {
-    return shell(<p className="mx-auto max-w-md text-center text-red-500">{error}</p>);
   }
 
   if (!account) {
@@ -641,15 +624,6 @@ export default function MultiplayerRoundPage() {
             )}
           </section>
         )}
-  if (error && (round.is_cancelled || round.is_completed)) {
-    return shell(<p className="text-red-500">{error}</p>);
-  }
-
-  if (isStarted) {
-    return shell(
-      <div className="mx-auto max-w-md text-center">
-        <h1 className="mb-2 text-2xl font-bold">Round {rawRoundId}</h1>
-        <p className="text-gray-600">This round is in progress.</p>
       </div>,
     );
   }
@@ -670,13 +644,11 @@ export default function MultiplayerRoundPage() {
               <span
                 className={
                   lobbyEvents.ready.includes(player)
-                  events.ready.includes(player)
                     ? 'text-green-600'
                     : 'text-gray-500'
                 }
               >
                 {lobbyEvents.ready.includes(player) ? 'Ready' : 'Not ready'}
-                {events.ready.includes(player) ? 'Ready' : 'Not ready'}
               </span>
             </li>
           ))}
@@ -684,8 +656,6 @@ export default function MultiplayerRoundPage() {
         {error && <p className="mt-4 text-red-500">{error}</p>}
         {lobbyEvents.error && (
           <p className="mt-2 text-sm text-red-500">{lobbyEvents.error}</p>
-        {events.error && (
-          <p className="mt-2 text-sm text-red-500">{events.error}</p>
         )}
       </div>
       <ChallengeInvite

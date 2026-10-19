@@ -1,4 +1,4 @@
-import { fetchLyrics } from '@/services/musicService';
+import { fetchLyrics } from '@/services/music-service';
 import { LyricData, SongOption, useStore } from '@/store';
 import { useEffect, useState } from 'react';
 

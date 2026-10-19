@@ -10,7 +10,6 @@ import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import type { StellarConfig } from './stellar-config';
 import { withTxToast, withTxToastResult, type TxResult } from './toast';
-import { withTxToast } from './toast';
 import {
   type Answer,
   type Card,

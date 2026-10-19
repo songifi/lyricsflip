@@ -14,7 +14,6 @@
  * timestamp, minus one ledger of submission latency, so the UI closes early
  * rather than accepting an answer the contract will reject. Without an anchor
  * the hook keeps its original local countdown.
- * Per-card 15-second countdown for Issue #472 (LF-055).
  *
  * - Start the timer whenever a new card is displayed.
  * - On timeout, call `onTimeout()` so the parent can flip the card and
@@ -80,12 +79,6 @@ export function useCardTimer({
   const [timeLeft, setTimeLeft] = useState(CARD_TIMEOUT_SECONDS);
   const onTimeoutRef = useRef(onTimeout);
   const firedRef = useRef(false);
-export function useCardTimer({
-  onTimeout,
-  isActive,
-}: UseCardTimerOptions): UseCardTimerResult {
-  const [timeLeft, setTimeLeft] = useState(CARD_TIMEOUT_SECONDS);
-  const onTimeoutRef = useRef(onTimeout);
 
   // Keep callback ref stable so callers don't need to memoize it
   useEffect(() => {
@@ -137,15 +130,6 @@ export function useCardTimer({
 
     if (timeLeft <= 0) {
       fireTimeout();
-  useEffect(() => {
-    if (!isActive) {
-      // Don't tick while inactive
-      return;
-    }
-
-    if (timeLeft <= 0) {
-      // Fire the callback once when we hit zero
-      onTimeoutRef.current();
       return;
     }
 
@@ -153,6 +137,7 @@ export function useCardTimer({
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(id);
+          fireTimeout();
           return 0;
         }
         return prev - 1;
@@ -160,9 +145,6 @@ export function useCardTimer({
     }, 1000);
 
     return () => clearInterval(id);
-    // `timeLeft` is intentionally part of the dependency list: the interval is
-    // re-created for every remaining second, which keeps the countdown in
-    // lock-step with the rendered value.
   }, [deadlineMs, isActive, timeLeft, fireTimeout]);
 
   const reset = useCallback(() => {
@@ -171,11 +153,4 @@ export function useCardTimer({
   }, []);
 
   return { timeLeft, isExpired: timeLeft <= 0, reset };
-  }, [isActive, timeLeft]);
-
-  const reset = useCallback(() => {
-    setTimeLeft(CARD_TIMEOUT_SECONDS);
-  }, []);
-
-  return { timeLeft, reset };
 }

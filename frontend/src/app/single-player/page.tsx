@@ -8,7 +8,6 @@ import {
   CARD_TIMEOUT_SECONDS,
   CARD_LEDGER_LATENCY_SECONDS,
 } from '@/features/game/hooks/use-card-timer';
-import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/use-card-timer';
 import { fireConfetti } from '@/lib/confetti';
 import { formatAmount, formatTime, WAGER_ASSET_CODE } from '@/lib/utils';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
