@@ -36,6 +36,7 @@ use soroban_sdk::{
 /// Bumped on every release that changes the contract's code; see `upgrade`.
 pub const VERSION: u32 = 1;
 /// Current persisted storage layout. Kept separate from the code version.
+pub const SCHEMA_VERSION: u32 = 4;
 pub const SCHEMA_VERSION: u32 = 3;
 pub const SCHEMA_VERSION: u32 = 2;
 
@@ -241,7 +242,17 @@ impl LyricsFlip {
             panic_with_error!(env, Error::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Owner, &owner);
-        env.storage().instance().set(&DataKey::Admin(owner), &true);
+        // LF-156: Store admins in persistent storage, not instance storage.
+        env.storage()
+            .persistent()
+            .set(&DataKey::Admin(owner.clone()), &true);
+        bump_persistent(&env, &DataKey::Admin(owner.clone()));
+
+        let mut admins = Vec::new(&env);
+        admins.push_back(owner);
+        env.storage().persistent().set(&DataKey::Admins, &admins);
+        bump_persistent(&env, &DataKey::Admins);
+
         env.storage().instance().set(&DataKey::Paused, &false);
         env.storage()
             .instance()
@@ -594,11 +605,102 @@ impl LyricsFlip {
     /// Returns whether admin.
     pub fn is_admin(env: Env, role: Role, address: Address) -> bool {
         let Role::Admin = role;
-        bump_instance(&env);
-        env.storage()
-            .instance()
-            .get(&DataKey::Admin(address))
+        if env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin(address.clone()))
             .unwrap_or(false)
+        {
+            bump_persistent(&env, &DataKey::Admin(address));
+            return true;
+        }
+
+        // Lazy migration for legacy unmigrated instance entries (LF-156)
+        if let Some(is_enabled) = env
+            .storage()
+            .instance()
+            .get::<_, bool>(&DataKey::Admin(address.clone()))
+        {
+            env.storage().instance().remove(&DataKey::Admin(address.clone()));
+            if is_enabled {
+                env.storage()
+                    .persistent()
+                    .set(&DataKey::Admin(address.clone()), &true);
+                bump_persistent(&env, &DataKey::Admin(address.clone()));
+
+                let mut admins = Self::read_admins(&env);
+                let mut found = false;
+                for i in 0..admins.len() {
+                    if admins.get(i).unwrap() == address {
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    admins.push_back(address);
+                    env.storage().persistent().set(&DataKey::Admins, &admins);
+                    bump_persistent(&env, &DataKey::Admins);
+                }
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Returns the current list of admin addresses (LF-156).
+    pub fn get_admins(env: Env) -> Vec<Address> {
+        Self::read_admins(&env)
+    }
+
+    /// Owner-only batch migration for legacy admin keys that cannot be
+    /// enumerated from instance storage. Pass candidate addresses from the
+    /// contract's historical `RoleUpdated` events; use multiple calls for
+    /// large histories. Active legacy grants are moved to persistent storage
+    /// and the admin index, while legacy false tombstones are deleted.
+    pub fn migrate_legacy_admins(env: Env, caller: Address, candidates: Vec<Address>) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+
+        let mut admins = Self::read_admins(&env);
+        let mut index_changed = false;
+        for address in candidates.iter() {
+            let key = DataKey::Admin(address.clone());
+            if let Some(enabled) = env.storage().instance().get::<_, bool>(&key) {
+                env.storage().instance().remove(&key);
+                if enabled {
+                    env.storage().persistent().set(&key, &true);
+                    bump_persistent(&env, &key);
+                    let mut found = false;
+                    for i in 0..admins.len() {
+                        if admins.get(i).unwrap() == address {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        admins.push_back(address);
+                        index_changed = true;
+                    }
+                } else {
+                    env.storage().persistent().remove(&key);
+                    let mut remaining = Vec::new(&env);
+                    for existing in admins.iter() {
+                        if existing != address {
+                            remaining.push_back(existing);
+                        } else {
+                            index_changed = true;
+                        }
+                    }
+                    admins = remaining;
+                }
+            }
+        }
+
+        if index_changed {
+            env.storage().persistent().set(&DataKey::Admins, &admins);
+            bump_persistent(&env, &DataKey::Admins);
+        }
     }
 
     // ---- Mutations ----
@@ -1199,10 +1301,49 @@ impl LyricsFlip {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
         let Role::Admin = role;
+
+        // Clean up any legacy instance entry to keep instance storage lean (LF-156)
         env.storage()
             .instance()
-            .set(&DataKey::Admin(recipient.clone()), &is_enable);
-        bump_instance(&env);
+            .remove(&DataKey::Admin(recipient.clone()));
+
+        let mut admins = Self::read_admins(&env);
+
+        if is_enable {
+            env.storage()
+                .persistent()
+                .set(&DataKey::Admin(recipient.clone()), &true);
+            bump_persistent(&env, &DataKey::Admin(recipient.clone()));
+
+            let mut found = false;
+            for i in 0..admins.len() {
+                if admins.get(i).unwrap() == recipient {
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                admins.push_back(recipient.clone());
+                env.storage().persistent().set(&DataKey::Admins, &admins);
+                bump_persistent(&env, &DataKey::Admins);
+            }
+        } else {
+            // LF-156: On revoke, remove the entry instead of writing false
+            env.storage()
+                .persistent()
+                .remove(&DataKey::Admin(recipient.clone()));
+
+            let mut new_admins = Vec::new(&env);
+            for i in 0..admins.len() {
+                let a = admins.get(i).unwrap();
+                if a != recipient {
+                    new_admins.push_back(a);
+                }
+            }
+            env.storage().persistent().set(&DataKey::Admins, &new_admins);
+            bump_persistent(&env, &DataKey::Admins);
+        }
+
         RoleUpdated {
             account: recipient,
             role,
@@ -1259,9 +1400,29 @@ impl LyricsFlip {
         let old_owner = Self::owner(env.clone());
         env.storage().instance().set(&DataKey::Owner, &caller);
         env.storage().instance().remove(&DataKey::PendingOwner);
+        // LF-156: Clean up legacy instance entry and store admin in persistent storage
         env.storage()
             .instance()
+            .remove(&DataKey::Admin(caller.clone()));
+        env.storage()
+            .persistent()
             .set(&DataKey::Admin(caller.clone()), &true);
+        bump_persistent(&env, &DataKey::Admin(caller.clone()));
+
+        let mut admins = Self::read_admins(&env);
+        let mut found = false;
+        for i in 0..admins.len() {
+            if admins.get(i).unwrap() == caller {
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            admins.push_back(caller.clone());
+            env.storage().persistent().set(&DataKey::Admins, &admins);
+            bump_persistent(&env, &DataKey::Admins);
+        }
+
         OwnershipTransferred {
             old_owner,
             new_owner: caller,
@@ -1309,6 +1470,40 @@ impl LyricsFlip {
                     // LF-158: Migration from v2 to v3 introduces configurable timing parameters
                     current_version = 3;
                 }
+                3 => {
+                    // LF-156: Move admin flags out of instance storage, and make admins enumerable
+                    let owner = Self::owner(env.clone());
+                    let is_owner_admin: bool = env
+                        .storage()
+                        .instance()
+                        .get(&DataKey::Admin(owner.clone()))
+                        .unwrap_or(false);
+                    env.storage().instance().remove(&DataKey::Admin(owner.clone()));
+
+                    if is_owner_admin {
+                        env.storage()
+                            .persistent()
+                            .set(&DataKey::Admin(owner.clone()), &true);
+                        bump_persistent(&env, &DataKey::Admin(owner.clone()));
+                    }
+
+                    let mut admins = Self::read_admins(&env);
+                    if is_owner_admin {
+                        let mut found = false;
+                        for i in 0..admins.len() {
+                            if admins.get(i).unwrap() == owner {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if !found {
+                            admins.push_back(owner.clone());
+                        }
+                    }
+                    env.storage().persistent().set(&DataKey::Admins, &admins);
+                    bump_persistent(&env, &DataKey::Admins);
+
+                    current_version = 4;
                     // Future migrations from v1 to subsequent schema versions
                     current_version = 2;
                 }
@@ -2022,6 +2217,15 @@ impl LyricsFlip {
         players
     }
 
+    fn read_admins(env: &Env) -> Vec<Address> {
+        if let Some(admins) = env.storage().persistent().get(&DataKey::Admins) {
+            bump_persistent(env, &DataKey::Admins);
+            admins
+        } else {
+            Vec::new(env)
+        }
+    }
+
     fn read_round_scores(env: &Env, round_id: u64) -> Map<Address, u64> {
         env.storage()
             .persistent()
@@ -2175,12 +2379,7 @@ impl LyricsFlip {
     }
 
     fn assert_admin(env: &Env, address: &Address) {
-        let is_admin: bool = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin(address.clone()))
-            .unwrap_or(false);
-        if !is_admin {
+        if !Self::is_admin(env.clone(), Role::Admin, address.clone()) {
             panic_with_error!(env, Error::NotAuthorized);
         }
     }

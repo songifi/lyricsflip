@@ -202,7 +202,18 @@ Both contracts support a two-step ownership transfer: the owner calls
 events; `owner()` and `pending_owner()` views). On `lyricsflip`, the new owner
 is also granted the admin role, and `set_role` is owner-only regardless of the
 owner's own admin flag, so the owner cannot lock themselves out. `set_role`
-emits `RoleUpdated { address, role, enabled }`.
+emits `RoleUpdated { address, role, enabled }`. Admin flags and the enumerable
+admin index (`get_admins() -> Vec<Address>`) reside in persistent storage (LF-156)
+so instance storage holds only global configuration, and revoked admins have their
+keys deleted rather than storing false tombstones.
+
+Soroban does not provide an API to enumerate old instance-storage keys. The v3-to-v4
+`migrate(caller)` step moves the owner admin entry; to eagerly clear other legacy
+entries, the owner must call `migrate_legacy_admins(caller, candidates)` in batches,
+using addresses collected from historical `RoleUpdated` events (include revoked
+addresses too). Each batch removes matching legacy keys and moves active grants into
+persistent storage. `is_admin` also migrates an omitted legacy entry lazily when that
+address is checked.
 
 Both contracts expose `version() -> u32` (contract code version), `schema_version() -> u32` (storage schema version, defaulting to 1 for unmigrated legacy state), an owner-only `upgrade(caller, new_wasm_hash)`, and an owner-only `migrate(caller)` hook.
 
@@ -394,16 +405,18 @@ write.
 
 ### What gets bumped
 
-**Instance storage** (owner, admin flags, counters, config) is bumped in every
+**Instance storage** (owner, global counters, timing configuration) is bumped in every
 public entry point that reads or writes it — constructors, admin mutations
-(`add_card`, `set_cards_per_round`, `set_role`), and read-only views
-(`get_cards_count`, `get_round_count`, `get_cards_per_round`, `is_admin`).
+(`add_card`, `set_cards_per_round`), and read-only views
+(`get_cards_count`, `get_round_count`, `get_cards_per_round`).
 
 **Persistent storage** is bumped per-key on write, and on read for the
 following hot keys:
 
 | Key | Bumped on |
 | --- | --- |
+| `Admin(address)` | `set_role`, `accept_ownership` (write), `is_admin` (read) |
+| `Admins` | `set_role`, `accept_ownership` (write), `get_admins` (read) |
 | `Card(id)` | `add_card` (write), `get_card` (read) |
 | `GenreCards / ArtistCards / YearCards` | `add_card` (write), `get_cards_of_*` (read) |
 | `Round(id)` | every write (`create_round`, `start_round`, `next_card`, …) and every read (`read_round`) |
