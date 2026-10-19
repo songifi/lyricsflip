@@ -37,6 +37,8 @@ jobs:
             ${{ runner.os }}-frontend-
 
       - run: npm ci
+      - name: npm audit (production dependencies)
+        run: npm audit --omit=dev
       - run: npm run lint
       - run: npx tsc --noEmit
       - name: Unit tests with coverage
