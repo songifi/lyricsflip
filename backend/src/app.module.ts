@@ -19,14 +19,10 @@ import { LoggerModule } from './logger/logger.module';
 import { RequestLoggerMiddleware } from './logger/request-logger.middleware';
 import { SongsModule } from './songs/songs.module';
 import { ScoringModule } from './scoring/scoring.module';
-import { ChatRoomModule } from './chat-room/chat-room.module';
 import { QuestionsModule } from './questions/questions.module';
 import { QuickGameModule } from './quick-game/quick-game.module';
-import { PowerUpModule } from './power-ups/power-up.module';
-import { TournamentModule } from './tournament/tournament.module';
 import { GameModule } from './game/game.module';
 import { AchievementModule } from './achievement/achievement.module';
-import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
 import { RoomModule } from './room/room.module';
 import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -36,10 +32,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { Redis } from 'ioredis';
 import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
 import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
-import { ReferralModule } from './referral/referral.module';
-import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
-import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 import { IndexerModule } from './indexer/indexer.module';
 import { HealthModule } from './health/health.module';
 
@@ -107,17 +100,10 @@ import { HealthModule } from './health/health.module';
       }),
     }),
     SongsModule,
-    ChatRoomModule,
     ScoringModule,
-    PowerUpModule,
-    TournamentModule,
     AchievementModule,
     SocialModule,
-    MusicTheoryLessonModule,
     RoomModule,
-    ReferralModule,
-    StateRecoveryModule,
-    GameInsightsModule,
     IndexerModule,
     HealthModule,
   ],

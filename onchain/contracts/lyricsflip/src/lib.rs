@@ -13,14 +13,19 @@ mod test_budget;
 
 pub use errors::Error;
 pub use events::{
+    AnswerSubmitted, AnswerWindowUpdated, CardAdded, CardDrawn, CardRemoved, CardUpdated,
+    CardsPerRoundUpdated, ContractUpgraded, LobbyTimeoutUpdated, OwnershipTransferStarted,
+    OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
+    RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
+    RoundStarted, SchemaMigrated, Unpaused,
     AnswerSubmitted, CardAdded, CardDrawn, CardRemoved, CardUpdated, CardsPerRoundUpdated,
-    OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady, RewardClaimed,
-    RoleUpdated, RoundCancelled, RoundCompleted, RoundCreated, RoundJoined, RoundLeft,
-    RoundStarted, Unpaused,
+    ContractUpgraded, OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady,
+    RewardClaimed, RoleUpdated, RoundCancelled, RoundCompleted, RoundCreated, RoundJoined,
+    RoundLeft, RoundStarted, SchemaMigrated, Unpaused,
 };
 pub use types::{
-    Answer, Card, CardPos, DataKey, Genre, LegacyCard, Milestone, PlayerStats, QuestionCard,
-    QuestionKind, Role, Round, RoundFilter,
+    Answer, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone, PlayerStats,
+    QuestionCard, QuestionKind, Role, Round, RoundFilter,
 };
 
 use soroban_sdk::{
@@ -30,8 +35,14 @@ use soroban_sdk::{
 
 /// Bumped on every release that changes the contract's code; see `upgrade`.
 pub const VERSION: u32 = 1;
+/// Current persisted storage layout. Kept separate from the code version.
+pub const SCHEMA_VERSION: u32 = 4;
+pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 2;
 
-const DEFAULT_ROUND_DURATION_SECONDS: u64 = 300;
+pub const DEFAULT_ROUND_DURATION_SECONDS: u64 = 300;
+pub const MIN_ROUND_DURATION_SECONDS: u64 = 10;
+pub const MAX_ROUND_DURATION_SECONDS: u64 = 86_400;
 
 /// Default cap on players per round when the owner hasn't set `max_players`.
 pub const DEFAULT_MAX_PLAYERS: u32 = 8;
@@ -40,6 +51,9 @@ pub const DEFAULT_MAX_PLAYERS: u32 = 8;
 /// rule). Answers submitted after the window are accepted but scored as
 /// wrong, so every player can still complete the round.
 pub const CARD_ANSWER_WINDOW_SECONDS: u64 = 15;
+pub const MIN_ANSWER_WINDOW_SECONDS: u64 = 5;
+pub const MAX_ANSWER_WINDOW_SECONDS: u64 = 180;
+
 /// Points for an instant correct answer; each elapsed second costs
 /// `POINTS_DECAY_PER_SECOND`, down to `MIN_CORRECT_POINTS`.
 pub const MAX_CORRECT_POINTS: u64 = 100;
@@ -52,6 +66,13 @@ pub const MIN_CORRECT_POINTS: u64 = 10;
 /// Seconds after creation after which anyone may cancel a round that never
 /// started.
 pub const LOBBY_TIMEOUT_SECONDS: u64 = 600;
+pub const MIN_LOBBY_TIMEOUT_SECONDS: u64 = 30;
+pub const MAX_LOBBY_TIMEOUT_SECONDS: u64 = 86_400;
+
+/// Default per-card transaction latency buffer for dynamic round duration.
+pub const DEFAULT_ROUND_BUFFER_SECONDS: u64 = 15;
+pub const MIN_ROUND_BUFFER_SECONDS: u64 = 1;
+pub const MAX_ROUND_BUFFER_SECONDS: u64 = 60;
 
 /// The subset of the `lyricsflip-nft` interface the game contract calls.
 ///
@@ -162,7 +183,7 @@ impl Index {
         }
     }
 
-fn pos<'a>(&self, pos: &'a mut CardPos) -> &'a mut u32 {
+    fn pos<'a>(&self, pos: &'a mut CardPos) -> &'a mut u32 {
         match self {
             Index::All => &mut pos.all,
             Index::Genre(_) => &mut pos.genre,
@@ -186,7 +207,11 @@ fn ascii_lower_bytes(env: &Env, value: &String) -> Bytes {
     let bytes = value.to_bytes();
     let mut out = Bytes::new(env);
     for b in bytes.iter() {
-        if b >= b'A' && b <= b'Z' { out.push_back(b + 32) } else { out.push_back(b) }
+        if b >= b'A' && b <= b'Z' {
+            out.push_back(b + 32)
+        } else {
+            out.push_back(b)
+        }
     }
     out
 }
@@ -197,8 +222,11 @@ fn assert_clean_text(env: &Env, value: &String, err: Error) {
     for i in 0..len {
         let b = bytes.get(i).unwrap();
         let control = b < 0x20 || b == 0x7F;
-        let edge_space = (i == 0 || i + 1 == len) && (b == b' ' || b == b'\t' || b == b'\n' || b == b'\r');
-        if control || edge_space { panic_with_error!(env, err); }
+        let edge_space =
+            (i == 0 || i + 1 == len) && (b == b' ' || b == b'\t' || b == b'\n' || b == b'\r');
+        if control || edge_space {
+            panic_with_error!(env, err);
+        }
     }
 }
 
@@ -214,8 +242,21 @@ impl LyricsFlip {
             panic_with_error!(env, Error::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Owner, &owner);
-        env.storage().instance().set(&DataKey::Admin(owner), &true);
+        // LF-156: Store admins in persistent storage, not instance storage.
+        env.storage()
+            .persistent()
+            .set(&DataKey::Admin(owner.clone()), &true);
+        bump_persistent(&env, &DataKey::Admin(owner.clone()));
+
+        let mut admins = Vec::new(&env);
+        admins.push_back(owner);
+        env.storage().persistent().set(&DataKey::Admins, &admins);
+        bump_persistent(&env, &DataKey::Admins);
+
         env.storage().instance().set(&DataKey::Paused, &false);
+        env.storage()
+            .instance()
+            .set(&DataKey::SchemaVersion, &SCHEMA_VERSION);
         bump_instance(&env);
     }
 
@@ -423,6 +464,43 @@ impl LyricsFlip {
             .unwrap_or(0)
     }
 
+    /// Returns the owner-configured answer window in seconds, defaulting to
+    /// `CARD_ANSWER_WINDOW_SECONDS` (15s).
+    pub fn get_answer_window(env: Env) -> u64 {
+        bump_instance(&env);
+        env.storage()
+            .instance()
+            .get(&DataKey::AnswerWindow)
+            .unwrap_or(CARD_ANSWER_WINDOW_SECONDS)
+    }
+
+    /// Returns the owner-configured lobby timeout in seconds, defaulting to
+    /// `LOBBY_TIMEOUT_SECONDS` (600s).
+    pub fn get_lobby_timeout(env: Env) -> u64 {
+        bump_instance(&env);
+        env.storage()
+            .instance()
+            .get(&DataKey::LobbyTimeout)
+            .unwrap_or(LOBBY_TIMEOUT_SECONDS)
+    }
+
+    /// Returns the owner-configured fixed round duration override in seconds,
+    /// or `None` if dynamic deadline calculation is used.
+    pub fn get_round_duration(env: Env) -> Option<u64> {
+        bump_instance(&env);
+        env.storage().instance().get(&DataKey::RoundDuration)
+    }
+
+    /// Returns the owner-configured per-card latency buffer in seconds,
+    /// defaulting to `DEFAULT_ROUND_BUFFER_SECONDS` (10s).
+    pub fn get_round_buffer(env: Env) -> u64 {
+        bump_instance(&env);
+        env.storage()
+            .instance()
+            .get(&DataKey::RoundBuffer)
+            .unwrap_or(DEFAULT_ROUND_BUFFER_SECONDS)
+    }
+
     /// Returns the card.
     pub fn get_card(env: Env, card_id: u64) -> Card {
         let stored: Val = env
@@ -430,17 +508,22 @@ impl LyricsFlip {
             .persistent()
             .get(&DataKey::Card(card_id))
             .unwrap_or_else(|| panic_with_error!(env, Error::NonExistingCard));
-        let card = match Card::try_from_val(&env, &stored) {
-            Ok(card) => card,
-            Err(_) => {
-                let legacy = LegacyCard::try_from_val(&env, &stored)
-                    .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard));
-                let card = Card::from(legacy);
-                env.storage()
-                    .persistent()
-                    .set(&DataKey::Card(card_id), &card);
-                card
-            }
+        let map: soroban_sdk::Map<soroban_sdk::Val, soroban_sdk::Val> =
+            match soroban_sdk::Map::try_from_val(&env, &stored) {
+                Ok(m) => m,
+                Err(_) => panic_with_error!(env, Error::NonExistingCard),
+            };
+        let card = if map.len() == 6 {
+            let legacy = LegacyCard::try_from_val(&env, &stored)
+                .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard));
+            let card = Card::from(legacy);
+            env.storage()
+                .persistent()
+                .set(&DataKey::Card(card_id), &card);
+            card
+        } else {
+            Card::try_from_val(&env, &stored)
+                .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard))
         };
         bump_persistent(&env, &DataKey::Card(card_id));
         card
@@ -480,7 +563,12 @@ impl LyricsFlip {
     /// Returns the cards of artist.
     pub fn get_cards_of_artist(env: Env, artist: String, seed: u64) -> Vec<Card> {
         let normalized = ascii_lower_string(&env, &artist);
-        Self::draw_cards(&env, &Index::Artist(normalized), seed, Error::ArtistCardsIsZero)
+        Self::draw_cards(
+            &env,
+            &Index::Artist(normalized),
+            seed,
+            Error::ArtistCardsIsZero,
+        )
     }
 
     /// Returns the cards of a year.
@@ -517,11 +605,102 @@ impl LyricsFlip {
     /// Returns whether admin.
     pub fn is_admin(env: Env, role: Role, address: Address) -> bool {
         let Role::Admin = role;
-        bump_instance(&env);
-        env.storage()
-            .instance()
-            .get(&DataKey::Admin(address))
+        if env
+            .storage()
+            .persistent()
+            .get(&DataKey::Admin(address.clone()))
             .unwrap_or(false)
+        {
+            bump_persistent(&env, &DataKey::Admin(address));
+            return true;
+        }
+
+        // Lazy migration for legacy unmigrated instance entries (LF-156)
+        if let Some(is_enabled) = env
+            .storage()
+            .instance()
+            .get::<_, bool>(&DataKey::Admin(address.clone()))
+        {
+            env.storage().instance().remove(&DataKey::Admin(address.clone()));
+            if is_enabled {
+                env.storage()
+                    .persistent()
+                    .set(&DataKey::Admin(address.clone()), &true);
+                bump_persistent(&env, &DataKey::Admin(address.clone()));
+
+                let mut admins = Self::read_admins(&env);
+                let mut found = false;
+                for i in 0..admins.len() {
+                    if admins.get(i).unwrap() == address {
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    admins.push_back(address);
+                    env.storage().persistent().set(&DataKey::Admins, &admins);
+                    bump_persistent(&env, &DataKey::Admins);
+                }
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Returns the current list of admin addresses (LF-156).
+    pub fn get_admins(env: Env) -> Vec<Address> {
+        Self::read_admins(&env)
+    }
+
+    /// Owner-only batch migration for legacy admin keys that cannot be
+    /// enumerated from instance storage. Pass candidate addresses from the
+    /// contract's historical `RoleUpdated` events; use multiple calls for
+    /// large histories. Active legacy grants are moved to persistent storage
+    /// and the admin index, while legacy false tombstones are deleted.
+    pub fn migrate_legacy_admins(env: Env, caller: Address, candidates: Vec<Address>) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+
+        let mut admins = Self::read_admins(&env);
+        let mut index_changed = false;
+        for address in candidates.iter() {
+            let key = DataKey::Admin(address.clone());
+            if let Some(enabled) = env.storage().instance().get::<_, bool>(&key) {
+                env.storage().instance().remove(&key);
+                if enabled {
+                    env.storage().persistent().set(&key, &true);
+                    bump_persistent(&env, &key);
+                    let mut found = false;
+                    for i in 0..admins.len() {
+                        if admins.get(i).unwrap() == address {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if !found {
+                        admins.push_back(address);
+                        index_changed = true;
+                    }
+                } else {
+                    env.storage().persistent().remove(&key);
+                    let mut remaining = Vec::new(&env);
+                    for existing in admins.iter() {
+                        if existing != address {
+                            remaining.push_back(existing);
+                        } else {
+                            index_changed = true;
+                        }
+                    }
+                    admins = remaining;
+                }
+            }
+        }
+
+        if index_changed {
+            env.storage().persistent().set(&DataKey::Admins, &admins);
+            bump_persistent(&env, &DataKey::Admins);
+        }
     }
 
     // ---- Mutations ----
@@ -533,7 +712,11 @@ impl LyricsFlip {
         Self::assert_owner(&env, &caller);
         env.storage().instance().set(&DataKey::Paused, &true);
         bump_instance(&env);
-        Paused {}.publish(&env);
+        Paused {
+            owner: caller.clone(),
+        }
+        .publish(&env);
+        Paused { owner: caller.clone() }.publish(&env);
     }
 
     /// Owner-only. Resumes normal operation.
@@ -542,7 +725,11 @@ impl LyricsFlip {
         Self::assert_owner(&env, &caller);
         env.storage().instance().set(&DataKey::Paused, &false);
         bump_instance(&env);
-        Unpaused {}.publish(&env);
+        Unpaused {
+            owner: caller.clone(),
+        }
+        .publish(&env);
+        Unpaused { owner: caller.clone() }.publish(&env);
     }
 
     /// Creates a round.
@@ -559,6 +746,7 @@ impl LyricsFlip {
             },
             None,
             seed,
+            invite_hash,
         )
     }
 
@@ -579,6 +767,7 @@ impl LyricsFlip {
         filter: RoundFilter,
         difficulty: Option<u32>,
         seed: u64,
+        invite_hash: Option<BytesN<32>>,
     ) -> u64 {
         caller.require_auth();
         if difficulty.is_some_and(|value| !(1..=3).contains(&value)) {
@@ -593,10 +782,7 @@ impl LyricsFlip {
         Self::require_not_paused(&env);
 
         let amount = Self::get_cards_per_round((*env).clone()) as u64;
-        let source = filter
-            .genre
-            .map(Index::Genre)
-            .unwrap_or(Index::All);
+        let source = filter.genre.map(Index::Genre).unwrap_or(Index::All);
         let source_count = Self::index_len(env, &source);
         if source_count == 0 && filter.genre.is_some() {
             panic_with_error!(env, Error::EmptyGenreCards);
@@ -655,6 +841,16 @@ impl LyricsFlip {
             .instance()
             .set(&DataKey::RoundCount, &round_id);
 
+        let num_cards = cards.len() as u64;
+        let answer_window = Self::get_answer_window(env.clone());
+        let lobby_timeout = Self::get_lobby_timeout(env.clone());
+        let buffer = Self::get_round_buffer(env.clone());
+
+        let round_duration = match Self::get_round_duration(env.clone()) {
+            Some(fixed) if fixed > 0 => fixed,
+            _ => num_cards.saturating_mul(answer_window.saturating_add(buffer)),
+        };
+
         let round = Round {
             round_id,
             admin: caller.clone(),
@@ -666,6 +862,10 @@ impl LyricsFlip {
             end_time: 0,
             next_card_index: 0,
             is_cancelled: false,
+            answer_window,
+            lobby_timeout,
+            round_duration,
+            solo: false,
         };
 
         let mut players: Vec<Address> = Vec::new(&env);
@@ -767,7 +967,7 @@ impl LyricsFlip {
 
             let start_time = env.ledger().timestamp();
             round.start_time = start_time;
-            round.end_time = start_time + DEFAULT_ROUND_DURATION_SECONDS;
+            round.end_time = start_time + round.round_duration;
             round.is_started = true;
             env.storage()
                 .persistent()
@@ -790,6 +990,20 @@ impl LyricsFlip {
     /// Joins round.
     pub fn join_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
+        // LF-162: private rounds require the preimage of RoundInviteHash.
+        if let Some(expected) = env
+            .storage()
+            .persistent()
+            .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
+        {
+            let provided = code
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let bytes = Bytes::from_slice(&env, provided.to_string().as_bytes());
+            let hash = env.crypto().sha256(&bytes);
+            if hash.to_array() != expected.to_array() {
+                panic_with_error!(env, Error::NotAuthorized); // invite_hash mismatch
+            }
+        }
         Self::require_not_paused(&env);
         let round = Self::read_round(&env, round_id);
 
@@ -877,7 +1091,7 @@ impl LyricsFlip {
                 .persistent()
                 .get(&DataKey::RoundCreatedAt(round_id))
                 .unwrap_or(0);
-            if env.ledger().timestamp() < created_at + LOBBY_TIMEOUT_SECONDS {
+            if env.ledger().timestamp() < created_at + round.lobby_timeout {
                 panic_with_error!(env, Error::NotAuthorized);
             }
         }
@@ -916,7 +1130,7 @@ impl LyricsFlip {
         if !Self::is_round_player(&env, round_id, &caller) {
             panic_with_error!(env, Error::NotAParticipant);
         }
-        let mut round = Self::read_round(&env, round_id);
+        let round = Self::read_round(&env, round_id);
         if !round.is_started {
             panic_with_error!(env, Error::RoundNotStarted);
         }
@@ -944,13 +1158,12 @@ impl LyricsFlip {
 
         CardDrawn {
             round_id,
-            player: caller.clone(),
             index: player_index,
+            card_id,
         }
         .publish(&env);
 
-        let started_at_key =
-            DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
+        let started_at_key = DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
         env.storage()
             .persistent()
             .set(&started_at_key, &env.ledger().timestamp());
@@ -961,6 +1174,9 @@ impl LyricsFlip {
             .persistent()
             .set(&player_index_key, &(player_index + 1));
         bump_persistent(&env, &player_index_key);
+
+        let mut round = round;
+        round.next_card_index = round.next_card_index.max(player_index + 1);
 
         // Do NOT set is_completed here. The round is completed only by
         // finalize_round, which lets players answer the last card after it
@@ -1085,10 +1301,49 @@ impl LyricsFlip {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
         let Role::Admin = role;
+
+        // Clean up any legacy instance entry to keep instance storage lean (LF-156)
         env.storage()
             .instance()
-            .set(&DataKey::Admin(recipient.clone()), &is_enable);
-        bump_instance(&env);
+            .remove(&DataKey::Admin(recipient.clone()));
+
+        let mut admins = Self::read_admins(&env);
+
+        if is_enable {
+            env.storage()
+                .persistent()
+                .set(&DataKey::Admin(recipient.clone()), &true);
+            bump_persistent(&env, &DataKey::Admin(recipient.clone()));
+
+            let mut found = false;
+            for i in 0..admins.len() {
+                if admins.get(i).unwrap() == recipient {
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                admins.push_back(recipient.clone());
+                env.storage().persistent().set(&DataKey::Admins, &admins);
+                bump_persistent(&env, &DataKey::Admins);
+            }
+        } else {
+            // LF-156: On revoke, remove the entry instead of writing false
+            env.storage()
+                .persistent()
+                .remove(&DataKey::Admin(recipient.clone()));
+
+            let mut new_admins = Vec::new(&env);
+            for i in 0..admins.len() {
+                let a = admins.get(i).unwrap();
+                if a != recipient {
+                    new_admins.push_back(a);
+                }
+            }
+            env.storage().persistent().set(&DataKey::Admins, &new_admins);
+            bump_persistent(&env, &DataKey::Admins);
+        }
+
         RoleUpdated {
             account: recipient,
             role,
@@ -1110,6 +1365,14 @@ impl LyricsFlip {
     /// Returns the contract version.
     pub fn version() -> u32 {
         VERSION
+    }
+
+    /// Returns the stored storage schema version. Unmigrated / legacy deployments default to 1.
+    pub fn schema_version(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&DataKey::SchemaVersion)
+            .unwrap_or(1)
     }
 
     /// Step one of an ownership transfer; `new_owner` must then call
@@ -1137,9 +1400,29 @@ impl LyricsFlip {
         let old_owner = Self::owner(env.clone());
         env.storage().instance().set(&DataKey::Owner, &caller);
         env.storage().instance().remove(&DataKey::PendingOwner);
+        // LF-156: Clean up legacy instance entry and store admin in persistent storage
         env.storage()
             .instance()
+            .remove(&DataKey::Admin(caller.clone()));
+        env.storage()
+            .persistent()
             .set(&DataKey::Admin(caller.clone()), &true);
+        bump_persistent(&env, &DataKey::Admin(caller.clone()));
+
+        let mut admins = Self::read_admins(&env);
+        let mut found = false;
+        for i in 0..admins.len() {
+            if admins.get(i).unwrap() == caller {
+                found = true;
+                break;
+            }
+        }
+        if !found {
+            admins.push_back(caller.clone());
+            env.storage().persistent().set(&DataKey::Admins, &admins);
+            bump_persistent(&env, &DataKey::Admins);
+        }
+
         OwnershipTransferred {
             old_owner,
             new_owner: caller,
@@ -1148,11 +1431,97 @@ impl LyricsFlip {
     }
 
     /// Owner-only. Replaces this contract's code in place, keeping all
-    /// storage.
+    /// storage. Emits `ContractUpgraded`.
     pub fn upgrade(env: Env, caller: Address, new_wasm_hash: BytesN<32>) {
         caller.require_auth();
         Self::assert_owner(&env, &caller);
-        env.deployer().update_current_contract_wasm(new_wasm_hash);
+        let old_version = Self::version();
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
+        env.deployer().update_current_contract_wasm(new_wasm_hash.clone());
+        ContractUpgraded {
+            owner: caller,
+            new_wasm_hash,
+            old_version,
+            new_version: old_version,
+        }
+        .publish(&env);
+    }
+
+    /// Owner-only. Migrates stored state step-by-step from the stored
+    /// schema version up to `SCHEMA_VERSION`. Strictly idempotent: calling it
+    /// multiple times after migration is a no-op.
+    pub fn migrate(env: Env, caller: Address) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+
+        let stored_version = Self::schema_version(env.clone());
+        if stored_version >= SCHEMA_VERSION {
+            return;
+        }
+
+        let mut current_version = stored_version;
+        while current_version < SCHEMA_VERSION {
+            match current_version {
+                1 => {
+                    current_version = 2;
+                }
+                2 => {
+                    // LF-158: Migration from v2 to v3 introduces configurable timing parameters
+                    current_version = 3;
+                }
+                3 => {
+                    // LF-156: Move admin flags out of instance storage, and make admins enumerable
+                    let owner = Self::owner(env.clone());
+                    let is_owner_admin: bool = env
+                        .storage()
+                        .instance()
+                        .get(&DataKey::Admin(owner.clone()))
+                        .unwrap_or(false);
+                    env.storage().instance().remove(&DataKey::Admin(owner.clone()));
+
+                    if is_owner_admin {
+                        env.storage()
+                            .persistent()
+                            .set(&DataKey::Admin(owner.clone()), &true);
+                        bump_persistent(&env, &DataKey::Admin(owner.clone()));
+                    }
+
+                    let mut admins = Self::read_admins(&env);
+                    if is_owner_admin {
+                        let mut found = false;
+                        for i in 0..admins.len() {
+                            if admins.get(i).unwrap() == owner {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if !found {
+                            admins.push_back(owner.clone());
+                        }
+                    }
+                    env.storage().persistent().set(&DataKey::Admins, &admins);
+                    bump_persistent(&env, &DataKey::Admins);
+
+                    current_version = 4;
+                    // Future migrations from v1 to subsequent schema versions
+                    current_version = 2;
+                }
+                _ => break,
+            }
+        }
+
+        env.storage()
+            .instance()
+            .set(&DataKey::SchemaVersion, &current_version);
+        bump_instance(&env);
+
+        SchemaMigrated {
+            caller,
+            old_schema_version: stored_version,
+            new_schema_version: current_version,
+        }
+        .publish(&env);
     }
 
     /// Submits a round answer.
@@ -1215,7 +1584,11 @@ impl LyricsFlip {
         let answer_started_at: u64 = env
             .storage()
             .persistent()
-            .get(&DataKey::PlayerCardStartedAt((round_id, caller.clone(), current_card_id)))
+            .get(&DataKey::PlayerCardStartedAt((
+                round_id,
+                caller.clone(),
+                current_card_id,
+            )))
             .unwrap_or(round.start_time);
         let answer_time = env.ledger().timestamp().saturating_sub(answer_started_at);
         let answer_times = Self::read_round_answer_times(&env, round_id);
@@ -1229,7 +1602,7 @@ impl LyricsFlip {
 
         // Answers after the card window are scored as wrong (not rejected),
         // so the player still counts as having answered the card.
-        let is_answer_correct = answer_time <= CARD_ANSWER_WINDOW_SECONDS
+        let is_answer_correct = answer_time <= round.answer_window
             && match answer {
                 Answer::Artist(value) => value == current_card.artist,
                 Answer::Year(value) => value == current_card.year,
@@ -1238,7 +1611,11 @@ impl LyricsFlip {
 
         let points = if is_answer_correct {
             MAX_CORRECT_POINTS
-                .saturating_sub(answer_time.saturating_sub(FIRST_LEDGER_GRACE_SECONDS).saturating_mul(POINTS_DECAY_PER_SECOND))
+                .saturating_sub(
+                    answer_time
+                        .saturating_sub(FIRST_LEDGER_GRACE_SECONDS)
+                        .saturating_mul(POINTS_DECAY_PER_SECOND),
+                )
                 .max(MIN_CORRECT_POINTS)
                 .saturating_mul(current_card.difficulty as u64)
         } else {
@@ -1297,6 +1674,65 @@ impl LyricsFlip {
         env.storage()
             .instance()
             .set(&DataKey::NftContract, &nft_contract);
+    }
+
+    /// Sets the answer window in seconds.
+    pub fn set_answer_window(env: Env, caller: Address, value: u64) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        if value < MIN_ANSWER_WINDOW_SECONDS || value > MAX_ANSWER_WINDOW_SECONDS {
+            panic_with_error!(env, Error::InvalidAnswerWindow);
+        }
+        env.storage().instance().set(&DataKey::AnswerWindow, &value);
+        bump_instance(&env);
+        AnswerWindowUpdated { value }.publish(&env);
+    }
+
+    /// Sets the lobby timeout in seconds.
+    pub fn set_lobby_timeout(env: Env, caller: Address, value: u64) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        if value < MIN_LOBBY_TIMEOUT_SECONDS || value > MAX_LOBBY_TIMEOUT_SECONDS {
+            panic_with_error!(env, Error::InvalidLobbyTimeout);
+        }
+        env.storage().instance().set(&DataKey::LobbyTimeout, &value);
+        bump_instance(&env);
+        LobbyTimeoutUpdated { value }.publish(&env);
+    }
+
+    /// Sets an optional fixed round duration in seconds. Passing `None` or `Some(0)`
+    /// resets the contract to use dynamic deadline calculation:
+    /// `cards_per_round * (answer_window + buffer)`.
+    pub fn set_round_duration(env: Env, caller: Address, value: Option<u64>) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        match value {
+            Some(v) if v > 0 => {
+                if v < MIN_ROUND_DURATION_SECONDS || v > MAX_ROUND_DURATION_SECONDS {
+                    panic_with_error!(env, Error::InvalidRoundDuration);
+                }
+                env.storage().instance().set(&DataKey::RoundDuration, &v);
+                bump_instance(&env);
+                RoundDurationUpdated { value: v }.publish(&env);
+            }
+            _ => {
+                env.storage().instance().remove(&DataKey::RoundDuration);
+                bump_instance(&env);
+                RoundDurationUpdated { value: 0 }.publish(&env);
+            }
+        }
+    }
+
+    /// Sets the latency buffer added per card (in seconds) for dynamic deadline calculation.
+    pub fn set_round_buffer(env: Env, caller: Address, value: u64) {
+        caller.require_auth();
+        Self::assert_owner(&env, &caller);
+        if value < MIN_ROUND_BUFFER_SECONDS || value > MAX_ROUND_BUFFER_SECONDS {
+            panic_with_error!(env, Error::InvalidRoundDuration);
+        }
+        env.storage().instance().set(&DataKey::RoundBuffer, &value);
+        bump_instance(&env);
+        RoundBufferUpdated { value }.publish(&env);
     }
 
     /// Mints the NFT for `milestone` to `caller` through a cross-contract
@@ -1429,9 +1865,7 @@ impl LyricsFlip {
                 let value = get_value(&Self::get_card(env.clone(), id));
                 let norm_value = ascii_lower_string(env, &value);
                 let norm_correct = ascii_lower_string(env, &correct);
-                if norm_value != norm_correct
-                    && !Self::contains_string(&false_answers, &value)
-                {
+                if norm_value != norm_correct && !Self::contains_string(&false_answers, &value) {
                     false_answers.push_back(value);
                 }
                 seen += 1;
@@ -1470,24 +1904,23 @@ impl LyricsFlip {
         let genre_index = Index::Genre(card.genre);
         let genre_len = Self::index_len(env, &genre_index) as u64;
 
-        let mut genre_ids: Vec<u64> = Vec::new(env);
-        for i in 0..genre_len {
-            genre_ids.push_back(Self::index_get(env, &genre_index, i as u32));
-        }
-
         let mut candidates: Vec<u64> = Vec::new(env);
 
         if genre_len > 0 {
-            let indices = Self::get_random_numbers(env, seed, genre_len, genre_len, true);
+            let sample_len = core::cmp::min(genre_len, 6);
+            let indices = Self::get_random_numbers(env, seed, sample_len, genre_len, true);
             for idx in indices.iter() {
-                candidates.push_back(genre_ids.get(idx as u32).unwrap());
+                candidates.push_back(Self::index_get(env, &genre_index, idx as u32));
             }
         }
 
-        let shuffled_all = Self::get_random_numbers(env, seed + 1, cards_count, cards_count, false);
-        for id in shuffled_all.iter() {
-            if !genre_ids.contains(&id) {
-                candidates.push_back(id);
+        if candidates.len() < 4 && cards_count > candidates.len() as u64 {
+            let needed = core::cmp::min(cards_count, 10);
+            let shuffled_all = Self::get_random_numbers(env, seed + 1, needed, cards_count, false);
+            for id in shuffled_all.iter() {
+                if !candidates.contains(&id) {
+                    candidates.push_back(id);
+                }
             }
         }
         candidates
@@ -1523,7 +1956,7 @@ impl LyricsFlip {
 
         let mut false_years: Vec<String> = Vec::new(env);
 
-        let mut try_push = |year: i64, out: &mut Vec<String>| -> bool {
+        let try_push = |year: i64, out: &mut Vec<String>| -> bool {
             if year < min_year || year > max_year || year == correct_year {
                 return false;
             }
@@ -1537,14 +1970,20 @@ impl LyricsFlip {
 
         // Tier 1: original Â±1..5, seeded shuffle preserved for determinism.
         for &offset in shuffled_offsets.iter() {
-            if false_years.len() >= 3 { break; }
+            if false_years.len() >= 3 {
+                break;
+            }
             let _ = try_push(correct_year + offset, &mut false_years);
         }
 
-        // Tier 2: Â±6..15.
-        let tier2: [i64; 20] = [6,-6,7,-7,8,-8,9,-9,10,-10,11,-11,12,-12,13,-13,14,-14,15,-15];
+        // Tier 2: ±6..15.
+        let tier2: [i64; 20] = [
+            6, -6, 7, -7, 8, -8, 9, -9, 10, -10, 11, -11, 12, -12, 13, -13, 14, -14, 15, -15,
+        ];
         for &offset in tier2.iter() {
-            if false_years.len() >= 3 { break; }
+            if false_years.len() >= 3 {
+                break;
+            }
             let _ = try_push(correct_year + offset, &mut false_years);
         }
 
@@ -1552,7 +1991,9 @@ impl LyricsFlip {
         let mut tier3_offset: i64 = 16;
         while tier3_offset <= 50 && false_years.len() < 3 {
             let _ = try_push(correct_year + tier3_offset, &mut false_years);
-            if false_years.len() >= 3 { break; }
+            if false_years.len() >= 3 {
+                break;
+            }
             let _ = try_push(correct_year - tier3_offset, &mut false_years);
             tier3_offset += 1;
         }
@@ -1564,7 +2005,7 @@ impl LyricsFlip {
                 let _ = try_push(y, &mut false_years);
                 y += 1;
             }
-        }        }
+        }
 
         let correct_str = Self::u64_to_string(env, card.year);
         let mut options: Vec<String> = Vec::new(env);
@@ -1730,11 +2171,28 @@ impl LyricsFlip {
     }
 
     fn read_round(env: &Env, round_id: u64) -> Round {
-        let round: Round = env
+        let stored: Val = env
             .storage()
             .persistent()
             .get(&DataKey::Round(round_id))
             .unwrap_or_else(|| panic_with_error!(env, Error::NonExistingRound));
+        let map: soroban_sdk::Map<soroban_sdk::Val, soroban_sdk::Val> =
+            match soroban_sdk::Map::try_from_val(env, &stored) {
+                Ok(m) => m,
+                Err(_) => panic_with_error!(env, Error::NonExistingRound),
+            };
+        let round = if map.len() == 10 {
+            let legacy = LegacyRound::try_from_val(env, &stored)
+                .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingRound));
+            let round = Round::from(legacy);
+            env.storage()
+                .persistent()
+                .set(&DataKey::Round(round_id), &round);
+            round
+        } else {
+            Round::try_from_val(env, &stored)
+                .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingRound))
+        };
         bump_persistent(env, &DataKey::Round(round_id));
         round
     }
@@ -1759,6 +2217,15 @@ impl LyricsFlip {
         players
     }
 
+    fn read_admins(env: &Env) -> Vec<Address> {
+        if let Some(admins) = env.storage().persistent().get(&DataKey::Admins) {
+            bump_persistent(env, &DataKey::Admins);
+            admins
+        } else {
+            Vec::new(env)
+        }
+    }
+
     fn read_round_scores(env: &Env, round_id: u64) -> Map<Address, u64> {
         env.storage()
             .persistent()
@@ -1781,12 +2248,7 @@ impl LyricsFlip {
         }
 
         for player in players.iter() {
-            let player_index: u32 = env
-                .storage()
-                .persistent()
-                .get(&DataKey::PlayerCardIndex((round_id, player.clone())))
-                .unwrap_or(0);
-            for card_id in round_cards.iter().take(player_index) {
+            for card_id in round_cards.iter() {
                 let answered: bool = env
                     .storage()
                     .persistent()
@@ -1917,12 +2379,7 @@ impl LyricsFlip {
     }
 
     fn assert_admin(env: &Env, address: &Address) {
-        let is_admin: bool = env
-            .storage()
-            .instance()
-            .get(&DataKey::Admin(address.clone()))
-            .unwrap_or(false);
-        if !is_admin {
+        if !Self::is_admin(env.clone(), Role::Admin, address.clone()) {
             panic_with_error!(env, Error::NotAuthorized);
         }
     }
@@ -2056,6 +2513,71 @@ impl LyricsFlip {
             result.push_back(if for_index { v } else { v + 1 });
         }
         result
+    }
+    /// LF-163: create and start a solo round in one call, return the first
+    /// question. Skipped from OpenRounds so it never appears in the
+    /// multiplayer lobby. Exactly ONE require_auth: create_round_internal
+    /// performs it, so we do not call it again here, and the first card is
+    /// drawn inline (next_card would require_auth a second time).
+    pub fn create_solo_round(
+        env: Env,
+        caller: Address,
+        genre: Option<Genre>,
+        seed: u64,
+    ) -> QuestionCard {
+        if genre.is_none() {
+            panic_with_error!(env, Error::NonExistingGenre);
+        }
+        // create_round_internal calls caller.require_auth() -> sig #1.
+        let round_id = Self::create_round_internal(
+            &env,
+            caller.clone(),
+            RoundFilter { genre, decade: None },
+            None,
+            seed,
+        );
+        // Never leave a solo round in the multiplayer lobby.
+        Self::remove_open_round(&env, round_id);
+
+        // Mark started immediately (mirrors start_round's writes for the
+        // 1-player case, but without touching require_auth).
+        let mut round = Self::read_round(&env, round_id);
+        let start_time = env.ledger().timestamp();
+        round.is_started = true;
+        round.start_time = start_time;
+        round.end_time = start_time + DEFAULT_ROUND_DURATION_SECONDS;
+        round.solo = true;
+        env.storage()
+            .persistent()
+            .set(&DataKey::Round(round_id), &round);
+        bump_persistent(&env, &DataKey::Round(round_id));
+
+        let mut stats = Self::get_player_stat(env.clone(), caller.clone());
+        stats.total_rounds += 1;
+        env.storage()
+            .persistent()
+            .set(&DataKey::PlayerStats(caller.clone()), &stats);
+        bump_persistent(&env, &DataKey::PlayerStats(caller.clone()));
+
+        RoundStarted { round_id, admin: caller.clone(), start_time }.publish(&env);
+
+        // Inline first-card draw (do NOT call next_card -> extra auth).
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let card_id = round_cards
+            .get(0)
+            .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
+        let card = Self::get_card(env.clone(), card_id);
+        env.storage().persistent().set(
+            &DataKey::PlayerCardIndex((round_id, caller.clone())),
+            &1u32,
+        );
+        env.storage().persistent().set(
+            &DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id)),
+            &env.ledger().timestamp(),
+        );
+        CardDrawn { round_id, player: caller.clone(), index: 0 }.publish(&env);
+
+        Self::build_question_card(env, card, round_id, QuestionKind::Title)
     }
 }
 
@@ -2200,3 +2722,4 @@ impl LyricsFlip {
         AnswerResult { correct, points, correct_option: 0, next }
     }
 }
+

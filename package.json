@@ -9,6 +9,8 @@
     "backend"
   ],
   "scripts": {
+    "dev": "bash onchain/scripts/dev-local.sh",
+    "dev:all": "npm run dev",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "npm --prefix backend run start:dev",
     "build:frontend": "npm --prefix frontend run build",
@@ -40,6 +42,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.0",
     "@commitlint/config-conventional": "^19.8.0",
+    "concurrently": "^9.1.2",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0"
   },
