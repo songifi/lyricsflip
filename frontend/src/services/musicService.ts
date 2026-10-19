@@ -1,18 +1,9 @@
 import { env } from '@/env';
 import type { LyricData } from '@/store/Types';
+import type { components } from './generated/openapi';
 
-export interface Song {
-  id: number;
-  title: string;
-  artist: string;
-  category: string;
-  plays: number;
-}
-
-export interface Category {
-  id: number;
-  name: string;
-}
+export type Song = components['schemas']['Song'];
+export type Category = components['schemas']['Category'];
 
 const getJson = async <T>(path: string): Promise<T> => {
   const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`);
