@@ -54,9 +54,14 @@ to the finalization time, or kept at the deadline if the round timed out.
 - **Player cap:** `join_round` fails with `RoundFull` once a round has
   `get_max_players()` players (default `8`; the owner can change it with
   `set_max_players(caller, value)`, minimum 2).
-- **Round deadline:** a round's `end_time` is `start_time + 300s`. After it,
-  `submit_answer` fails with `RoundCompleted`, and the round can be finalized.
-- **Card answer window:** players have `CARD_ANSWER_WINDOW_SECONDS` (15s) after
+- **Round deadline:** a round's `end_time` is `start_time + round_duration`.
+  The duration is snapshotted onto the round at creation. By default, it scales dynamically
+  as `cards_per_round × (answer_window + round_buffer)` (default buffer `15s`; e.g., 20 cards
+  yield `600s`), or can be overridden globally by the owner via `set_round_duration(caller, value)`
+  (`set_round_buffer(caller, value)` tunes the latency buffer). After it, `submit_answer` fails
+  with `RoundCompleted`, and the round can be finalized.
+- **Card answer window:** players have `round.answer_window` (default `15s`, snapshotted at
+  creation, owner-configurable via `set_answer_window(caller, value)` within `[5, 180]s`) after
   `next_card` to answer. **Late answers are accepted but scored as wrong**
   (they break the streak), so the player still counts as having answered and
   the round can finalize early.
@@ -65,8 +70,9 @@ to the finalization time, or kept at the deadline if the round timed out.
   emits `RoundLeft { round_id, player, refunded }`.
 - **Cancelling:** `cancel_round(caller, round_id)` works before start. The
   round admin can call it at any time; anyone else can call it once the lobby
-  has been open for `LOBBY_TIMEOUT_SECONDS` (600s). It sets `is_cancelled`,
-  drops the round from `get_open_rounds`, refunds every player and emits
+  has been open for `round.lobby_timeout` (default `600s`, snapshotted at creation,
+  owner-configurable via `set_lobby_timeout(caller, value)` within `[30, 86400]s`). It sets
+  `is_cancelled`, drops the round from `get_open_rounds`, refunds every player and emits
   `RoundCancelled { round_id, cancelled_by, refunded_players, refund_per_player }`.
   A cancelled round can't be joined, started, or finalized (`RoundCancelled`).
 
@@ -196,27 +202,47 @@ Both contracts support a two-step ownership transfer: the owner calls
 events; `owner()` and `pending_owner()` views). On `lyricsflip`, the new owner
 is also granted the admin role, and `set_role` is owner-only regardless of the
 owner's own admin flag, so the owner cannot lock themselves out. `set_role`
-emits `RoleUpdated { address, role, enabled }`.
+emits `RoleUpdated { address, role, enabled }`. Admin flags and the enumerable
+admin index (`get_admins() -> Vec<Address>`) reside in persistent storage (LF-156)
+so instance storage holds only global configuration, and revoked admins have their
+keys deleted rather than storing false tombstones.
 
-Both contracts expose `version() -> u32` and an owner-only
-`upgrade(caller, new_wasm_hash)` that replaces the code in place and keeps all
-storage (cards, stats, NFTs). Bump `VERSION` in the contract on each release,
-then:
+Soroban does not provide an API to enumerate old instance-storage keys. The v3-to-v4
+`migrate(caller)` step moves the owner admin entry; to eagerly clear other legacy
+entries, the owner must call `migrate_legacy_admins(caller, candidates)` in batches,
+using addresses collected from historical `RoleUpdated` events (include revoked
+addresses too). Each batch removes matching legacy keys and moves active grants into
+persistent storage. `is_admin` also migrates an omitted legacy entry lazily when that
+address is checked.
+
+Both contracts expose `version() -> u32` (contract code version), `schema_version() -> u32` (storage schema version, defaulting to 1 for unmigrated legacy state), an owner-only `upgrade(caller, new_wasm_hash)`, and an owner-only `migrate(caller)` hook.
+
+### Upgrade then migrate sequence
+
+When deploying a new contract release that introduces changes to storage structures or layouts (LF-157), execute the two-step upgrade sequence:
+
+1. **Upgrade WASM code:** Replace the running contract WASM with the new bytecode. The `upgrade` invocation verifies owner authorization, invokes `env.deployer().update_current_contract_wasm(new_wasm_hash)`, and emits `ContractUpgraded { owner, new_wasm_hash, old_version, new_version }`.
+2. **Migrate storage layout:** Invoke `migrate` to step stored records through sequential schema versions until reaching `SCHEMA_VERSION`. Code version and schema version are tracked independently. The hook updates `DataKey::SchemaVersion`, emits `SchemaMigrated { caller, old_schema_version, new_schema_version }`, and is strictly **idempotent** (calling `migrate` multiple times after migration is a safe no-op).
 
 ```bash
+# 1. Build and upload new WASM bytecode
 cargo build --target wasm32v1-none --release
 HASH=$(stellar contract upload \
   --wasm target/wasm32v1-none/release/lyricsflip.wasm \
   --source <OWNER_IDENTITY> --network testnet)
+
+# 2. Step 1: Upgrade contract code in place (keeps all existing storage)
 stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> \
   --source <OWNER_IDENTITY> --network testnet \
   -- upgrade --caller <OWNER_ADDRESS> --new_wasm_hash $HASH
+
+# 3. Step 2: Migrate storage layout to current SCHEMA_VERSION (idempotent)
+stellar contract invoke --id <LYRICSFLIP_CONTRACT_ID> \
+  --source <OWNER_IDENTITY> --network testnet \
+  -- migrate --caller <OWNER_ADDRESS>
 ```
 
-A release that changes the layout of stored data must migrate it; there is no
-storage schema version key yet, so add one alongside the first such change.
-`fixtures/upgrade_v2.wasm` (built from `contracts/upgrade-fixture`) is the
-stand-in new code used by the upgrade tests.
+`fixtures/upgrade_v2.wasm` (built from `contracts/upgrade-fixture`) is the stand-in v2 code used by automated upgrade fixture integration tests to verify state preservation, schema migration, and idempotency.
 
 ## Build & test
 
@@ -357,6 +383,10 @@ fields.
 | `CardRemoved` | `remove_card` | `card_id: u64` | – |
 | `RoleUpdated` | `set_role` | `account: Address` | `role: Role`, `enabled: bool` |
 | `CardsPerRoundUpdated` | `set_cards_per_round` | – | `value: u32` |
+| `AnswerWindowUpdated` | `set_answer_window` | – | `value: u64` |
+| `LobbyTimeoutUpdated` | `set_lobby_timeout` | – | `value: u64` |
+| `RoundDurationUpdated` | `set_round_duration` | – | `value: u64` |
+| `RoundBufferUpdated` | `set_round_buffer` | – | `value: u64` |
 ## TTL policy (LF-012)
 
 Soroban persistent and instance storage entries are **archived** when their
@@ -375,16 +405,18 @@ write.
 
 ### What gets bumped
 
-**Instance storage** (owner, admin flags, counters, config) is bumped in every
+**Instance storage** (owner, global counters, timing configuration) is bumped in every
 public entry point that reads or writes it — constructors, admin mutations
-(`add_card`, `set_cards_per_round`, `set_role`), and read-only views
-(`get_cards_count`, `get_round_count`, `get_cards_per_round`, `is_admin`).
+(`add_card`, `set_cards_per_round`), and read-only views
+(`get_cards_count`, `get_round_count`, `get_cards_per_round`).
 
 **Persistent storage** is bumped per-key on write, and on read for the
 following hot keys:
 
 | Key | Bumped on |
 | --- | --- |
+| `Admin(address)` | `set_role`, `accept_ownership` (write), `is_admin` (read) |
+| `Admins` | `set_role`, `accept_ownership` (write), `get_admins` (read) |
 | `Card(id)` | `add_card` (write), `get_card` (read) |
 | `GenreCards / ArtistCards / YearCards` | `add_card` (write), `get_cards_of_*` (read) |
 | `Round(id)` | every write (`create_round`, `start_round`, `next_card`, …) and every read (`read_round`) |
@@ -469,6 +501,10 @@ Every variant is currently referenced by the contract. The ones marked
 | 37 | `InvalidDecade` | Round decade is not a valid decade start year |
 | 38 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
 | 39 | `AlreadyAnswered` | Player submitted more than one answer for the same card |
+| 40 | `Paused` | Contract is currently paused |
+| 41 | `InvalidAnswerWindow` | `set_answer_window` called with value outside [5, 180]s |
+| 42 | `InvalidLobbyTimeout` | `set_lobby_timeout` called with value outside [30, 86400]s |
+| 43 | `InvalidRoundDuration` | `set_round_duration` or `set_round_buffer` called with out-of-bounds value |
 | 40 | `Paused` | The contract is paused; round creation, joining, and reward claims are blocked |
 
 ### `lyricsflip-nft`
