@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { reportError } from '@/lib/error-reporting';
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -11,11 +12,14 @@ interface ErrorProps {
 
 export default function Error({ error, reset }: ErrorProps) {
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Log the error to an error reporting service
-    console.error('[LyricsFlip Error]', error);
-  }, [error]);
+    reportError(error, {
+      route: pathname,
+      network: process.env.NEXT_PUBLIC_STELLAR_NETWORK,
+    });
+  }, [error, pathname]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
