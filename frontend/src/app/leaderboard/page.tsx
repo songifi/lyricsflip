@@ -9,11 +9,12 @@
  * Part of Issue #471 / LF-054.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLeaderboard, type LeaderboardFilter } from '@/hooks/use-leaderboard';
 import { GENRE_VALUES } from '@/lib/stellar/types';
 import { ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useProfileStore } from '@/store/useProfileStore';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -40,6 +41,20 @@ export default function LeaderboardPage() {
     page,
     limit: ITEMS_PER_PAGE,
   });
+
+  // Profiles keyed by wallet address (LF-230). Usernames come from the backend
+  // so they are shared across devices and visible to other players.
+  const profiles = useProfileStore((s) => s.profiles);
+  const fetchProfiles = useProfileStore((s) => s.fetchProfiles);
+
+  useEffect(() => {
+    const addresses = (data?.entries ?? [])
+      .map((entry) => entry.address)
+      .filter((address): address is string => Boolean(address));
+    if (addresses.length > 0) {
+      void fetchProfiles(addresses);
+    }
+  }, [data, fetchProfiles]);
 
   return (
     <main
@@ -155,7 +170,10 @@ export default function LeaderboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.entries.map((entry) => (
+                {data.entries.map((entry) => {
+                  const profile = entry.address ? profiles[entry.address] : undefined;
+                  const username = entry.username ?? profile?.username;
+                  return (
                   <tr
                     key={entry.address || entry.rank}
                     className="hover:bg-purple-50 transition-colors"
@@ -183,8 +201,8 @@ export default function LeaderboardPage() {
 
                     {/* Player */}
                     <td className="px-4 py-3">
-                      {entry.username ? (
-                        <span className="font-medium text-gray-900">{entry.username}</span>
+                      {username ? (
+                        <span className="font-medium text-gray-900">{username}</span>
                       ) : (
                         <span
                           className="font-mono text-gray-500 text-xs"
@@ -213,7 +231,8 @@ export default function LeaderboardPage() {
                       {entry.total_rounds.toLocaleString()}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -19,6 +19,7 @@ import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { MailModule } from '../mail/mail.module';
 import { WsAuthenticator } from './providers/ws-authenticator.provider';
 import { WalletAuthProvider } from './providers/wallet-auth.provider';
+import { RefreshTokenStore } from './providers/refresh-token-store.provider';
 
 @Module({
   controllers: [AuthController],
@@ -37,6 +38,7 @@ import { WalletAuthProvider } from './providers/wallet-auth.provider';
     GenerateTokensProvider,
     WsAuthenticator,
     WalletAuthProvider,
+    RefreshTokenStore,
   ],
   imports: [
     forwardRef(() => UserModule),
@@ -45,6 +47,15 @@ import { WalletAuthProvider } from './providers/wallet-auth.provider';
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
   ],
-  exports: [AuthService, HashingProvider, AccessTokenGuard, WsJwtAuthGuard, WsRolesGuard, WsAuthenticator, JwtModule],
+  exports: [
+    AuthService,
+    HashingProvider,
+    AccessTokenGuard,
+    WsJwtAuthGuard,
+    WsRolesGuard,
+    WsAuthenticator,
+    RefreshTokenStore,
+    JwtModule,
+  ],
 })
 export class AuthModule {}
