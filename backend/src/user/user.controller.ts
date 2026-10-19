@@ -222,7 +222,7 @@ export class UserController {
     status: 400,
     description: 'Invalid profile data',
   })
-  updateProfile() {
-    return this.userService.updateProfile();
+  updateProfile(@Body() profileDto: Record<string, unknown>) {
+    return this.userService.updateProfile(profileDto);
   }
 }

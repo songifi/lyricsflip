@@ -44,10 +44,18 @@ function findEntityFiles(dir: string, out: string[] = []): string[] {
  * `src/migrations/` — the same directory `app.module.ts`'s
  * `TypeOrmModule.forRoot` already runs on boot (`migrationsRun`) — so the
  * CLI and the running app agree on one migration history.
+ *
+ * This is also what the `migrations` CI job diffs against: after
+ * `migration:run` it runs `migration:generate --dryrun` (via
+ * `npm run migration:check`) and fails if any SQL is produced. Because
+ * `synchronize` is off and the entity set here is the same one the app
+ * loads, an entity change that ships without a migration shows up as a
+ * pending diff and fails CI instead of breaking at runtime.
  */
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
+  synchronize: false,
   entities: findEntityFiles(srcRoot),
   migrations: [srcRoot + '/migrations/*.{ts,js}'],
 });

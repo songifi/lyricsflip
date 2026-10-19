@@ -81,6 +81,12 @@ export class SongsController {
     return this.songsService.findByGenre(genre);
   }
 
+  @Get('genres/:genre')
+  @ApiOperation({ summary: 'Get songs by genre (alias)' })
+  findByGenreAlias(@Param('genre', new ParseEnumPipe(Genre)) genre: Genre) {
+    return this.songsService.findByGenre(genre);
+  }
+
   @Get('card/:cardId')
   @ApiOperation({ summary: 'Get the song for an on-chain card id' })
   findByCard(@Param('cardId') cardId: string) {
