@@ -5,13 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useState, useEffect } from 'react';
-import { WAGER_ASSET_CODE } from '@/lib/utils';
+import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
 
 export const GameResultModal = () => {
   const { isOpen, modalType, closeModal } = useModalStore();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { systemCalls } = useStellar();
+  const { systemCalls, account } = useStellar();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roundData, setRoundData] = useState<any>(null);
@@ -29,8 +29,26 @@ export const GameResultModal = () => {
 
       try {
         setIsLoading(true);
-        const data = await systemCalls.getRound(BigInt(roundId));
-        setRoundData(data);
+        const id = BigInt(roundId);
+        const [data, scores, cards] = await Promise.all([
+          systemCalls.getRound(id),
+          systemCalls.getRoundScores(id).catch((): Record<string, number> => ({})),
+          systemCalls.getRoundCards(id).catch(() => []),
+        ]);
+
+        const playerScore =
+          account?.address && scores[account.address] !== undefined
+            ? scores[account.address]
+            : (scores[data.admin] ?? 0);
+
+        setRoundData({
+          ...data,
+          score: playerScore,
+          maxRounds: cards.length || 1,
+          wagerAmount: formatAmount(data.wager_amount),
+          potentialWin: formatAmount(data.wager_amount),
+          odds: '1.0',
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch round data');
       } finally {
@@ -39,7 +57,7 @@ export const GameResultModal = () => {
     };
 
     fetchRoundData();
-  }, [roundId, systemCalls]);
+  }, [roundId, systemCalls, account?.address]);
 
   const renderResultContent = () => {
     if (isLoading) {

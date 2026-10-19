@@ -13,6 +13,8 @@ const mockSubmitAnswer = jest.fn();
 const mockSubmitAnswerWithMeta = jest.fn();
 const mockGetPlayerStat = jest.fn();
 const mockClaimReward = jest.fn();
+const mockFinalizeRound = jest.fn().mockResolvedValue(undefined);
+const mockGetRoundScores = jest.fn().mockResolvedValue({ GPLAYER1: 1 });
 
 const mockSystemCalls = {
   getRound: mockGetRound,
@@ -25,6 +27,8 @@ const mockSystemCalls = {
   submitAnswerWithMeta: mockSubmitAnswerWithMeta,
   getPlayerStat: mockGetPlayerStat,
   claimReward: mockClaimReward,
+  finalizeRound: mockFinalizeRound,
+  getRoundScores: mockGetRoundScores,
 };
 
 jest.mock('next/navigation', () => ({
@@ -40,6 +44,13 @@ jest.mock('@/lib/stellar/hooks/use-stellar', () => ({
 }));
 
 jest.mock('@/lib/confetti', () => ({ fireConfetti: jest.fn() }));
+
+jest.mock('@/components/organisms/game-result-popup', () => ({
+  __esModule: true,
+  default: ({ isWin }: { isWin: boolean }) => (
+    <div data-testid="game-result-popup">Result: {isWin ? 'Win' : 'Loss'}</div>
+  ),
+}));
 
 const round = {
   round_id: BigInt(1),
@@ -191,4 +202,73 @@ describe('SinglePlayerPage', () => {
 
     expect(await screen.findByText('Wrong')).toBeInTheDocument();
   });
+
+  it('calls finalizeRound and queries authoritative round scores when round completes', async () => {
+    mockGetRoundCards.mockResolvedValue([BigInt(7)]);
+    mockGetRound.mockResolvedValue({ ...round, next_card_index: 0 });
+    const startedAtMs = Date.now();
+    mockNextCardWithMeta.mockResolvedValue({ result: card, closedAtMs: null, startedAtMs });
+    mockSubmitAnswerWithMeta.mockResolvedValue({
+      result: true,
+      closedAtMs: startedAtMs + 1_000,
+    });
+    mockFinalizeRound.mockResolvedValue(undefined);
+    mockGetRoundScores.mockResolvedValue({ GPLAYER1: 1 });
+    mockGetPlayerStat.mockResolvedValue({
+      rounds_played: BigInt(1),
+      rounds_won: BigInt(1),
+      current_streak: BigInt(1),
+      max_streak: BigInt(1),
+    });
+
+    render(<SinglePlayerPage />);
+
+    // Answer the only card
+    fireEvent.click(
+      await screen.findByRole('button', { name: /option 1: thriller/i }),
+    );
+
+    // Click finish round
+    const nextBtn = await screen.findByRole('button', { name: /next card/i });
+    fireEvent.click(nextBtn);
+
+    await waitFor(() => {
+      expect(mockFinalizeRound).toHaveBeenCalledWith(BigInt(1));
+      expect(mockGetRoundScores).toHaveBeenCalledWith(BigInt(1));
+    });
+  });
+
+  it('gracefully treats RoundAlreadyFinalized (code 19) as success during finalization', async () => {
+    mockGetRoundCards.mockResolvedValue([BigInt(7)]);
+    mockGetRound.mockResolvedValue({ ...round, next_card_index: 0 });
+    const startedAtMs = Date.now();
+    mockNextCardWithMeta.mockResolvedValue({ result: card, closedAtMs: null, startedAtMs });
+    mockSubmitAnswerWithMeta.mockResolvedValue({
+      result: true,
+      closedAtMs: startedAtMs + 1_000,
+    });
+    mockFinalizeRound.mockRejectedValue(new Error('Transaction failed: Error(Contract, #19)'));
+    mockGetRoundScores.mockResolvedValue({ GPLAYER1: 1 });
+    mockGetPlayerStat.mockResolvedValue({
+      rounds_played: BigInt(1),
+      rounds_won: BigInt(1),
+      current_streak: BigInt(1),
+      max_streak: BigInt(1),
+    });
+
+    render(<SinglePlayerPage />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /option 1: thriller/i }),
+    );
+
+    const nextBtn = await screen.findByRole('button', { name: /next card/i });
+    fireEvent.click(nextBtn);
+
+    await waitFor(() => {
+      expect(mockFinalizeRound).toHaveBeenCalledWith(BigInt(1));
+      expect(mockGetRoundScores).toHaveBeenCalledWith(BigInt(1));
+    });
+  });
 });
+
