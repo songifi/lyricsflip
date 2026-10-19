@@ -62,7 +62,9 @@ Copy `.env.example` to `backend/.env` (or `.env.development`):
 | `JWT_ACCESS_TOKEN_TTL` / `JWT_REFRESH_TOKEN_TTL` | no | — | Token lifetimes (seconds) |
 | `JWT_TOKEN_AUDIENCE` / `JWT_TOKEN_ISSUER` | no | — | JWT `aud` / `iss` claims |
 | `STELLAR_NETWORK` | **yes** | — | `testnet`, `futurenet` or `mainnet` |
-| `SOROBAN_RPC_URL` | no | — | Soroban RPC used by the indexer and `/health` |
+| `SOROBAN_RPC_URL` | no | — | Soroban RPC used by the indexer and `/health`; validated at boot |
+| `LYRICSFLIP_CONTRACT_ID` | no | — | LyricsFlip game contract ID indexed by the indexer; validated with `StrKey.isValidContract` |
+| `LYRICSFLIP_NFT_CONTRACT_ID` | no | — | NFT contract ID indexed alongside `LYRICSFLIP_CONTRACT_ID` (so `NftMinted` events are indexed); validated with `StrKey.isValidContract` |
 | `REDIS_URL` | no | `redis://127.0.0.1:6379` | Throttler storage and health check |
 | `REDIS_HOST` / `REDIS_PORT` | no | `localhost` / `6379` | Cache store |
 | `RATE_LIMIT_TTL` / `RATE_LIMIT_LIMIT` | no | `60` / `10` | Default rate limit |
@@ -70,6 +72,10 @@ Copy `.env.example` to `backend/.env` (or `.env.development`):
 | `MAIL_FROM` | no | `LyricsFlip <no-reply@lyricsflip.local>` | Sender address |
 | `PASSWORD_RESET_TTL_MINUTES` | no | `15` | Password-reset link lifetime |
 | `APP_URL` | no | `http://localhost:3000` | Public URL used in emails/links |
+
+Both contract IDs and `SOROBAN_RPC_URL` are validated at boot (Joi and a runtime `StrKey.isValidContract`
+check). An invalid value stops the app with a clear message; in production, boot fails fast when the
+indexer is enabled but misconfigured, instead of leaving the indexer silently idle.
 
 ## Running locally
 
@@ -113,10 +119,27 @@ npm run migration:show             # list applied/pending migrations
 npm run migration:generate -- src/migrations/DescriptiveName   # generate one from entity changes
 ```
 
+Workflow for a schema change:
+
+1. Edit or add the entity.
+2. Generate the migration from the diff:
+   `npm run migration:generate -- src/migrations/DescriptiveName`.
+3. Review the generated SQL (it is committed alongside the entity change).
+4. Apply it locally with `npm run migration:run`; `npm run migration:show` lists applied/pending
+   migrations and `npm run migration:revert` rolls back the last one.
+
+CI enforces this: the `migrations` job runs `migration:run` and then a drift check
+(`migration:generate --dryrun`, or a `schema:log` diff). If the check produces any SQL, the job
+fails — so a PR that adds an entity column without a migration cannot merge.
+
 ## API docs and health
 
+Every REST route is versioned under the global prefix `/api/v1` (URI versioning), e.g.
+`/api/v1/auth/challenge` and `/api/v1/leaderboard`. Point the frontend's `NEXT_PUBLIC_API_URL` at
+`http://localhost:3000/api/v1`. `/health` is excluded from the prefix.
+
 - Swagger UI: `http://localhost:3000/api/docs` (disabled when `NODE_ENV=production`)
-- Health: `GET /health` (public) — reports `database`, `redis` and `stellarRpc`; returns `200` when all are up and `503` otherwise.
+- Health: `GET /health` (public, unversioned) — reports `database`, `redis` and `stellarRpc`; returns `200` when all are up and `503` otherwise.
 
 ## WebSocket protocol
 
