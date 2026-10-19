@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 
 type NotificationCategory = 'all' | 'mentions' | 'system'
@@ -15,48 +15,86 @@ interface NotificationItem {
   icon?: string
 }
 
-const sampleNotifications: NotificationItem[] = [
-  {
-    id: '1',
-    title: 'New Challenge Invite',
-    message: 'Alex invited you to a wager match. Streaks are on the line!',
-    timeAgo: '2m',
-    unread: true,
-    category: 'all',
-    icon: '/join.svg',
-  },
-  {
-    id: '2',
-    title: 'You were mentioned',
-    message: '“@you crushed that last round!” – from the global chat',
-    timeAgo: '15m',
-    unread: true,
-    category: 'mentions',
-    icon: '/cardline.svg',
-  },
-  {
-    id: '3',
-    title: 'System Update',
-    message: 'Multiplier odds updated for quick matches. See what’s new.',
-    timeAgo: '1h',
-    unread: false,
-    category: 'system',
-    icon: '/card2line.svg',
-  },
-  {
-    id: '4',
-    title: 'Leaderboard Movement',
-    message: 'You moved up to rank #18. Keep the tempo going!',
-    timeAgo: '3h',
-    unread: false,
-    category: 'all',
-    icon: '/trophy.png',
-  },
-]
+interface ApiNotification {
+  id: string
+  title?: string
+  message?: string
+  body?: string
+  createdAt?: string
+  read?: boolean
+  isRead?: boolean
+  category?: string
+  type?: string
+  icon?: string
+}
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
+
+function formatTimeAgo(iso?: string): string {
+  if (!iso) return ''
+  const then = new Date(iso).getTime()
+  if (Number.isNaN(then)) return ''
+  const diffSec = Math.max(0, Math.floor((Date.now() - then) / 1000))
+  if (diffSec < 60) return `${diffSec}s`
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin}m`
+  const diffHr = Math.floor(diffMin / 60)
+  if (diffHr < 24) return `${diffHr}h`
+  const diffDay = Math.floor(diffHr / 24)
+  return `${diffDay}d`
+}
+
+function normalizeCategory(raw?: string): NotificationCategory {
+  const value = (raw ?? '').toLowerCase()
+  if (value === 'mentions' || value === 'mention') return 'mentions'
+  if (value === 'system') return 'system'
+  return 'all'
+}
+
+function mapNotification(n: ApiNotification): NotificationItem {
+  return {
+    id: n.id,
+    title: n.title ?? 'Notification',
+    message: n.message ?? n.body ?? '',
+    timeAgo: formatTimeAgo(n.createdAt),
+    unread: !(n.read ?? n.isRead ?? false),
+    category: normalizeCategory(n.category ?? n.type),
+    icon: n.icon,
+  }
+}
 
 export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState<NotificationCategory>('all')
-  const [items, setItems] = useState<NotificationItem[]>(sampleNotifications)
+  const [items, setItems] = useState<NotificationItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setError(null)
+      const res = await fetch(`${API_BASE}/notifications`, {
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error(`Failed to load notifications (${res.status})`)
+      const data = await res.json()
+      const list: ApiNotification[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.notifications)
+          ? data.notifications
+          : Array.isArray(data?.data)
+            ? data.data
+            : []
+      setItems(list.map(mapNotification))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load notifications')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    void fetchNotifications()
+  }, [fetchNotifications])
 
   const filtered = useMemo(() => {
     if (activeTab === 'all') return items
@@ -65,8 +103,32 @@ export default function NotificationsPage() {
 
   const unreadCount = useMemo(() => items.filter(n => n.unread).length, [items])
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
+    const previous = items
     setItems(prev => prev.map(n => ({ ...n, unread: false })))
+    try {
+      const res = await fetch(`${API_BASE}/notifications/mark-read`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error(`Failed to mark all as read (${res.status})`)
+    } catch {
+      setItems(previous)
+    }
+  }
+
+  const handleMarkAsRead = async (id: string) => {
+    const previous = items
+    setItems(prev => prev.map(n => (n.id === id ? { ...n, unread: false } : n)))
+    try {
+      const res = await fetch(`${API_BASE}/notifications/${encodeURIComponent(id)}/read`, {
+        method: 'PATCH',
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error(`Failed to mark notification as read (${res.status})`)
+    } catch {
+      setItems(previous)
+    }
   }
 
   const handleDismiss = (id: string) => {
@@ -119,7 +181,24 @@ export default function NotificationsPage() {
         })}
       </div>
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-16 border rounded-lg bg-white">
+          <p className="text-sm text-[#909090]">Loading notifications…</p>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center py-16 border rounded-lg bg-white">
+          <p className="text-sm text-[#909090]">{error}</p>
+          <button
+            onClick={() => {
+              setLoading(true)
+              void fetchNotifications()
+            }}
+            className="mt-4 text-sm text-purplePrimary5 hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 border rounded-lg bg-white">
           <Image src="/Noise.png" alt="empty" width={64} height={64} className="opacity-60" />
           <p className="mt-4 text-sm text-[#909090]">No notifications here yet.</p>
@@ -157,6 +236,14 @@ export default function NotificationsPage() {
                     <span className="inline-flex items-center rounded-full bg-purplePrimary5/10 text-purplePrimary5 text-xs px-2 py-0.5">
                       Unread
                     </span>
+                  )}
+                  {n.unread && (
+                    <button
+                      onClick={() => handleMarkAsRead(n.id)}
+                      className="text-xs text-[#909090] hover:text-textdark"
+                    >
+                      Mark as read
+                    </button>
                   )}
                   <button
                     onClick={() => handleDismiss(n.id)}
