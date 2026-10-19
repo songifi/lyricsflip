@@ -218,7 +218,7 @@ fn round_count_tracks_creates() {
     assert_eq!(client.get_round_count(), 0);
 
     for seed in 0..3u64 {
-        client.create_round(&owner, &Some(Genre::Pop), &seed);
+        client.create_round(&owner, &Some(Genre::Pop), &seed, &None);
     }
     assert_eq!(client.get_round_count(), 3);
 }
@@ -232,7 +232,7 @@ fn join_round_rejects_duplicate_join() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &3);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
 
     let result = client.try_join_round(&owner, &round_id);
     assert!(result.is_err(), "the round creator is already a player");
@@ -243,7 +243,7 @@ fn join_round_rejects_after_start() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &3);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
 
     let late_player = Address::generate(&env);
@@ -261,9 +261,9 @@ fn round_requires_all_players_ready_before_starting() {
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &3);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
 
     client.start_round(&owner, &round_id);
     let round = client.get_round(&round_id);
@@ -288,9 +288,9 @@ fn total_rounds_increments_once_per_player_when_three_player_round_starts() {
 
     let player2 = Address::generate(&env);
     let player3 = Address::generate(&env);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64);
-    client.join_round(&player2, &round_id);
-    client.join_round(&player3, &round_id);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player3, &round_id, &None);
 
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
@@ -315,9 +315,9 @@ fn total_rounds_unchanged_when_round_never_fully_starts() {
 
     let player2 = Address::generate(&env);
     let player3 = Address::generate(&env);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64);
-    client.join_round(&player2, &round_id);
-    client.join_round(&player3, &round_id);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
+    client.join_round(&player2, &round_id, &None);
+    client.join_round(&player3, &round_id, &None);
 
     // Only some players mark ready; the round never reaches full ready count.
     client.start_round(&owner, &round_id);
@@ -339,7 +339,7 @@ fn start_round_rejects_already_ready_player() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &3);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
 
     client.start_round(&owner, &round_id);
     // Second ready call by the same player should fail.
@@ -352,7 +352,7 @@ fn start_round_rejects_non_participant() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &3);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
 
     let outsider = Address::generate(&env);
     let result = client.try_start_round(&outsider, &round_id);
@@ -368,7 +368,7 @@ fn next_card_advances_index_and_completes_round() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
 
     let _c1 = client.next_card(&round_id);
@@ -392,7 +392,7 @@ fn next_card_errors_when_round_not_started() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
 
     let result = client.try_next_card(&round_id);
     assert!(result.is_err());
@@ -403,7 +403,7 @@ fn next_card_errors_when_round_completed() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 1);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
     client.next_card(&round_id);
 
@@ -636,7 +636,7 @@ fn submit_answer_updates_streak_and_reports_correctness() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &3);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &7u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &7u64, &None);
     client.start_round(&owner, &round_id);
 
     let round = client.get_round(&round_id);
@@ -668,7 +668,7 @@ fn submit_answer_artist_kind_accepted() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &5u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &5u64, &None);
     client.start_round(&owner, &round_id);
 
     let card = client.next_card(&round_id);
@@ -681,7 +681,7 @@ fn submit_answer_year_kind_accepted() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &6u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &6u64, &None);
     client.start_round(&owner, &round_id);
 
     let card = client.next_card(&round_id);
@@ -694,7 +694,7 @@ fn submit_answer_rejects_non_participant() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &8u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &8u64, &None);
     client.start_round(&owner, &round_id);
     client.next_card(&round_id);
 
@@ -712,7 +712,7 @@ fn submit_answer_rejects_on_unstarted_round() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &9u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &9u64, &None);
 
     let result = client.try_submit_answer(
         &owner,
@@ -868,9 +868,9 @@ fn finalize_round_e2e_single_winner_updates_stats_and_scores() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
@@ -927,9 +927,9 @@ fn finalize_round_e2e_deadline_path_works_without_all_answers() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &99u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &99u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
@@ -969,9 +969,9 @@ fn finalize_round_e2e_tie_breaks_by_total_answer_time() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &3u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &3u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
@@ -994,9 +994,9 @@ fn finalize_round_e2e_exact_score_and_time_tie_produces_co_winners() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &11u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &11u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
@@ -1023,9 +1023,9 @@ fn finalize_round_rejects_early_and_non_participant() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &17u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &17u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
@@ -1048,9 +1048,9 @@ fn finalize_round_e2e_no_correct_answers_has_no_winners() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &17u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &17u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
@@ -1093,7 +1093,7 @@ fn get_rounds_paginates_and_respects_limit() {
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &3);
     for seed in 0..5u64 {
-        client.create_round(&owner, &Some(Genre::Pop), &seed);
+        client.create_round(&owner, &Some(Genre::Pop), &seed, &None);
     }
 
     let page = client.get_rounds(&1, &2);
@@ -1118,7 +1118,7 @@ fn get_rounds_clamps_limit_to_max() {
     client.set_cards_per_round(&owner, &1);
     let total = MAX_PAGE_LIMIT as u64 + 5;
     for seed in 0..total {
-        client.create_round(&owner, &Some(Genre::Pop), &seed);
+        client.create_round(&owner, &Some(Genre::Pop), &seed, &None);
     }
 
     let page = client.get_rounds(&1, &u32::MAX);
@@ -1131,9 +1131,9 @@ fn open_rounds_drop_rounds_once_started() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &3);
-    let r1 = client.create_round(&owner, &Some(Genre::Pop), &1u64);
-    let r2 = client.create_round(&owner, &Some(Genre::Pop), &2u64);
-    let r3 = client.create_round(&owner, &Some(Genre::Pop), &3u64);
+    let r1 = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    let r2 = client.create_round(&owner, &Some(Genre::Pop), &2u64, &None);
+    let r3 = client.create_round(&owner, &Some(Genre::Pop), &3u64, &None);
 
     let open = client.get_open_rounds(&0, &10);
     assert_eq!(open.len(), 3);
@@ -1141,7 +1141,7 @@ fn open_rounds_drop_rounds_once_started() {
 
     // A round with a second player stays open until everyone is ready.
     let player = Address::generate(&env);
-    client.join_round(&player, &r2);
+    client.join_round(&player, &r2, &None);
     client.start_round(&owner, &r2);
     assert_eq!(client.get_open_rounds(&0, &10).len(), 3);
     client.start_round(&player, &r2);
@@ -1297,7 +1297,7 @@ fn ttl_survival_game_entries_survive_ledger_advance() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64, &None);
     client.start_round(&owner, &round_id);
 
     let card = client.next_card(&round_id);
@@ -1339,9 +1339,9 @@ fn leave_round_refunds_wager_and_frees_the_seat() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&player2, &round_id);
 
     client.leave_round(&player2, &round_id);
@@ -1365,9 +1365,9 @@ fn leave_round_fails_after_start_and_for_admin() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
 
     assert_eq!(
         client.try_leave_round(&owner, &round_id),
@@ -1386,9 +1386,9 @@ fn cancel_round_refunds_everyone_and_blocks_join_and_start() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
 
     client.cancel_round(&owner, &round_id);
     let events = env.events().all();
@@ -1424,7 +1424,7 @@ fn anyone_can_cancel_only_after_lobby_timeout() {
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
     env.ledger().set_timestamp(1_000);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     let stranger = Address::generate(&env);
 
     assert_eq!(
@@ -1444,9 +1444,9 @@ fn join_round_fails_with_round_full_past_max_players() {
     assert_eq!(client.get_max_players(), DEFAULT_MAX_PLAYERS);
     client.set_max_players(&owner, &3);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
-    client.join_round(&Address::generate(&env), &round_id);
-    client.join_round(&Address::generate(&env), &round_id);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
+    client.join_round(&Address::generate(&env), &round_id, &None);
+    client.join_round(&Address::generate(&env), &round_id, &None);
     assert_eq!(
         client.try_join_round(&Address::generate(&env), &round_id),
         Err(Ok(Error::RoundFull.into()))
@@ -1892,9 +1892,9 @@ fn join_round_rejects_when_full() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 5);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     for _ in 1..MAX_ROUND_PLAYERS {
-        client.join_round(&Address::generate(&env), &round_id);
+        client.join_round(&Address::generate(&env), &round_id, &None);
     }
     assert_eq!(client.get_players_round_count(&round_id), MAX_ROUND_PLAYERS);
     assert_eq!(
@@ -1914,7 +1914,7 @@ fn answer_after_card_window_is_scored_as_wrong() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 1);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(10);
@@ -1962,7 +1962,7 @@ fn winner_claims_nft_reward_via_cross_contract_mint() {
 
     seed_cards(&env, &client, &owner, 1);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
     let card = client.next_card(&round_id);
     assert!(client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone())));
@@ -2051,7 +2051,7 @@ fn pause_blocks_create_round_join_round_and_claim_reward() {
     client.set_cards_per_round(&owner, &2);
 
     // A round created before the pause stays joinable only until pause lands.
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
 
     client.pause(&owner);
     assert!(client.is_paused());
@@ -2096,9 +2096,9 @@ fn unpause_restores_create_round_join_round_and_claim() {
     client.unpause(&owner);
     assert!(!client.is_paused());
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     assert_eq!(client.get_players_round_count(&round_id), 2);
 
     // Claim paths are reachable again (the milestone itself is still unmet).
@@ -2127,9 +2127,9 @@ fn leave_round_refunds_while_paused() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
 
     client.pause(&owner);
 
@@ -2151,9 +2151,9 @@ fn cancel_round_refunds_everyone_while_paused() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 2);
     client.set_cards_per_round(&owner, &2);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
 
     client.pause(&owner);
 
@@ -2223,7 +2223,7 @@ fn admin_and_gameplay_mutations_emit_events() {
         },
     );
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
     let card = client.next_card(&round_id);
     assert_emitted(
@@ -2256,13 +2256,13 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &5u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &5u64, &None);
     let fast = Address::generate(&env);
     let slow = Address::generate(&env);
     let wrong = Address::generate(&env);
-    client.join_round(&fast, &round_id);
-    client.join_round(&slow, &round_id);
-    client.join_round(&wrong, &round_id);
+    client.join_round(&fast, &round_id, &None);
+    client.join_round(&slow, &round_id, &None);
+    client.join_round(&wrong, &round_id, &None);
     for player in [&owner, &fast, &slow, &wrong] {
         client.start_round(player, &round_id);
     }
@@ -2325,7 +2325,7 @@ fn lf004_second_answer_for_same_card_fails_with_already_answered() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &55u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &55u64, &None);
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(NOW + 5);
@@ -2353,7 +2353,7 @@ fn lf004_cannot_guess_until_correct_by_resubmitting() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &66u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &66u64, &None);
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(NOW + 5);
@@ -2389,7 +2389,7 @@ fn lf004_streak_cannot_grow_more_than_one_per_card() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &3);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &13u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &13u64, &None);
     client.start_round(&owner, &round_id);
 
     // Draw and answer cards 1, 2, and 3 Ã¢Â€Â” one answer per card.
@@ -2421,9 +2421,9 @@ fn lf004_other_players_can_still_answer_same_card() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &99u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &99u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
@@ -2463,7 +2463,7 @@ fn lf003_single_card_round_can_be_answered() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &1);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &7u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &7u64, &None);
     client.start_round(&owner, &round_id);
 
     // Draw the only card in the round.
@@ -2494,9 +2494,9 @@ fn lf003_three_card_round_last_card_is_answerable() {
     seed_cards(&env, &client, &owner, 6);
     client.set_cards_per_round(&owner, &3);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &77u64, &None);
     let player2 = Address::generate(&env);
-    client.join_round(&player2, &round_id);
+    client.join_round(&player2, &round_id, &None);
     client.start_round(&owner, &round_id);
     client.start_round(&player2, &round_id);
 
@@ -2543,7 +2543,7 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
     seed_cards(&env, &client, &owner, 4);
     client.set_cards_per_round(&owner, &2);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &21u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &21u64, &None);
     client.start_round(&owner, &round_id);
 
     // Draw both cards.
@@ -2680,10 +2680,10 @@ fn simulate_eight_player_round(scenario: Simulation) {
     }
 
     let mut players = std::vec![owner.clone()];
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &123u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &123u64, &None);
     for _ in 1..MAX_ROUND_PLAYERS {
         let player = Address::generate(&env);
-        client.join_round(&player, &round_id);
+        client.join_round(&player, &round_id, &None);
         players.push(player);
     }
     for player in players.iter() {
@@ -2804,7 +2804,7 @@ fn lf159_first_ledger_answer_gets_max_points() {
     let (env, client, owner) = setup();
     seed_cards(&env, &client, &owner, 3);
     client.set_cards_per_round(&owner, &1);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     client.start_round(&owner, &round_id);
 
     env.ledger().set_timestamp(NOW + 5);
@@ -3046,6 +3046,71 @@ fn lf160_edge_year_card_still_has_four_unique_options() {
     }
 }
 
+
+// LF-162: private round requires the invite preimage; absent from the lobby.
+#[test]
+fn lf162_private_round_requires_invite_code() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 5);
+    client.set_cards_per_round(&owner, &2);
+
+    // Compute sha256("magic-code") on-chain style.
+    let code = String::from_str(&env, "magic-code");
+    let bytes = Bytes::from_slice(&env, code.to_string().as_bytes());
+    let hash: BytesN<32> = env.crypto().sha256(&bytes).into();
+
+    let round_id = client.create_round(
+        &owner,
+        &Some(Genre::Pop),
+        &162u64,
+        &Some(hash.clone()),
+    );
+
+    // Not in lobby.
+    let open = client.get_open_rounds(&0u32, &10u32);
+    assert_eq!(open.len(), 0, "private round must not appear in get_open_rounds");
+
+    // Joining without the code is rejected.
+    let stranger = Address::generate(&env);
+    let err = client
+        .try_join_round(&stranger, &round_id, &None)
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::NotAuthorized.into());
+
+    // Joining with the wrong code is rejected.
+    let wrong = String::from_str(&env, "wrong-code");
+    let err = client
+        .try_join_round(&stranger, &round_id, &Some(wrong))
+        .unwrap_err()
+        .unwrap();
+    assert_eq!(err, Error::NotAuthorized.into());
+
+    // Joining with the right code succeeds.
+    client.join_round(&stranger, &round_id, &Some(code.clone()));
+
+    // Player count went from 1 (owner) to 2.
+    let players = client.get_round_players(&round_id);
+    assert_eq!(players.len(), 2);
+    assert_eq!(
+        client.get_round_players(&round_id).first_index_of(&stranger),
+        Some(1)
+    );
+}
+
+// LF-162: public rounds are unaffected.
+#[test]
+fn lf162_public_round_still_joinable_without_code() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 3);
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &162u64, &None);
+    assert_eq!(client.get_open_rounds(&0u32, &10u32).len(), 1);
+
+    let stranger = Address::generate(&env);
+    client.join_round(&stranger, &round_id, &None);
+    assert_eq!(client.get_round_players(&round_id).len(), 2);
 // LF-163: a solo round starts in one call with exactly one signature.
 #[test]
 fn lf163_solo_round_starts_in_one_call() {

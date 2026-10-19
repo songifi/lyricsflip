@@ -559,6 +559,7 @@ impl LyricsFlip {
             },
             None,
             seed,
+            invite_hash,
         )
     }
 
@@ -579,6 +580,7 @@ impl LyricsFlip {
         filter: RoundFilter,
         difficulty: Option<u32>,
         seed: u64,
+        invite_hash: Option<BytesN<32>>,
     ) -> u64 {
         caller.require_auth();
         if difficulty.is_some_and(|value| !(1..=3).contains(&value)) {
@@ -791,6 +793,20 @@ impl LyricsFlip {
     /// Joins round.
     pub fn join_round(env: Env, caller: Address, round_id: u64) {
         caller.require_auth();
+        // LF-162: private rounds require the preimage of RoundInviteHash.
+        if let Some(expected) = env
+            .storage()
+            .persistent()
+            .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
+        {
+            let provided = code
+                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let bytes = Bytes::from_slice(&env, provided.to_string().as_bytes());
+            let hash = env.crypto().sha256(&bytes);
+            if hash.to_array() != expected.to_array() {
+                panic_with_error!(env, Error::NotAuthorized); // invite_hash mismatch
+            }
+        }
         Self::require_not_paused(&env);
         let round = Self::read_round(&env, round_id);
 
@@ -2266,3 +2282,4 @@ impl LyricsFlip {
         AnswerResult { correct, points, correct_option: 0, next }
     }
 }
+
