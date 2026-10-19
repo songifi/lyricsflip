@@ -2,17 +2,36 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { DataSource, QueryRunner } from 'typeorm';
+import { rpc, scValToNative, xdr } from '@stellar/stellar-sdk';
+import { LeaderboardService } from '../../leaderboard/services/leaderboard.service';
+import { StateRecoveryService } from './state-recovery.service';
+
+/**
+ * Metrics exposed by the indexer for the /health endpoint (LF-232).
+ */
+export interface IndexerMetrics {
+  lastLedger: number | null;
+  latestLedger: number | null;
+  lag: number | null;
+  errorCount: number;
+  consecutiveErrors: number;
+  lastErrorAt: Date | null;
+  lastPollAt: Date | null;
+  cursor: string | null;
+}
 
 /**
  * IndexerService polls Soroban RPC for contract events and upserts database state.
- * 
+ *
  * Responsibilities:
  * - Poll rpc.Server.getEvents() for both contract IDs
  * - Track cursor position for idempotency (restart-safe)
- * - Decode and validate events (RoundCreated, RoundJoined, PlayerReady, etc.)
- * - Upsert rounds, round_players, answers, nfts tables
+ * - Decode and validate events (round_created, round_joined, player_ready, etc.)
+ * - Upsert chain_rounds, chain_round_players, chain_answers, chain_round_results, chain_nfts
  * - Emit events for real-time WebSocket broadcast
- * - Handle RPC outages gracefully (backoff, retry)
+ * - Handle RPC outages gracefully (exponential backoff with jitter)
+ * - Recover from RPC event-retention gaps via StateRecoveryService (LF-223)
  */
 @Injectable()
 export class IndexerService implements OnModuleInit {
@@ -20,15 +39,29 @@ export class IndexerService implements OnModuleInit {
   private currentCursor: string | null = null;
   private isProcessing = false;
 
+  private readonly pageLimit = 100;
+  private readonly maxBackoffMs = 60_000;
+  private readonly baseBackoffMs = 1_000;
+
+  private lastLedger: number | null = null;
+  private latestLedger: number | null = null;
+  private errorCount = 0;
+  private consecutiveErrors = 0;
+  private lastErrorAt: Date | null = null;
+  private lastPollAt: Date | null = null;
+
   constructor(
     private configService: ConfigService,
     private eventEmitter: EventEmitter2,
+    private dataSource: DataSource,
+    private leaderboardService: LeaderboardService,
+    private stateRecoveryService: StateRecoveryService,
   ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
     this.logger.log('IndexerService initialized. Scheduled polling will start shortly.');
     // Load last cursor from storage on startup for idempotency
-    this.loadCursorFromStorage();
+    await this.loadCursorFromStorage();
   }
 
   /**
@@ -54,12 +87,35 @@ export class IndexerService implements OnModuleInit {
       for (const contractId of contractIds) {
         await this.pollAndProcessEvents(rpcServerUrl, contractId);
       }
+
+      if (this.configService.get<boolean>('soroban.keeperEnabled')) {
+        await this.runKeeper();
+      }
     } catch (error) {
       this.logger.error(`Error during event indexing: ${error.message}`, error.stack);
       // Continue on error; will retry on next cron tick
     } finally {
       this.isProcessing = false;
     }
+  }
+
+  /**
+   * Metrics snapshot for the health indicator (LF-232).
+   */
+  getMetrics(): IndexerMetrics {
+    return {
+      lastLedger: this.lastLedger,
+      latestLedger: this.latestLedger,
+      lag:
+        this.lastLedger !== null && this.latestLedger !== null
+          ? Math.max(0, this.latestLedger - this.lastLedger)
+          : null,
+      errorCount: this.errorCount,
+      consecutiveErrors: this.consecutiveErrors,
+      lastErrorAt: this.lastErrorAt,
+      lastPollAt: this.lastPollAt,
+      cursor: this.currentCursor,
+    };
   }
 
   /**

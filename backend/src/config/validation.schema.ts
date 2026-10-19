@@ -22,4 +22,11 @@ export const validationSchema = Joi.object({
   REDIS_HOST: Joi.string().optional(),
   REDIS_PORT: Joi.number().optional(),
   REDIS_URL: Joi.string().optional(),
+
+  // Indexer (LF-221 / LF-223) - all optional, defaults applied in configuration.ts.
+  INDEXER_POLL_INTERVAL_MS: Joi.number().integer().min(0).optional(),
+  INDEXER_EVENT_LIMIT: Joi.number().integer().min(1).optional(),
+  INDEXER_KEEPER_ENABLED: Joi.boolean().optional(),
+  INDEXER_RETENTION_DAYS: Joi.number().integer().min(0).optional(),
+  INDEXER_START_LEDGER: Joi.number().integer().min(0).optional(),
 });
