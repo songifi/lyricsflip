@@ -1,3 +1,7 @@
+// src/features/game/hooks/useGameTimer.ts
+import { useEffect, useRef } from 'react';
+import { useStore } from '@/store';
+
 // src/features/game/hooks/use-game-timer.ts
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/store';
@@ -26,6 +30,9 @@ interface UseGameTimerReturn {
   resetTimer: (newTime?: number) => void;
 }
 
+export const useGameTimer = (): UseGameTimerReturn => {
+  const {
+    timeLeft,
 const toDeadlineMs = (endTimeSeconds: number | bigint | null | undefined) => {
   if (endTimeSeconds === null || endTimeSeconds === undefined) return null;
   const seconds = Number(endTimeSeconds);
@@ -74,6 +81,9 @@ export const useGameTimer = ({
     return () => clearInterval(intervalId);
   }, [isTimerRunning, isPlaying]);
 
+  return {
+    timeLeft,
+    isTimerRunning,
   const deadlineMs = toDeadlineMs(endTimeSeconds);
   const [deadlineTimeLeft, setDeadlineTimeLeft] = useState(() =>
     deadlineMs === null ? 0 : remainingSeconds(deadlineMs),

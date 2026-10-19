@@ -47,12 +47,18 @@ const makeWireRound = (overrides: Partial<WireRound> = {}): WireRound => ({
 
 // Helper: build an assembled-transaction mock that returns a value on `.result`.
 // `sign()` / `send()` mirror the calls `withTxToast` makes for mutating calls.
+const makeAssembled = <T>(
+  result: T,
+  signAndSend?: () => Promise<{ result: T }>,
+  txResponse?: { createdAt?: number; ledger?: number },
+) => ({
 const makeAssembled = <T>(result: T, signAndSend?: () => Promise<{ result: T }>) => ({
   result,
   sign: jest.fn().mockResolvedValue(undefined),
   send: jest.fn().mockResolvedValue({
     result,
     sendTransactionResponse: { hash: 'TEST_TX_HASH' },
+    getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1, ...txResponse },
     getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1 },
   }),
   signAndSend: signAndSend ?? (() => Promise.resolve({ result })),
@@ -313,6 +319,36 @@ describe('mutating calls with connected wallet', () => {
     const card = await calls.nextCard(BigInt(1));
 
     expect(card.genre).toBe('HipHop');
+  });
+
+  it('nextCardWithMeta reports the ledger close time of the card draw', async () => {
+    const wireCard = makeWireCard({ genre: 1 });
+    mockContractMethods.next_card.mockResolvedValue(
+      makeAssembled(wireCard, undefined, { createdAt: 1_800_000_000, ledger: 42 }),
+    );
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    const { result, startedAtMs, closedAtMs } = await calls.nextCardWithMeta(BigInt(1));
+
+    expect(result.genre).toBe('Pop');
+    expect(closedAtMs).toBe(1_800_000_000_000);
+    expect(startedAtMs).toBe(1_800_000_000_000);
+  });
+
+  it('submitAnswerWithMeta reports the ledger close time of the submission', async () => {
+    mockContractMethods.submit_answer.mockResolvedValue(
+      makeAssembled(false, undefined, { createdAt: 1_800_000_020, ledger: 45 }),
+    );
+    const { Answer } = await import('@/lib/stellar/types');
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    const { result, closedAtMs } = await calls.submitAnswerWithMeta(
+      BigInt(1),
+      Answer.title('Thriller'),
+    );
+
+    expect(result).toBe(false);
+    expect(closedAtMs).toBe(1_800_000_020_000);
   });
 });
 

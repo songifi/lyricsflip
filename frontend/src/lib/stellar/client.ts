@@ -9,6 +9,7 @@
 import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import type { StellarConfig } from './stellar-config';
+import { withTxToast, withTxToastResult, type TxResult } from './toast';
 import { withTxToast } from './toast';
 import {
   type Answer,
@@ -28,6 +29,25 @@ import {
   questionKindToWire,
 } from './types';
 
+/**
+ * Metadata returned alongside a mutating call that the contract scores by
+ * ledger time (LF-193). The ledger close time is the only clock that agrees
+ * with the contract's answer window.
+ */
+export interface TimedResult<T> {
+  result: T;
+  /** Ledger close time (unix milliseconds) or `null` when unavailable. */
+  closedAtMs: number | null;
+}
+
+export interface NextCardResult extends TimedResult<Card> {
+  /**
+   * Ledger close time (unix milliseconds) of the `next_card` transaction —
+   * the moment the contract opened the 15 s answer window for this card.
+   */
+  startedAtMs: number;
+}
+
 export interface SystemCalls {
   createRound: (genre: Genre, seed?: bigint) => Promise<bigint>;
   createRoundWithFilter: (
@@ -38,7 +58,20 @@ export interface SystemCalls {
   joinRound: (roundId: bigint) => Promise<void>;
   startRound: (roundId: bigint) => Promise<void>;
   nextCard: (roundId: bigint) => Promise<Card>;
+  /**
+   * `next_card` plus the ledger close time that started the card's on-chain
+   * answer window (LF-193).
+   */
+  nextCardWithMeta: (roundId: bigint) => Promise<NextCardResult>;
   submitAnswer: (roundId: bigint, answer: Answer) => Promise<boolean>;
+  /**
+   * `submit_answer` plus the ledger close time of the submission, so the UI
+   * can distinguish a late answer from a wrong one (LF-193).
+   */
+  submitAnswerWithMeta: (
+    roundId: bigint,
+    answer: Answer,
+  ) => Promise<TimedResult<boolean>>;
   addCard: (card: Omit<Card, 'card_id'>) => Promise<void>;
   /** Adds up to `MAX_CARDS_PER_BATCH` (20) cards in one transaction. */
   addCards: (cards: Omit<Card, 'card_id'>[]) => Promise<bigint[]>;
@@ -183,6 +216,42 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     return submit(() => client.claim_winnings({ caller, round_id: roundId }));
   };
 
+  /** Signs + submits a mutating call and also reports the ledger close time. */
+  const submitTimed = <T>(
+    build: () => Promise<contract.AssembledTransaction<T>>,
+  ): Promise<TxResult<T>> => withTxToastResult(build, config.networkPassphrase);
+
+  const nextCardWithMeta = async (roundId: bigint): Promise<NextCardResult> => {
+    const caller = requireAccount();
+    const client = await getGameClient(config, caller);
+    const sent = await submitTimed(() =>
+      client.next_card({ caller, round_id: roundId }),
+    );
+    const closedAtMs =
+      sent.closedAtSeconds === null ? null : sent.closedAtSeconds * 1000;
+    return {
+      result: cardFromWire(sent.result),
+      closedAtMs,
+      startedAtMs: closedAtMs ?? Date.now(),
+    };
+  };
+
+  const submitAnswerWithMeta = async (
+    roundId: bigint,
+    answer: Answer,
+  ): Promise<TimedResult<boolean>> => {
+    const caller = requireAccount();
+    const client = await getGameClient(config, caller);
+    const sent = await submitTimed(() =>
+      client.submit_answer({ caller, round_id: roundId, answer }),
+    );
+    return {
+      result: sent.result,
+      closedAtMs:
+        sent.closedAtSeconds === null ? null : sent.closedAtSeconds * 1000,
+    };
+  };
+
   return {
     createRound: async (genre, seed = randomSeed()) => {
       const caller = requireAccount();
@@ -219,17 +288,18 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     },
 
     nextCard: async (roundId) => {
-      const caller = requireAccount();
-      const client = await getGameClient(config, caller);
-      const card = await submit(() => client.next_card({ caller, round_id: roundId }));
-      return cardFromWire(card);
+      const { result } = await nextCardWithMeta(roundId);
+      return result;
     },
 
+    nextCardWithMeta,
+
     submitAnswer: async (roundId, answer) => {
-      const caller = requireAccount();
-      const client = await getGameClient(config, caller);
-      return submit(() => client.submit_answer({ caller, round_id: roundId, answer }));
+      const { result } = await submitAnswerWithMeta(roundId, answer);
+      return result;
     },
+
+    submitAnswerWithMeta,
 
     addCard: async (card) => {
       const caller = requireAccount();
