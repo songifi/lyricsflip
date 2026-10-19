@@ -84,6 +84,16 @@ describe('SinglePlayerPage', () => {
     mockGetRound.mockResolvedValue(round);
     mockGetRoundCards.mockResolvedValue([BigInt(7)]);
     mockNextCard.mockResolvedValue(card);
+    mockBuildQuestionCard.mockResolvedValue(question);
+    mockSubmitAnswer.mockResolvedValue(true);
+  });
+
+  it('loads the round and renders the lyric with four answer options', async () => {
+    render(<SinglePlayerPage />);
+
+    expect(await screen.findByText('Cause this is thriller')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /option 1: thriller/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^option \d/i })).toHaveLength(4);
     mockNextCardWithMeta.mockResolvedValue({ result: card, closedAtMs: null, startedAtMs: Date.now() });
     mockBuildQuestionCard.mockResolvedValue(question);
     mockSubmitAnswer.mockResolvedValue(true);
@@ -121,6 +131,7 @@ describe('SinglePlayerPage', () => {
   it('submits the selected answer as a Title answer', async () => {
     render(<SinglePlayerPage />);
 
+
     fireEvent.click(
       await screen.findByRole('button', { name: /option 1: thriller/i }),
     );
@@ -146,6 +157,21 @@ describe('SinglePlayerPage', () => {
       closedAtMs: startedAtMs + (CARD_TIMEOUT_SECONDS + 3) * 1000,
     });
 
+    render(<SinglePlayerPage />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /option 1: thriller/i }),
+    );
+
+    await waitFor(() =>
+      expect(mockSubmitAnswer).toHaveBeenCalledWith(BigInt(1), {
+        tag: 'Title',
+        values: ['Thriller'],
+      }),
+    );
+  });
+
+  it('reveals the answer and counts the card after answering', async () => {
     render(<SinglePlayerPage />);
 
     fireEvent.click(

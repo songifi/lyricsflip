@@ -81,6 +81,9 @@ const mockContractMethods = {
   set_role: jest.fn(),
   is_admin: jest.fn(),
   get_round: jest.fn(),
+  get_open_rounds: jest.fn(),
+  get_max_players: jest.fn(),
+  cancel_round: jest.fn(),
   get_round_cards: jest.fn(),
   get_round_players: jest.fn(),
   get_player_stat: jest.fn(),
@@ -225,6 +228,29 @@ describe('read-only calls (no wallet required)', () => {
     const cards = await calls.getRoundCards(BigInt(1));
 
     expect(cards).toEqual([BigInt(1), BigInt(2), BigInt(3)]);
+  });
+
+  it('getOpenRounds returns the contract page of round ids', async () => {
+    mockContractMethods.get_open_rounds.mockResolvedValue(
+      makeAssembled([BigInt(4), BigInt(5)]),
+    );
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+    const ids = await calls.getOpenRounds(0, 50);
+
+    expect(ids).toEqual([BigInt(4), BigInt(5)]);
+    expect(mockContractMethods.get_open_rounds).toHaveBeenCalledWith({
+      start: 0,
+      limit: 50,
+    });
+  });
+
+  it('getMaxPlayers returns the contract setting', async () => {
+    mockContractMethods.get_max_players.mockResolvedValue(makeAssembled(8));
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+
+    await expect(calls.getMaxPlayers()).resolves.toBe(8);
   });
 
   it('getRoundPlayers returns array of addresses', async () => {

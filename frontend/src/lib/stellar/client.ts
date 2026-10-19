@@ -83,6 +83,14 @@ export interface SystemCalls {
   isOwner: (address: string) => Promise<boolean>;
   isRoundPlayer: (roundId: bigint, address: string) => Promise<boolean>;
   getRound: (roundId: bigint) => Promise<Round>;
+  /**
+   * Ids of rounds that are created but not yet started (oldest first) — the
+   * contract's `get_open_rounds`. `start` is an offset into that list.
+   */
+  getOpenRounds: (start: number, limit: number) => Promise<bigint[]>;
+  getMaxPlayers: () => Promise<number>;
+  /** Cancels one of your own lobbies and refunds every participant. */
+  cancelRound: (roundId: bigint) => Promise<void>;
   getRoundCards: (roundId: bigint) => Promise<bigint[]>;
   getRoundPlayers: (roundId: bigint) => Promise<string[]>;
   getPlayerStat: (address: string) => Promise<PlayerStats>;
@@ -149,6 +157,12 @@ type LyricsFlipContract = {
     seed: bigint;
   }) => Promise<contract.AssembledTransaction<bigint>>;
   join_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
+  cancel_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
+  get_open_rounds: (args: {
+    start: number;
+    limit: number;
+  }) => Promise<contract.AssembledTransaction<bigint[]>>;
+  get_max_players: () => Promise<contract.AssembledTransaction<number>>;
   start_round: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<null>>;
   next_card: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<WireCard>>;
   submit_answer: (args: {
@@ -361,6 +375,24 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       const client = await getGameClient(config, publicKey);
       const round = await client.get_round({ round_id: roundId });
       return roundFromWire(round.result);
+    },
+
+    getOpenRounds: async (start, limit) => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.get_open_rounds({ start, limit });
+      return res.result;
+    },
+
+    getMaxPlayers: async () => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.get_max_players();
+      return res.result;
+    },
+
+    cancelRound: async (roundId) => {
+      const caller = requireAccount();
+      const client = await getGameClient(config, caller);
+      await submit(() => client.cancel_round({ caller, round_id: roundId }));
     },
 
     getRoundCards: async (roundId) => {
