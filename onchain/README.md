@@ -97,24 +97,14 @@ non-fungible interface, with method names and events matching OpenZeppelin's
 library, to avoid tying the workspace's `soroban-sdk` version to the
 library's.
 
-| Function | Description |
-| --- | --- |
-| `mint(caller, recipient, kind: u32) -> u128` | Minter-only; mints the next token id and records the achievement kind (LF-168) |
-| `token_kind(token_id) -> u32` | Returns the achievement kind for a minted token (LF-168) |
-| `owner_of(token_id) -> Address` | Owner of a token |
-| `balance(owner) -> u32` | Number of tokens held by `owner` |
-| `transfer(from, to, token_id)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
-| `transfer_from(spender, from, to, token_id)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
-| `approve(approver, approved, token_id, live_until_ledger)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
-| `approve_for_all(owner, operator, live_until_ledger)` | **Always panics `NonTransferable` (11)** — badges are soulbound (LF-169) |
-| `get_approved(token_id) -> Option<Address>` | Always `None` — approvals are disabled (LF-169) |
-| `is_approved_for_all(owner, operator) -> bool` | Always `false` — operator approvals are disabled (LF-169) |
-| `tokens_of_owner(owner, start, limit) -> Vec<u128>` | Returns up to `limit` (≤ 50) token ids held by `owner` starting at index `start`; replaces the O(N) `owner_of` loop (LF-170) |
-| `token_name()`, `token_symbol()`, `base_uri()`, `token_count()` | Metadata |
-| `token_uri(token_id) -> String` | `base_uri` + `kind` + `.json`; `TokenDoesNotExist` for unminted tokens (LF-168) |
-| `set_base_uri(caller, base_uri)` | Owner-only; at most 200 bytes |
-| `set_minter(caller, new_minter)` | Owner-only; the old minter can no longer mint |
-| `owner()`, `minter()`, `pending_owner()` | Administration views |
+The full function list, signatures, events and error codes are generated from
+the contract source into [`docs/api.md`](docs/api.md). Regenerate it with
+`./scripts/gen-api-docs.sh` after changing any public interface.
+
+Highlights: `mint` is minter-only and records an achievement `kind`;
+`token_kind` exposes it; `tokens_of_owner` paginates an owner's tokens (≤ 50
+per page); all transfer and approval entry points panic with
+`NonTransferable` (LF-169); `set_base_uri` and `set_minter` are owner-only.
 
 #### LF-168 – Token kind
 
@@ -296,16 +286,12 @@ environment variables (see `frontend/src/lib/stellar/stellarConfig.ts`).
 
 ## Views for lobbies and catalogue size
 
-| Function | Returns |
-| --- | --- |
-| `get_cards_count()` | Number of live cards, i.e. added and not removed (`u64`) |
-| `get_round_count()` | Total number of rounds created (`u64`) |
-| `get_genre_card_count(genre)` | Number of cards in `genre` (`u32`) |
-| `get_rounds(start, limit)` | Up to `limit` rounds from round id `start` (ids begin at 1), ascending |
-| `get_open_rounds(start, limit)` | Ids of created-but-not-started rounds, oldest first; `start` is an offset |
-
-Both paginated views clamp `limit` to `MAX_PAGE_LIMIT` (50) and return an
-empty list once `start` is past the end.
+`get_cards_count`, `get_round_count` and `get_genre_card_count` return catalogue
+and round totals. `get_rounds(start, limit)` and `get_open_rounds(start, limit)`
+paginate rounds (ids begin at 1; `start` is an offset for open rounds). Both
+paginated views clamp `limit` to `MAX_PAGE_LIMIT` (50) and return an empty list
+once `start` is past the end. See [`docs/api.md`](docs/api.md) for exact
+signatures and return types.
 
 ## Card catalogue
 
@@ -341,22 +327,8 @@ runs a full batch with Mainnet limits enforced.
 
 Topics are listed in order after the event name, which soroban-sdk adds as the
 first topic (snake_case, e.g. `card_added`). Data is a map of the remaining
-fields.
-
-| Event | Emitted by | Topics | Data |
-| --- | --- | --- | --- |
-| `RoundCreated` | `create_round` | `round_id: u64`, `admin: Address` | `created_time: u64` |
-| `RoundJoined` | `join_round` | `round_id: u64`, `player: Address` | `joined_time: u64` |
-| `PlayerReady` | `start_round` | `round_id: u64`, `player: Address` | `ready_time: u64` |
-| `RoundStarted` | `start_round` (last player ready) | `round_id: u64`, `admin: Address` | `start_time: u64` |
-| `CardDrawn` | `next_card` | `round_id: u64` | `index: u32` (position in the round), `card_id: u64` |
-| `AnswerSubmitted` | `submit_answer` (first answer per card) | `round_id: u64`, `player: Address` | `correct: bool` |
-| `RoundCompleted` | `finalize_round` | `round_id: u64` | `winners: Vec<Address>`, `scores: Map<Address, u64>` |
-| `CardAdded` | `add_card`, `add_cards` (one per card) | `card_id: u64`, `genre: Genre` | – |
-| `CardUpdated` | `update_card` | `card_id: u64`, `genre: Genre` (new genre) | – |
-| `CardRemoved` | `remove_card` | `card_id: u64` | – |
-| `RoleUpdated` | `set_role` | `account: Address` | `role: Role`, `enabled: bool` |
-| `CardsPerRoundUpdated` | `set_cards_per_round` | – | `value: u32` |
+fields. The complete event list — with topics and data fields — is generated in
+[`docs/api.md`](docs/api.md).
 ## TTL policy (LF-012)
 
 Soroban persistent and instance storage entries are **archived** when their
@@ -420,70 +392,8 @@ sequence past the default TTL and verifies that entries touched during gameplay
 Contract errors reach clients as `Error(Contract, #<code>)`, and the frontend
 maps on the numeric code (`frontend/src/lib/stellar/errors.ts`). **Codes are
 stable: never renumber or reuse one.** New variants take the next free number
-and must be added here, in `errors.ts`, and in the `error_codes_are_stable`
-test of the contract, which fails CI on any renumbering.
+and must be added in `errors.ts` and in the `error_codes_are_stable` test of
+the contract, which fails CI on any renumbering.
 
-Every variant is currently referenced by the contract. The ones marked
-*defensive* guard states that can't happen in practice.
-
-### `lyricsflip`
-
-| Code | Name | Meaning |
-| --- | --- | --- |
-| 1 | `AlreadyInitialized` | Constructor ran on an already-initialized contract (*defensive*) |
-| 2 | `NonExistingRound` | No round with the given id |
-| 3 | `RoundAlreadyStarted` | Tried to join a round that has already started |
-| 4 | `NonExistingGenre` | `create_round` was called without a genre |
-| 5 | `RoundAlreadyJoined` | Caller is already a player in the round |
-| 6 | `InvalidCardsPerRound` | `set_cards_per_round` was called with 0 |
-| 7 | `ArtistCardsIsZero` | No cards exist for the requested artist |
-| 8 | `EmptyYearCards` | No cards exist for the requested year |
-| 9 | `EmptyGenreCards` | No cards exist for the requested genre |
-| 10 | `RoundNotStarted` | Action requires a started round |
-| 11 | `RoundCompleted` | Round has no cards left / is already finished |
-| 12 | `NotAParticipant` | Caller is not a player in the round |
-| 13 | `AlreadyReady` | Caller already signalled ready for the round |
-| 14 | `NotAuthorized` | Caller lacks the required owner/admin/round role |
-| 15 | `AmountExceedsLimit` | Asked for more random cards than exist (e.g. cards-per-round larger than the catalogue) |
-| 16 | `LimitMustBeGreaterThanZero` | Random selection over an empty set (no cards added yet) |
-| 17 | `NonExistingCard` | No card with the given id |
-| 18 | `RoundNotReady` | `finalize_round` before all answers are in or the deadline has passed |
-| 19 | `RoundAlreadyFinalized` | Round was already finalized |
-| 20 | `NotEnoughDistinctCards` | `build_question_card` can't find 3 distinct distractors (fewer than 4 distinct values in the catalogue) |
-| 21 | `RoundFull` | Round already has `max_players` players |
-| 22 | `InvalidMaxPlayers` | `set_max_players` was called with a value below 2 |
-| 23 | `NftContractNotSet` | `claim_reward` before the owner set the NFT contract |
-| 24 | `MilestoneNotReached` | Player's stats don't meet the milestone yet |
-| 25 | `MilestoneAlreadyClaimed` | Player already claimed that milestone |
-| 26 | `InvalidCardTitle` | Card `title` is empty |
-| 27 | `InvalidCardArtist` | Card `artist` is empty |
-| 28 | `InvalidCardLyrics` | Card `lyrics` is empty |
-| 29 | `InvalidCardYear` | Card `year` is before 1900 or after the current year |
-| 30 | `LyricsTooLong` | Card `lyrics` exceed `MAX_LYRICS_LEN` bytes |
-| 31 | `DuplicateCard` | Another card already has this `title` + `artist` |
-| 32 | `BatchTooLarge` | `add_cards` got more than `MAX_CARDS_PER_BATCH` cards |
-| 33 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
-| 34 | `NoMoreCards` | All cards have been drawn; call `finalize_round` |
-| 35 | `RoundCancelled` | Round was cancelled |
-| 36 | `InvalidCardDifficulty` | Card difficulty or round difficulty is not between 1 and 3 |
-| 37 | `InvalidDecade` | Round decade is not a valid decade start year |
-| 38 | `NoActiveCard` | `submit_answer` called before any card is drawn (`next_card` not called) |
-| 39 | `AlreadyAnswered` | Player submitted more than one answer for the same card |
-| 40 | `Paused` | The contract is paused; round creation, joining, and reward claims are blocked |
-
-### `lyricsflip-nft`
-
-| Code | Name | Meaning |
-| --- | --- | --- |
-| 1 | `AlreadyInitialized` | Constructor ran on an already-initialized contract (*defensive*) |
-| 2 | `NotMinter` | Caller of `mint` is not the configured minter |
-| 3 | `TokenAlreadyExists` | Token id collision on mint (*defensive*) |
-| 4 | `TokenDoesNotExist` | `owner_of` or `token_uri` was called for an unminted token |
-| 5 | `IncorrectOwner` | `from` does not own the token being transferred |
-| 6 | `InsufficientApproval` | Spender/approver is neither the owner nor approved |
-| 7 | `InvalidLiveUntilLedger` | Approval expiry is already in the past |
-| 8 | `NotOwner` | Caller of an owner-only function is not the owner |
-| 9 | `NotPendingOwner` | Caller of `accept_ownership` is not the pending owner |
-| 10 | `BaseUriTooLong` | `base_uri` is longer than 200 bytes |
-| 11 | `NonTransferable` | Achievement badges are soulbound; `transfer`, `transfer_from`, `approve`, and `approve_for_all` always panic with this code (LF-169) |
-| 11 | `InsufficientBalance` | Balance is insufficient or missing for transfer |
+The complete, generated list of error codes for both contracts lives in
+[`docs/api.md`](docs/api.md).
