@@ -31,7 +31,7 @@ import { RoomModule } from './room/room.module';
 import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import * as redisStore from 'cache-manager-redis-store';
+import { redisStore } from 'cache-manager-redis-yet';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { Redis } from 'ioredis';
 import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
@@ -94,16 +94,18 @@ import { HealthModule } from './health/health.module';
     }),
     QuestionsModule,
     QuickGameModule,
+    // cache-manager-redis-yet targets the cache-manager v5 API (unlike
+    // cache-manager-redis-store@3, which silently fails on v5). The Redis
+    // connection is described by the single `redis.url` setting, shared with
+    // the throttler storage above.
     CacheModule.registerAsync({
       inject: [ConfigService],
       isGlobal: true,
-      useFactory: (config: ConfigService) => ({
-        store: redisStore,
-        socket: {
-          host: config.get<string>('redis.host') ?? 'localhost',
-          port: config.get<number>('redis.port') ?? 6379,
-        },
-        ttl: 3600,
+      useFactory: async (config: ConfigService) => ({
+        store: await redisStore({
+          url: config.get<string>('redis.url') ?? 'redis://127.0.0.1:6379',
+          ttl: 3600,
+        }),
       }),
     }),
     SongsModule,

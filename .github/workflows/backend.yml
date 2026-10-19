@@ -56,6 +56,34 @@ jobs:
       - run: npm test
       - run: npm run test:e2e
 
+  openapi:
+    name: OpenAPI spec freshness
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Export openapi.json
+        run: npm run openapi:export
+      - name: Verify openapi.json is committed and up to date
+        run: |
+          if ! git diff --quiet -- openapi.json; then
+            echo "openapi.json is out of date. Run 'npm run openapi:export' in backend/ and commit the result."
+            git diff -- openapi.json
+            exit 1
+          fi
+          if [[ -n "$(git status --porcelain -- openapi.json)" ]]; then
+            echo "openapi.json is not committed. Run 'npm run openapi:export' in backend/ and commit the result."
+            exit 1
+          fi
+
   migrations:
     name: Backend migrations (fresh DB)
     runs-on: ubuntu-latest
@@ -89,12 +117,12 @@ jobs:
   ci-summary:
     name: Backend CI
     if: always()
-    needs: [backend, migrations]
+    needs: [backend, openapi, migrations]
     runs-on: ubuntu-latest
     steps:
       - name: Require backend checks
         run: |
-          if [[ "${{ needs.backend.result }}" != "success" || "${{ needs.migrations.result }}" != "success" ]]; then
+          if [[ "${{ needs.backend.result }}" != "success" || "${{ needs.openapi.result }}" != "success" || "${{ needs.migrations.result }}" != "success" ]]; then
             echo "Backend checks did not all pass."
             exit 1
           fi

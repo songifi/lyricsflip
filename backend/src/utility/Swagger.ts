@@ -1,4 +1,8 @@
 import { DocumentBuilder, SwaggerCustomOptions } from '@nestjs/swagger';
+import { INestApplication } from '@nestjs/common';
+import { OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 
 export const swaggerConfig = new DocumentBuilder()
   .setTitle('Songify LyricFlip API')
@@ -29,3 +33,26 @@ export const swaggerCustomOptions: SwaggerCustomOptions = {
   swaggerOptions: { persistAuthorization: true },
   customSiteTitle: 'Songify API Docs',
 };
+
+/**
+ * Builds the OpenAPI document from a bootstrapped Nest application.
+ * Used both by the runtime Swagger UI setup and by the build script that
+ * exports `openapi.json` for the frontend type generator.
+ */
+export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
+  return SwaggerModule.createDocument(app, swaggerConfig);
+}
+
+/**
+ * Writes the OpenAPI document to disk as JSON.
+ * Defaults to `openapi.json` at the backend project root.
+ */
+export async function writeOpenApiDocument(
+  app: INestApplication,
+  outputPath: string = path.resolve(process.cwd(), 'openapi.json'),
+): Promise<string> {
+  const document = buildOpenApiDocument(app);
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, JSON.stringify(document, null, 2), 'utf8');
+  return outputPath;
+}

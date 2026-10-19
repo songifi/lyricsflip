@@ -30,4 +30,10 @@ export class HealthController {
       () => this.stellarRpc.isHealthy('stellarRpc'),
     ]);
   }
+
+  /** Liveness probe: 200 as long as the process is up, no dependency checks. */
+  @Get('live')
+  live() {
+    return { status: 'ok' };
+  }
 }

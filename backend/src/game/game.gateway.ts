@@ -9,13 +9,15 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseFilters } from '@nestjs/common';
+import { Logger, UseFilters, UseGuards } from '@nestjs/common';
 import { WsExceptionFilter } from '../filters/ws-exception.filter';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
+import { WsRateLimitGuard } from '../guards/ws-rate-limit.guard';
 
 /** `/game` namespace: real-time multiplayer rounds. */
 
 @UseFilters(new WsExceptionFilter())
+@UseGuards(WsRateLimitGuard)
 @WebSocketGateway({
   namespace: 'game',
   pingInterval: 10000,
@@ -31,7 +33,10 @@ export class GameGateway
   private activeGames = new Map();
   private players = new Map();
 
-  constructor(private readonly wsAuthenticator: WsAuthenticator) {}
+  constructor(
+    private readonly wsAuthenticator: WsAuthenticator,
+    private readonly wsRateLimitGuard: WsRateLimitGuard,
+  ) {}
 
   afterInit(server: Server) {
     this.logger.log('Game WebSocket Gateway initialized');
@@ -80,6 +85,7 @@ export class GameGateway
   }
 
   // Game Room Management
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('createGame')
   async handleCreateGame(
     @ConnectedSocket() client: Socket,
@@ -110,6 +116,7 @@ export class GameGateway
     }
   }
 
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('joinGame')
   async handleJoinGame(
     @ConnectedSocket() client: Socket,
@@ -140,6 +147,7 @@ export class GameGateway
   }
 
   // Game State Management
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('startGame')
   async handleStartGame(
     @ConnectedSocket() client: Socket,
@@ -170,6 +178,7 @@ export class GameGateway
     }
   }
 
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('submitAnswer')
   async handleAnswer(
     @ConnectedSocket() client: Socket,
@@ -201,6 +210,7 @@ export class GameGateway
     }
   }
 
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('syncTimer')
   handleSyncTimer(
     @ConnectedSocket() client: Socket,

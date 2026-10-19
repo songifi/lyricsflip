@@ -3,10 +3,14 @@ import {
     WebSocketServer,
     OnGatewayConnection,
     OnGatewayDisconnect,
+    SubscribeMessage,
+    ConnectedSocket,
+    MessageBody,
   } from '@nestjs/websockets';
   import { Server, Socket } from 'socket.io';
   import { OnEvent } from '@nestjs/event-emitter';
-  import { Logger } from '@nestjs/common';
+  import { Logger, UseGuards } from '@nestjs/common';
+  import { WsRateLimitGuard } from '../config/ws-rate-limit.guard';
   
   @WebSocketGateway({
     namespace: 'rooms',
@@ -17,6 +21,8 @@ import {
   
     private readonly logger = new Logger(RoomGateway.name);
     private readonly connectedClients = new Map<string, string>(); // socketId -> playerId
+  
+    constructor(private readonly wsRateLimitGuard: WsRateLimitGuard) {}
   
     handleConnection(client: Socket): void {
       this.logger.log(`Client connected: ${client.id}`);
@@ -39,6 +45,32 @@ import {
         this.connectedClients.delete(client.id);
         this.logger.log(`Socket ${client.id} disassociated from player ${playerId}`);
       }
+    }
+  
+    @UseGuards(WsRateLimitGuard)
+    @SubscribeMessage('room:join')
+    handleRoomJoin(
+      @ConnectedSocket() client: Socket,
+      @MessageBody() payload: { roomId: string },
+    ): void {
+      const playerId = this.connectedClients.get(client.id);
+      if (!playerId) {
+        client.emit('roomJoinError', { message: 'Socket is not associated with a player' });
+        return;
+      }
+  
+      client.join(`room:${payload.roomId}`);
+      this.logger.log(`Socket ${client.id} joined room ${payload.roomId}`);
+    }
+  
+    @UseGuards(WsRateLimitGuard)
+    @SubscribeMessage('room:leave')
+    handleRoomLeave(
+      @ConnectedSocket() client: Socket,
+      @MessageBody() payload: { roomId: string },
+    ): void {
+      client.leave(`room:${payload.roomId}`);
+      this.logger.log(`Socket ${client.id} left room ${payload.roomId}`);
     }
   
     @OnEvent('player.room.joined')

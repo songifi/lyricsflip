@@ -8,11 +8,14 @@ import {
   import { Logger } from '@nestjs/common';
   import { Server, Socket } from 'socket.io';
   import { OnEvent } from '@nestjs/event-emitter';
+  import { UseGuards } from '@nestjs/common';
   import { ResourceManagerService } from './resource-manager.service';
+  import { WsRateLimitGuard } from '../config/ws-rate-limit.guard';
   
   @WebSocketGateway({
     namespace: '/resource-manager',
   })
+  @UseGuards(WsRateLimitGuard)
   export class ResourceManagerGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
