@@ -117,6 +117,10 @@ describe('SinglePlayerPage', () => {
       await screen.findByRole('button', { name: /option 1: thriller/i }),
     );
 
+    fireEvent.click(
+      await screen.findByRole('button', { name: /option 1: thriller/i }),
+    );
+
     await waitFor(() =>
       expect(mockSubmitAnswerWithMeta).toHaveBeenCalledWith(BigInt(1), {
         tag: 'Title',
@@ -218,6 +222,7 @@ describe('SinglePlayerPage', () => {
     fireEvent.click(
       await screen.findByRole('button', { name: /option 1: thriller/i }),
     );
+
 
     expect(await screen.findByText('Submitting…')).toBeInTheDocument();
 

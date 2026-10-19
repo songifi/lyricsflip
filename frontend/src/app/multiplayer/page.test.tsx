@@ -1,5 +1,26 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import MultiplayerPage from './page';
+
+const mockPush = jest.fn();
+const mockCreateRound = jest.fn();
+const mockConnect = jest.fn();
+
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
+jest.mock('@/lib/stellar/hooks/use-stellar', () => ({
+  useStellar: () => ({
+    systemCalls: { createRound: mockCreateRound },
+    account: { address: 'GCREATOR' },
+    connect: mockConnect,
+  }),
+}));
+
+describe('MultiplayerPage', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCreateRound.mockResolvedValue(BigInt(42));
 import type { OpenRound } from '@/hooks/use-open-rounds';
 
 const mockPush = jest.fn();
@@ -98,6 +119,25 @@ describe('MultiplayerPage', () => {
       screen.getByRole('button', { name: /create round/i }),
     ).toBeInTheDocument();
   });
+
+  it('navigates to the lobby when joining by round ID', () => {
+    render(<MultiplayerPage />);
+
+    fireEvent.change(screen.getByPlaceholderText(/enter round id/i), {
+      target: { value: '123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /join round/i }));
+
+    expect(mockPush).toHaveBeenCalledWith('/multiplayer/123');
+  });
+
+  it('rejects a non-numeric round ID instead of navigating', () => {
+    render(<MultiplayerPage />);
+
+    fireEvent.change(screen.getByPlaceholderText(/enter round id/i), {
+      target: { value: 'abc' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /join round/i }));
 
   it('lists open rounds with genre, players and age', () => {
     render(<MultiplayerPage />);

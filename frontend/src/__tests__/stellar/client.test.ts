@@ -81,6 +81,8 @@ const mockContractMethods = {
   set_role: jest.fn(),
   is_admin: jest.fn(),
   get_round: jest.fn(),
+  get_round_scores: jest.fn(),
+  finalize_round: jest.fn(),
   get_open_rounds: jest.fn(),
   get_max_players: jest.fn(),
   cancel_round: jest.fn(),
@@ -230,6 +232,25 @@ describe('read-only calls (no wallet required)', () => {
     expect(cards).toEqual([BigInt(1), BigInt(2), BigInt(3)]);
   });
 
+  it('getRoundScores flattens the contract map into a plain record', async () => {
+    mockContractMethods.get_round_scores.mockResolvedValue(
+      makeAssembled(
+        new Map([
+          [TEST_ADDRESS, BigInt(120)],
+          ['GOTHERADDRESS', BigInt(60)],
+        ]),
+      ),
+    );
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+    const scores = await calls.getRoundScores(BigInt(1));
+
+    expect(scores).toEqual({ [TEST_ADDRESS]: 120, GOTHERADDRESS: 60 });
+    expect(mockContractMethods.get_round_scores).toHaveBeenCalledWith({
+      round_id: BigInt(1),
+    });
+  });
+
   it('getOpenRounds returns the contract page of round ids', async () => {
     mockContractMethods.get_open_rounds.mockResolvedValue(
       makeAssembled([BigInt(4), BigInt(5)]),
@@ -334,6 +355,25 @@ describe('mutating calls with connected wallet', () => {
         round_id: BigInt(1),
         answer: { tag: 'Title', values: ['Bohemian Rhapsody'] },
       }),
+    );
+  });
+
+  it('finalizeRound sends the caller and round id', async () => {
+    mockContractMethods.finalize_round.mockResolvedValue(makeAssembled(null));
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    await calls.finalizeRound(BigInt(9));
+
+    expect(mockContractMethods.finalize_round).toHaveBeenCalledWith({
+      caller: TEST_ADDRESS,
+      round_id: BigInt(9),
+    });
+  });
+
+  it('finalizeRound throws when no wallet is connected', async () => {
+    const calls = createSystemCalls(TEST_CONFIG, null);
+    await expect(calls.finalizeRound(BigInt(9))).rejects.toThrow(
+      'Connect a Stellar wallet',
     );
   });
 
