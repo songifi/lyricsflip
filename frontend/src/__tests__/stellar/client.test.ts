@@ -47,12 +47,18 @@ const makeWireRound = (overrides: Partial<WireRound> = {}): WireRound => ({
 
 // Helper: build an assembled-transaction mock that returns a value on `.result`.
 // `sign()` / `send()` mirror the calls `withTxToast` makes for mutating calls.
+const makeAssembled = <T>(
+  result: T,
+  signAndSend?: () => Promise<{ result: T }>,
+  txResponse?: { createdAt?: number; ledger?: number },
+) => ({
 const makeAssembled = <T>(result: T, signAndSend?: () => Promise<{ result: T }>) => ({
   result,
   sign: jest.fn().mockResolvedValue(undefined),
   send: jest.fn().mockResolvedValue({
     result,
     sendTransactionResponse: { hash: 'TEST_TX_HASH' },
+    getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1, ...txResponse },
     getTransactionResponse: { createdAt: 1_700_000_000, ledger: 1 },
   }),
   signAndSend: signAndSend ?? (() => Promise.resolve({ result })),
@@ -77,6 +83,9 @@ const mockContractMethods = {
   get_round: jest.fn(),
   get_round_scores: jest.fn(),
   finalize_round: jest.fn(),
+  get_open_rounds: jest.fn(),
+  get_max_players: jest.fn(),
+  cancel_round: jest.fn(),
   get_round_cards: jest.fn(),
   get_round_players: jest.fn(),
   get_player_stat: jest.fn(),
@@ -242,6 +251,29 @@ describe('read-only calls (no wallet required)', () => {
     });
   });
 
+  it('getOpenRounds returns the contract page of round ids', async () => {
+    mockContractMethods.get_open_rounds.mockResolvedValue(
+      makeAssembled([BigInt(4), BigInt(5)]),
+    );
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+    const ids = await calls.getOpenRounds(0, 50);
+
+    expect(ids).toEqual([BigInt(4), BigInt(5)]);
+    expect(mockContractMethods.get_open_rounds).toHaveBeenCalledWith({
+      start: 0,
+      limit: 50,
+    });
+  });
+
+  it('getMaxPlayers returns the contract setting', async () => {
+    mockContractMethods.get_max_players.mockResolvedValue(makeAssembled(8));
+
+    const calls = createSystemCalls(TEST_CONFIG, null);
+
+    await expect(calls.getMaxPlayers()).resolves.toBe(8);
+  });
+
   it('getRoundPlayers returns array of addresses', async () => {
     mockContractMethods.get_round_players.mockResolvedValue(
       makeAssembled([TEST_ADDRESS]),
@@ -353,6 +385,36 @@ describe('mutating calls with connected wallet', () => {
     const card = await calls.nextCard(BigInt(1));
 
     expect(card.genre).toBe('HipHop');
+  });
+
+  it('nextCardWithMeta reports the ledger close time of the card draw', async () => {
+    const wireCard = makeWireCard({ genre: 1 });
+    mockContractMethods.next_card.mockResolvedValue(
+      makeAssembled(wireCard, undefined, { createdAt: 1_800_000_000, ledger: 42 }),
+    );
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    const { result, startedAtMs, closedAtMs } = await calls.nextCardWithMeta(BigInt(1));
+
+    expect(result.genre).toBe('Pop');
+    expect(closedAtMs).toBe(1_800_000_000_000);
+    expect(startedAtMs).toBe(1_800_000_000_000);
+  });
+
+  it('submitAnswerWithMeta reports the ledger close time of the submission', async () => {
+    mockContractMethods.submit_answer.mockResolvedValue(
+      makeAssembled(false, undefined, { createdAt: 1_800_000_020, ledger: 45 }),
+    );
+    const { Answer } = await import('@/lib/stellar/types');
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    const { result, closedAtMs } = await calls.submitAnswerWithMeta(
+      BigInt(1),
+      Answer.title('Thriller'),
+    );
+
+    expect(result).toBe(false);
+    expect(closedAtMs).toBe(1_800_000_020_000);
   });
 });
 
