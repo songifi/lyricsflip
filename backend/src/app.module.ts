@@ -1,32 +1,17 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { UserModule } from './user/user.module';
-import { GameSessionModule } from './game-session/game-session.module';
-import { WagerModule } from './wager/wager.module';
-import { RewardModule } from './reward/reward.module';
-import { LeaderboardModule } from './leaderboard/leaderboard.module';
-import { NotificationModule } from './notification/notification.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigService } from '@nestjs/config';
-import { AccessTokenGuard } from './auth/guard/access-token/access-token.guard';
-import { CustomThrottlerGuard } from './auth/guard/throttler.guard';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { AppConfigModule } from './config/config.module';
-import { GlobalInterceptor } from './interceptors/global.interceptor';
-import { LoggerModule } from './logger/logger.module';
-import { RequestLoggerMiddleware } from './logger/request-logger.middleware';
+import { UsersModule } from './users/users.module';
 import { SongsModule } from './songs/songs.module';
+import { PlaylistsModule } from './playlists/playlists.module';
 import { ScoringModule } from './scoring/scoring.module';
-import { ChatRoomModule } from './chat-room/chat-room.module';
 import { QuestionsModule } from './questions/questions.module';
 import { QuickGameModule } from './quick-game/quick-game.module';
-import { PowerUpModule } from './power-ups/power-up.module';
-import { TournamentModule } from './tournament/tournament.module';
 import { GameModule } from './game/game.module';
 import { AchievementModule } from './achievement/achievement.module';
-import { MusicTheoryLessonModule } from './music-education/music-theory-lesson.module';
 import { RoomModule } from './room/room.module';
 import { SocialModule } from './social/social.module';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -36,20 +21,36 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { Redis } from 'ioredis';
 import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
 import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
-import { ReferralModule } from './referral/referral.module';
-import { GameInsightsModule } from './game-insights/game-insights.module';
 import { PaginationModule } from './common/pagination/pagination.module';
-import { StateRecoveryModule } from './state-recovery/state-recovery.module';
 import { IndexerModule } from './indexer/indexer.module';
 import { HealthModule } from './health/health.module';
+import { DatabaseModule } from './database/database.module';
+import { RedisModule } from './redis/redis.module';
+import { StorageModule } from './storage/storage.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { SearchModule } from './search/search.module';
+import { ModerationModule } from './moderation/moderation.module';
+import { AdminModule } from './admin/admin.module';
+import { AppConfigModule } from './config/app-config.module';
 
 @Module({
   imports: [
-    // Load AppConfigModule first so ConfigService is available for all
-    // forRootAsync factories below.
+    ConfigModule.forRoot({ isGlobal: true }),
     AppConfigModule,
+    TypeOrmModule.forRootAsync({
+      useFactory: () => ({
+        type: 'postgres',
+        url: process.env.DATABASE_URL,
+        autoLoadEntities: true,
+        synchronize: false,
+      }),
+    }),
+    DatabaseModule,
+    RedisModule,
+    StorageModule,
     AuthModule,
-    UserModule,
+    UsersModule,
     GameSessionModule,
     WagerModule,
     RewardModule,
@@ -109,39 +110,20 @@ import { HealthModule } from './health/health.module';
       }),
     }),
     SongsModule,
-    ChatRoomModule,
+    PlaylistsModule,
+    SearchModule,
+    NotificationsModule,
+    AnalyticsModule,
+    ModerationModule,
+    AdminModule,
     ScoringModule,
-    PowerUpModule,
-    TournamentModule,
     AchievementModule,
     SocialModule,
-    MusicTheoryLessonModule,
     RoomModule,
-    ReferralModule,
-    StateRecoveryModule,
-    GameInsightsModule,
     IndexerModule,
     HealthModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    {
-      provide: APP_GUARD,
-      useClass: AccessTokenGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: GlobalInterceptor,
-    },
-  ],
+  providers: [AppService],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestLoggerMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

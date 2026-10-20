@@ -112,11 +112,23 @@ services:
         condition: service_started
 
   soroban:
-    image: stellar/quickstart:latest
+    # Pinned for reproducible local builds; bump deliberately when upgrading.
+    image: stellar/quickstart:v430
     profiles: ['soroban']
-    command: --local --enable-soroban-rpc
+    command: --local --enable rpc
     ports:
       - '8000:8000'
+    healthcheck:
+      # The RPC endpoint answers a JSON-RPC POST; any HTTP response means it is up.
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sf -X POST -H "Content-Type: application/json" -d ''{"jsonrpc":"2.0","id":1,"method":"getHealth"}'' http://localhost:8000/soroban/rpc || exit 1',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
 volumes:
   postgres-data:

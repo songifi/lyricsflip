@@ -97,6 +97,19 @@ The game flow matches the README's player-facing flow:
 - The backend is an off-chain extension that enriches the game with profiles, social features, and indexable events.
 - The contract is not replaced by the database; the database is for user experience and operational data, not game authority.
 
+## Architecture Decision Records
+
+Significant decisions are recorded as ADRs in [`docs/adr/`](./adr/). Each ADR follows the [template](./adr/template.md) (context, decision, consequences, status) and stays *Proposed* until a maintainer accepts it. Every issue that depends on a decision links to its ADR.
+
+| ADR | Decision | Status |
+|---|---|---|
+| [ADR-0001](./adr/0001-answer-privacy.md) | Answer privacy (LF-142) | Proposed |
+| [ADR-0002](./adr/0002-randomness-source.md) | Randomness source (LF-143) | Proposed |
+| [ADR-0003](./adr/0003-escrow-design.md) | Escrow design (LF-135) | Proposed |
+| [ADR-0004](./adr/0004-nft-transferability.md) | NFT transferability (LF-169) | Proposed |
+| [ADR-0005](./adr/0005-backend-scope.md) | Backend scope (LF-226) | Proposed |
+| [ADR-0006](./adr/0006-realtime-source-of-truth.md) | Source of truth for real-time state (LF-225) | Proposed |
+
 ## Implementation notes
 
 - The frontend reads from the chain and the API; it never becomes the authoritative store for game state.

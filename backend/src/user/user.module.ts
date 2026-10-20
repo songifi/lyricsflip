@@ -10,6 +10,8 @@ import { User } from './user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import jwtConfig from '@app/auth/authConfig/jwt.config';
+import { UpdateProfileProvider } from './providers/update-profile.provider';
+import { FindPublicProfileProvider } from './providers/find-public-profile.provider';
 
 @Module({
   controllers: [UserController],
@@ -18,6 +20,8 @@ import jwtConfig from '@app/auth/authConfig/jwt.config';
     FindOneUserByEmailProvider,
     CreateUserProvider,
     HashingProvider,
+    UpdateProfileProvider,
+    FindPublicProfileProvider,
   ],
   imports: [
     TypeOrmModule.forFeature([User]),
