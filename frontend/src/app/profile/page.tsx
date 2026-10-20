@@ -1,6 +1,7 @@
 'use client';
 
 import { NftBadgeGallery } from '@/components/organisms/nft-badge-gallery';
+import { UnclaimedWinnings } from '@/components/organisms/unclaimed-winnings';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useEffect, useState } from 'react';
 import type { PlayerStats } from '@/lib/stellar/types';
@@ -8,9 +9,9 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 
 /**
- * Profile page – shows on-chain player stats and the NFT badge gallery.
+ * Profile page – shows on-chain player stats, unclaimed winnings, and the NFT badge gallery.
  *
- * Part of Issue #476 / LF-059.
+ * Part of Issue #476 / LF-059 and Issue #685 / LF-199.
  */
 export default function ProfilePage() {
   const router = useRouter();
@@ -99,6 +100,11 @@ export default function ProfilePage() {
             </dl>
           )}
         </section>
+      )}
+
+      {/* Unclaimed winnings (LF-199) */}
+      {account?.address && (
+        <UnclaimedWinnings address={account.address} />
       )}
 
       {/* NFT badge gallery */}

@@ -1,28 +1,30 @@
-export type GameStatus = 'idle' | 'playing' | 'ended';
-export type GuessResult = 'correct' | 'incorrect' | null;
+// UI-only store types. Chain/server data lives in React Query (LF-213);
+// nothing here should mirror on-chain game state.
 
-export interface GameConfig {
-  genre: string;
-  difficulty: string;
-  duration: string;
-  odds: number;
-  wagerAmount: number;
+// Modal slice types
+export type ModalName =
+  | 'wallet'
+  | 'settings'
+  | 'profile'
+  | 'leaderboard'
+  | 'howToPlay'
+  | null;
+
+export interface ModalState {
+  activeModal: ModalName;
+  modalProps: Record<string, unknown>;
 }
 
-export interface GameState {
-  score: number;
-  level: number;
-  isPlaying: boolean;
-  lastPlayed: Date | null;
-  timeLeft: number;
-  isTimerRunning: boolean;
-  potentialWin: number;
-  currentRound: number;
-  maxRounds: number;
-  gameStatus: GameStatus;
-  gameConfig: GameConfig;
-  lastGuessResult: GuessResult;
-  roundId: bigint | null;
+export interface ModalActions {
+  openModal: (name: Exclude<ModalName, null>, props?: Record<string, unknown>) => void;
+  closeModal: () => void;
+}
+
+// Theme slice types
+export type Theme = 'light' | 'dark';
+
+export interface ThemeState {
+  theme: Theme;
 }
 
 export interface WagerDetails {
@@ -35,65 +37,47 @@ export interface WagerDetails {
   stakeStroops?: string;
 }
 
-export interface LyricData {
-  text: string;
-  title: string;
-  artist: string;
-  options: SongOption[];
+export interface ThemeActions {
+  setTheme: (theme: Theme) => void;
+  toggleTheme: () => void;
 }
 
-export interface SongOption {
-  title: string;
-  artist: string;
+// Profile slice types
+export interface ProfileState {
+  usernameDraft: string;
 }
-  
-export interface GameActions {
-  incrementScore: (by: number) => void;
-  incrementLevel: () => void;
-  increaseScore: () => void;
-  setGuessResult: (result: GuessResult) => void;
-  startGame: (config?: GameConfig) => void;
-  endGame: () => void;
-  resetGame: () => void;
-  setGameStatus: (status: GameStatus) => void;
-  setRoundId: (roundId: bigint) => void;
-  startTimer: () => void;
-  stopTimer: () => void;
-  resetTimer: (newTime?: number) => void;
-  tickTimer: () => void; 
+
+export interface ProfileActions {
+  setUsernameDraft: (draft: string) => void;
+  clearUsernameDraft: () => void;
 }
-  
-// User slice types
+
+// Preferences (persisted)
 export interface UserPreferences {
-  theme: 'light' | 'dark';
+  theme: Theme;
   soundEnabled: boolean;
   difficulty: 'easy' | 'normal' | 'hard';
 }
-  
-export interface UserState {
-  username: string | null;
-  isLoggedIn: boolean;
-  preferences: UserPreferences;
-}
-  
-export interface UserActions {
-  login: (username: string) => void;
-  logout: () => void;
+
+export interface PreferencesActions {
   updatePreferences: (preferences: Partial<UserPreferences>) => void;
-  toggleTheme: () => void;
   toggleSound: () => void;
   setDifficulty: (difficulty: UserPreferences['difficulty']) => void;
 }
-  
-// Combined store type
-export interface StoreState {
-  game: GameState;
-  user: UserState;
+
+// Combined UI store type
+export interface UIState {
+  modal: ModalState;
+  theme: ThemeState;
+  profile: ProfileState;
+  preferences: UserPreferences;
 }
-  
-export interface StoreActions {
-  game: GameActions;
-  user: UserActions;
+
+export interface UIActions {
+  modal: ModalActions;
+  theme: ThemeActions;
+  profile: ProfileActions;
+  preferences: PreferencesActions;
 }
-  
-export type Store = StoreState & StoreActions;
+
+export type UIStore = UIState & UIActions;

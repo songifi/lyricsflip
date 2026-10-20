@@ -9,9 +9,10 @@ import {
   MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { Logger, UseFilters } from '@nestjs/common';
+import { Logger, UseFilters, UseGuards } from '@nestjs/common';
 import { WsExceptionFilter } from '../filters/ws-exception.filter';
 import { WsAuthenticator } from '../auth/providers/ws-authenticator.provider';
+import { WsRateLimitGuard } from '../guards/ws-rate-limit.guard';
 import type {
   AnswerSubmittedPayload,
   Player,
@@ -30,6 +31,7 @@ import type {
  * Source of truth: docs/realtime-protocol.md
  */
 @UseFilters(new WsExceptionFilter())
+@UseGuards(WsRateLimitGuard)
 @WebSocketGateway({
   namespace: 'game',
   pingInterval: 10000,
@@ -60,7 +62,10 @@ export class GameGateway
     }
   >();
 
-  constructor(private readonly wsAuthenticator: WsAuthenticator) {}
+  constructor(
+    private readonly wsAuthenticator: WsAuthenticator,
+    private readonly wsRateLimitGuard: WsRateLimitGuard,
+  ) {}
 
   afterInit() {
     this.logger.log('Game WebSocket Gateway initialized on /game');
@@ -322,6 +327,7 @@ export class GameGateway
     }
   }
 
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('joinGame')
   async handleJoinGame(
     @ConnectedSocket() client: Socket,
@@ -330,6 +336,8 @@ export class GameGateway
     return this.handleRoomJoin(client, { roomId: data.gameId });
   }
 
+  // Game State Management
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('startGame')
   async handleStartGame(
     @ConnectedSocket() client: Socket,
@@ -350,6 +358,7 @@ export class GameGateway
     }
   }
 
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('submitAnswer')
   async handleAnswer(
     @ConnectedSocket() client: Socket,
@@ -361,6 +370,7 @@ export class GameGateway
     });
   }
 
+  @UseGuards(WsRateLimitGuard)
   @SubscribeMessage('syncTimer')
   handleSyncTimer(
     @ConnectedSocket() client: Socket,
