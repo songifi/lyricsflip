@@ -115,6 +115,31 @@ New wallets that don't exist on-chain, or don't hold enough XLM for fees, fail w
 
 ---
 
+### LF-199 · Claim-winnings and refund UI
+
+**Area:** Frontend · **Priority:** P2 · **Type:** Feature · **Effort:** S  
+**Files:** `frontend/src/components/organisms/game-result-modal.tsx`, `frontend/src/components/organisms/game-result-popup.tsx`, `frontend/src/components/organisms/unclaimed-winnings.tsx`, `frontend/src/app/profile/page.tsx`
+
+**Description**
+
+After finalization, winners need a **Claim** button, losers should see what they lost, and a cancelled round should show its refund. The profile page should list rounds with unclaimed winnings.
+
+**Tasks**
+
+- [x] Add a Claim button to the result modal and popup, with pending, success, and error toasts.
+- [x] Winner can claim winnings with pull-payment contract call (`claimWinnings`/`claimEarnings`), and the button disappears once the claim succeeds.
+- [x] Display clear breakdown for losers showing the wager amount lost.
+- [x] Display refund breakdown and messaging for cancelled rounds.
+- [x] Add an "Unclaimed winnings" section to `/profile` listing won rounds with real-time claim actions and toast feedback.
+
+**Acceptance criteria**
+
+- [x] A winner can claim from the results screen and from the profile page, and the button disappears once the claim succeeds.
+
+**Related:** Closes [#685](https://github.com/Stellar-songifi/lyricsflip/issues/685)
+
+---
+
 ## On-chain
 
 ### LF-176 · Removing or updating a card breaks rounds that use it
