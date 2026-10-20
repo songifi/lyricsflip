@@ -170,73 +170,13 @@ The contracts live in a Cargo workspace under [`onchain/`](onchain/) and use **s
 | `RoundReady((u64, Address))` / `RoundReadyCount(u64)` | persistent | Readiness tracking |
 | `PlayerStats(Address)` | persistent | `PlayerStats` |
 
-#### Public functions
-
-| Function | Auth | What it does |
-|---|---|---|
-| `__constructor(owner)` | — | Runs at deploy time. Sets the owner and makes them an admin |
-| **Admin** | | |
-| `set_cards_per_round(caller, value)` | admin | Sets how many cards each round uses (> 0) |
-| `add_card(caller, card)` | admin | Stores a card and indexes it by genre, artist, and year |
-| `set_role(caller, recipient, role, is_enable)` | owner | Grants or revokes admin |
-| **Gameplay** | | |
-| `create_round(caller, genre, seed) → u64` | caller | Creates a round, draws `cards_per_round` random card ids, and adds the caller as the first player. Emits `RoundCreated` |
-| `join_round(caller, round_id)` | caller | Joins a round that hasn't started (no duplicate joins). Emits `RoundJoined` |
-| `start_round(caller, round_id)` | participant | Marks the caller ready (emits `PlayerReady`). When all players are ready, the round starts (emits `RoundStarted`) |
-| `next_card(round_id) → Card` | — | Draws the next card of a started round. Marks the round completed after the last draw |
-| `submit_answer(caller, round_id, answer) → bool` | participant | Checks the answer against the current card, records the answer time, and updates the caller's streaks and score |
-| `finalize_round(caller, round_id)` | participant | Finalizes the round once it is complete or past its deadline, updates winner stats, and emits `RoundCompleted` |
-| `build_question_card(card, seed) → QuestionCard` | — | Picks 3 distinct wrong titles and shuffles them with the right one |
-| **Views** | | |
-| `get_round`, `get_round_cards`, `get_round_players`, `get_players_round_count` | — | Round info |
-| `get_round_scores(round_id)` | — | Final per-player correct-answer counts for the round |
-| `get_card`, `get_cards_per_round` | — | Card info and configuration |
-| `get_cards_of_genre / _of_artist / _of_a_year(…, seed)` | — | `cards_per_round` random cards from an index |
-| `get_player_stat(player)` | — | `PlayerStats` (zeros if the player is unknown) |
-| `is_admin(role, address)` | — | Role check |
-
 #### Randomness
 
 `get_random_numbers` builds a SHA-256 hash of `(seed, ledger sequence, ledger timestamp, i)` for each draw, reduces it modulo the pool size, and skips duplicates until it has enough unique values. `build_question_card` shuffles options with a linear-congruential Fisher–Yates shuffle. This is a straight port of the Cairo logic. It is **not** manipulation-resistant, because the caller supplies `seed` (see [LF-009](ISSUES.md#lf-009--card-selection-randomness-is-predictable-and-caller-controlled)).
 
-#### Errors (`src/errors.rs`)
-
-| Code | Name | Code | Name |
-|---|---|---|---|
-| 1 | `AlreadyInitialized` | 10 | `RoundNotStarted` |
-| 2 | `NonExistingRound` | 11 | `RoundCompleted` |
-| 3 | `RoundAlreadyStarted` | 12 | `NotAParticipant` |
-| 4 | `NonExistingGenre` | 13 | `AlreadyReady` |
-| 5 | `RoundAlreadyJoined` | 14 | `NotAuthorized` |
-| 6 | `InvalidCardsPerRound` | 15 | `AmountExceedsLimit` |
-| 7 | `ArtistCardsIsZero` | 16 | `LimitMustBeGreaterThanZero` |
-| 8 | `EmptyYearCards` | 17 | `NonExistingCard` |
-| 9 | `EmptyGenreCards` | | |
-
-The SDK surfaces these as `Error(Contract, #<code>)`.
-
-#### Events (`src/events.rs`)
-
-| Event | Topics | Data |
-|---|---|---|
-| `RoundCreated` | `round_id`, `admin` | `created_time` |
-| `RoundJoined` | `round_id`, `player` | `joined_time` |
-| `PlayerReady` | `round_id`, `player` | `ready_time` |
-| `RoundStarted` | `round_id`, `admin` | `start_time` |
-| `RoundCompleted` | `round_id` | `winners`, `scores` |
+For every public function, error, and event of both `lyricsflip` and `lyricsflip-nft` — including the reward NFT contract's minter-gated `mint` and its soulbound transfer/approve behavior — see [`onchain/docs/api.md`](onchain/docs/api.md), the single source of truth for the contract API. `onchain/scripts/check-api-docs.sh` runs in CI (LF-182) and fails the build if that file ever falls out of sync with the real contract surface.
 
 ### `lyricsflip-nft` — reward NFT contract
-
-A small, minter-gated NFT:
-
-| Function | Auth | Description |
-|---|---|---|
-| `__constructor(owner, minter, token_name, token_symbol, base_uri)` | — | One-time setup |
-| `mint(caller, recipient) → u128` | `caller == minter` | Mints the next token id to `recipient`. Emits `NftMinted { token_id, recipient }` |
-| `owner_of(token_id)` | — | Owner, or error `TokenDoesNotExist (4)` |
-| `token_name`, `token_symbol`, `base_uri`, `token_count` | — | Metadata |
-
-The intended minter is the game contract's address, so rewards can only come from gameplay. Errors: `AlreadyInitialized=1`, `NotMinter=2`, `TokenAlreadyExists=3`, `TokenDoesNotExist=4`.
 
 ---
 
