@@ -42,14 +42,6 @@ impl From<LegacyCard> for Card {
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RoundFilter {
-    pub genre: Option<Genre>,
-    /// The first year of a decade, for example 1990.
-    pub decade: Option<u64>,
-}
-
-#[contracttype]
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PlayerStats {
     pub total_rounds: u64,
     pub rounds_won: u64,
@@ -91,6 +83,54 @@ pub enum Genre {
     Folk = 12,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoundFilter {
+    pub genre: Option<Genre>,
+    /// The first year of a decade, for example 1990.
+    pub decade: Option<u64>,
+}
+
+impl soroban_sdk::TryFromVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
+    type Error = soroban_sdk::ConversionError;
+    fn try_from_val(env: &soroban_sdk::Env, val: &soroban_sdk::Val) -> Result<Self, Self::Error> {
+        let map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> =
+            soroban_sdk::Map::try_from_val(env, val)?;
+        let map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> = soroban_sdk::Map::try_from_val(env, val)?;
+        let genre_sym = soroban_sdk::Symbol::new(env, "genre");
+        let decade_sym = soroban_sdk::Symbol::new(env, "decade");
+        let genre = if let Some(v) = map.get(genre_sym) {
+            Option::<Genre>::try_from_val(env, &v)?
+        } else {
+            None
+        };
+        let decade = if let Some(v) = map.get(decade_sym) {
+            Option::<u64>::try_from_val(env, &v)?
+        } else {
+            None
+        };
+        Ok(RoundFilter { genre, decade })
+    }
+}
+
+impl soroban_sdk::IntoVal<soroban_sdk::Env, soroban_sdk::Val> for RoundFilter {
+    fn into_val(&self, env: &soroban_sdk::Env) -> soroban_sdk::Val {
+        let mut map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> =
+            soroban_sdk::Map::new(env);
+        let mut map: soroban_sdk::Map<soroban_sdk::Symbol, soroban_sdk::Val> = soroban_sdk::Map::new(env);
+        let genre_val: soroban_sdk::Val = self.genre.into_val(env);
+        let decade_val: soroban_sdk::Val = self.decade.into_val(env);
+        map.set(soroban_sdk::Symbol::new(env, "genre"), genre_val);
+        map.set(soroban_sdk::Symbol::new(env, "decade"), decade_val);
+        map.into_val(env)
+    }
+}
+
+impl soroban_sdk::IntoVal<soroban_sdk::Env, soroban_sdk::Val> for &RoundFilter {
+    fn into_val(&self, env: &soroban_sdk::Env) -> soroban_sdk::Val {
+        (*self).clone().into_val(env)
+    }
+}
+
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Round {
@@ -104,6 +144,51 @@ pub struct Round {
     pub end_time: u64,
     pub next_card_index: u32,
     pub is_cancelled: bool,
+    /// LF-158: Snapshotted answer window (seconds per card).
+    pub answer_window: u64,
+    /// LF-158: Snapshotted lobby timeout (seconds before non-admin can cancel).
+    pub lobby_timeout: u64,
+    /// LF-158: Snapshotted round duration (seconds from start to deadline).
+    pub round_duration: u64,
+}
+
+#[contracttype]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LegacyRound {
+    pub round_id: u64,
+    pub admin: Address,
+    pub genre: Genre,
+    pub wager_amount: i128,
+    pub start_time: u64,
+    pub is_started: bool,
+    pub is_completed: bool,
+    pub end_time: u64,
+    pub next_card_index: u32,
+    pub is_cancelled: bool,
+}
+
+impl From<LegacyRound> for Round {
+    fn from(r: LegacyRound) -> Self {
+        Self {
+            round_id: r.round_id,
+            admin: r.admin,
+            genre: r.genre,
+            wager_amount: r.wager_amount,
+            start_time: r.start_time,
+            is_started: r.is_started,
+            is_completed: r.is_completed,
+            end_time: r.end_time,
+            next_card_index: r.next_card_index,
+            is_cancelled: r.is_cancelled,
+            answer_window: 15,
+            lobby_timeout: 600,
+            round_duration: 300,
+        }
+    }
+    /// LF-162: true when the round requires an invite code to join.
+    pub is_private: bool,
+    /// LF-163: solo rounds skip OpenRounds and start in the same call.
+    pub solo: bool,
 }
 
 /// NFT reward milestones a player can claim once each via `claim_reward`.
@@ -177,6 +262,8 @@ pub enum DataKey {
     /// Nominated by `transfer_ownership`, pending `accept_ownership`.
     PendingOwner,
     Admin(Address),
+    /// Enumerable index of all active admin addresses (LF-156).
+    Admins,
     RoundCount,
     CardsCount,
     CardsPerRound,
@@ -205,6 +292,8 @@ pub enum DataKey {
     RoundCardStartedAt((u64, u64)),
     RoundPlayerAnswered((u64, Address, u64)),
     RoundFinalized(u64),
+    /// LF-162: preimage hash for private rounds. Present only if private.
+    RoundInviteHash(u64),
     PlayerStats(Address),
     RoundReady((u64, Address)),
     RoundReadyCount(u64),
@@ -222,6 +311,20 @@ pub enum DataKey {
     /// Global emergency-pause flag. While set, round creation/joining and
     /// reward claims are blocked; refund and cancel paths stay open.
     Paused,
+    /// LF-141: Tracks the next card index per-player for a round.
+    PlayerCardIndex((u64, Address)),
+    /// LF-141: Ledger timestamp when a player drew a card in a round.
+    PlayerCardStartedAt((u64, Address, u64)),
+    /// LF-157: Stored storage schema version for migration hooks.
+    SchemaVersion,
+    /// LF-158: Owner-configured answer window in seconds per card.
+    AnswerWindow,
+    /// LF-158: Owner-configured lobby timeout in seconds.
+    LobbyTimeout,
+    /// LF-158: Owner-configured round duration override in seconds (or None/0 for dynamic).
+    RoundDuration,
+    /// LF-158: Owner-configured latency buffer added per card in seconds.
+    RoundBuffer,
 }
 
 #[contracttype]

@@ -7,6 +7,22 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { SongsModule } from './songs/songs.module';
 import { PlaylistsModule } from './playlists/playlists.module';
+import { ScoringModule } from './scoring/scoring.module';
+import { QuestionsModule } from './questions/questions.module';
+import { QuickGameModule } from './quick-game/quick-game.module';
+import { GameModule } from './game/game.module';
+import { AchievementModule } from './achievement/achievement.module';
+import { RoomModule } from './room/room.module';
+import { SocialModule } from './social/social.module';
+import { CacheModule } from '@nestjs/cache-manager';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import * as redisStore from 'cache-manager-redis-store';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { Redis } from 'ioredis';
+import { RedisThrottlerStorage } from './common/throttler/redis-throttler.storage';
+import { DEFAULT_THROTTLE } from './common/throttler/throttle-limits';
+import { PaginationModule } from './common/pagination/pagination.module';
+import { IndexerModule } from './indexer/indexer.module';
 import { HealthModule } from './health/health.module';
 import { DatabaseModule } from './database/database.module';
 import { RedisModule } from './redis/redis.module';
@@ -42,6 +58,11 @@ import { AppConfigModule } from './config/app-config.module';
     AnalyticsModule,
     ModerationModule,
     AdminModule,
+    ScoringModule,
+    AchievementModule,
+    SocialModule,
+    RoomModule,
+    IndexerModule,
     HealthModule,
   ],
   controllers: [AppController],

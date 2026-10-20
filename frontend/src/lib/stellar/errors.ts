@@ -90,9 +90,63 @@ export function isUserRejection(error: unknown): boolean {
 }
 
 /**
- * Turns an SDK/wallet error into a message fit for the UI: a known contract
- * error code maps to its friendly message, a declined signature says so, and
- * anything else falls back to the original message.
+ * Well-known Horizon REST API and Soroban RPC error strings that indicate
+ * wallet/account funding problems. These appear in simulation and submission
+ * responses before a contract error code is available.
+ *
+ * Patterns are tested case-insensitively against the full error message.
+ */
+const HORIZON_RPC_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
+  // Horizon 404 for an account that doesn't exist on-chain yet
+  {
+    pattern: /account not found|404.*account|account.*404/i,
+    message: 'This account does not exist on-chain yet. Fund it with Friendbot (testnet) or send XLM to it first.',
+  },
+  // Soroban simulation: source account not found
+  {
+    pattern: /source account not found/i,
+    message: 'Your account has no XLM and cannot be found on-chain. Fund it to continue.',
+  },
+  // Transaction submission: insufficient balance to cover fee + base reserve
+  {
+    pattern: /txInsufficientBalance|insufficient balance|insufficient_balance/i,
+    message: 'Your XLM balance is too low to cover transaction fees. Add XLM to your wallet.',
+  },
+  // Horizon result code: fee bump failed due to low fee
+  {
+    pattern: /txInsufficientFee|insufficient_fee/i,
+    message: 'Transaction fee is too low. Try again.',
+  },
+  // General balance/fee messages from RPC error responses
+  {
+    pattern: /balance.*insufficient|not enough.*balance|no.*xlm/i,
+    message: 'Your XLM balance is too low to complete this transaction.',
+  },
+  // Soroban ledger entry / TTL errors that can look like account issues
+  {
+    pattern: /entry.*not found|ledger.*not found/i,
+    message: 'An on-chain entry was not found. The account or contract data may be missing.',
+  },
+];
+
+/**
+ * Returns a friendly message when the error text matches a known Horizon or
+ * Soroban RPC error pattern, or `undefined` if no pattern matches.
+ */
+export function parseHorizonRpcError(error: unknown): string | undefined {
+  const text = error instanceof Error ? error.message : String(error);
+  for (const { pattern, message } of HORIZON_RPC_ERROR_PATTERNS) {
+    if (pattern.test(text)) return message;
+  }
+  return undefined;
+}
+
+/**
+ * Turns an SDK/wallet error into a message fit for the UI:
+ *  1. A known contract error code maps to its friendly message.
+ *  2. A declined signature says so.
+ *  3. Known Horizon / RPC error strings are mapped to helpful guidance.
+ *  4. Anything else falls back to the original message.
  */
 export function parseContractError(
   error: unknown,
@@ -104,6 +158,10 @@ export function parseContractError(
   }
   if (isUserRejection(error)) {
     return { message: 'You rejected the signature request.' };
+  }
+  const horizonMessage = parseHorizonRpcError(error);
+  if (horizonMessage) {
+    return { message: horizonMessage };
   }
   const text = error instanceof Error ? error.message : String(error);
   return { message: text || 'Something went wrong.' };
