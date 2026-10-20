@@ -6,6 +6,32 @@ For the full list of all 125+ tracked issues, see the [GitHub Issues](https://gi
 
 ---
 
+## Frontend / Backend
+
+### LF-197 · Three incompatible real-time protocols
+
+**Area:** Frontend / Backend · **Priority:** P1 · **Type:** Bug · **Effort:** M  
+**Files:** `frontend/src/hooks/use-multiplayer-room.ts`, `frontend/src/types/realtime.ts`, `backend/src/game/game.gateway.ts`, `backend/src/game/types/realtime.ts`, `docs/realtime-protocol.md`
+
+**Description**
+
+The frontend, backend, and documentation used incompatible event names and payload shapes. This change aligns all implementations to `docs/realtime-protocol.md` as the single source of truth.
+
+**Tasks**
+
+- [x] Treat `docs/realtime-protocol.md` as the source of truth for all real-time events.
+- [x] Unify event definitions across frontend and backend in matching `realtime.ts` type modules.
+- [x] Update `GameGateway` and `useMultiplayerRoom` hook to use spec names (`room:join`, `room:ready`, `answer:submitted`, `room:state`, `player:joined`, `player:left`, `player:ready`, `card:next`, `timer:tick`, `score:update`, `round:completed`) with backwards-compatible legacy aliases.
+- [x] Add contract tests booting the gateway and driving it with client requests.
+
+**Acceptance criteria**
+
+- [x] The protocol has one definition, used by both sides, and the integration tests pass.
+
+**Related:** Closes [#683](https://github.com/Stellar-songifi/lyricsflip/issues/683)
+
+---
+
 ## Frontend
 
 ### LF-200 · Pre-check XLM balance and offer Friendbot on testnet
