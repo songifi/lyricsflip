@@ -170,23 +170,13 @@ The contracts live in a Cargo workspace under [`onchain/`](onchain/) and use **s
 | `RoundReady((u64, Address))` / `RoundReadyCount(u64)` | persistent | Readiness tracking |
 | `PlayerStats(Address)` | persistent | `PlayerStats` |
 
-#### Public functions
-
-The contract exposes admin functions (configuration, card management, roles), gameplay functions (creating, joining, readying, and starting rounds; drawing cards; building question cards; submitting answers; finalizing rounds), and read-only views (round info, scores, cards, player stats, role checks).
-
-The full, generated reference — every function signature, its auth requirements, and what it does — lives in [`onchain/docs/api.md`](onchain/docs/api.md). That file is generated from the contract source; this README intentionally does not duplicate it.
-
 #### Randomness
 
 `get_random_numbers` builds a SHA-256 hash of `(seed, ledger sequence, ledger timestamp, i)` for each draw, reduces it modulo the pool size, and skips duplicates until it has enough unique values. `build_question_card` shuffles options with a linear-congruential Fisher–Yates shuffle. This is a straight port of the Cairo logic. It is **not** manipulation-resistant, because the caller supplies `seed` (see [LF-009](ISSUES.md#lf-009--card-selection-randomness-is-predictable-and-caller-controlled)).
 
-#### Errors and events
-
-The contract defines a set of numbered errors (surfaced by the SDK as `Error(Contract, #<code>)`) and emits events for round creation, joining, readiness, start, and completion. The complete, generated list of error codes and event topics/data is in [`onchain/docs/api.md`](onchain/docs/api.md).
+For every public function, error, and event of both `lyricsflip` and `lyricsflip-nft` — including the reward NFT contract's minter-gated `mint` and its soulbound transfer/approve behavior — see [`onchain/docs/api.md`](onchain/docs/api.md), the single source of truth for the contract API. `onchain/scripts/check-api-docs.sh` runs in CI (LF-182) and fails the build if that file ever falls out of sync with the real contract surface.
 
 ### `lyricsflip-nft` — reward NFT contract
-
-A small, minter-gated NFT. The intended minter is the game contract's address, so rewards can only come from gameplay. Its functions, errors, and events are documented in [`onchain/docs/api.md`](onchain/docs/api.md).
 
 ---
 

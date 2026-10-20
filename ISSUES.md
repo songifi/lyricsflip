@@ -6,6 +6,32 @@ For the full list of all 125+ tracked issues, see the [GitHub Issues](https://gi
 
 ---
 
+## Frontend / Backend
+
+### LF-197 · Three incompatible real-time protocols
+
+**Area:** Frontend / Backend · **Priority:** P1 · **Type:** Bug · **Effort:** M  
+**Files:** `frontend/src/hooks/use-multiplayer-room.ts`, `frontend/src/types/realtime.ts`, `backend/src/game/game.gateway.ts`, `backend/src/game/types/realtime.ts`, `docs/realtime-protocol.md`
+
+**Description**
+
+The frontend, backend, and documentation used incompatible event names and payload shapes. This change aligns all implementations to `docs/realtime-protocol.md` as the single source of truth.
+
+**Tasks**
+
+- [x] Treat `docs/realtime-protocol.md` as the source of truth for all real-time events.
+- [x] Unify event definitions across frontend and backend in matching `realtime.ts` type modules.
+- [x] Update `GameGateway` and `useMultiplayerRoom` hook to use spec names (`room:join`, `room:ready`, `answer:submitted`, `room:state`, `player:joined`, `player:left`, `player:ready`, `card:next`, `timer:tick`, `score:update`, `round:completed`) with backwards-compatible legacy aliases.
+- [x] Add contract tests booting the gateway and driving it with client requests.
+
+**Acceptance criteria**
+
+- [x] The protocol has one definition, used by both sides, and the integration tests pass.
+
+**Related:** Closes [#683](https://github.com/Stellar-songifi/lyricsflip/issues/683)
+
+---
+
 ## Frontend
 
 ### LF-198 · The wager modal must use real escrow
@@ -30,6 +56,31 @@ The wager modal now connects directly to real escrow parameters, converting stak
 - [x] No form field is silently ignored.
 
 **Related:** Closes [#684](https://github.com/Stellar-songifi/lyricsflip/issues/684)
+### LF-196 · Make `useRoundEvents` reliable
+
+**Area:** Frontend · **Priority:** P2 · **Type:** Bug · **Effort:** S  
+**Files:** `frontend/src/hooks/use-round-events.ts`
+
+**Description**
+
+`useRoundEvents` looks back only one day (17,280 ledgers), so lobbies older than that show no players. It also:
+- builds state only from events, never from `get_round_players`
+- keeps polling every 4 s after an error, with no backoff
+- ignores `RoundLeft` and `RoundCancelled`, so players who left stay listed.
+
+**Tasks**
+
+- [x] Seed state from `getRoundPlayers` and `getRound`, then apply events on top.
+- [x] Handle `RoundLeft` and `RoundCancelled`.
+- [x] Back off exponentially on errors, and stop polling once the round is started or cancelled. Hand over to LF-195 for in-game events.
+- [x] Unit-test the hook with a mocked `rpc.Server`.
+
+**Acceptance criteria**
+
+- [x] A lobby created more than a day ago shows the correct players.
+- [x] A player who leaves disappears from the list.
+
+**Related:** Closes [#682](https://github.com/Stellar-songifi/lyricsflip/issues/682)
 
 ---
 
@@ -61,3 +112,32 @@ New wallets that don't exist on-chain, or don't hold enough XLM for fees, fail w
 - Mainnet / non-testnet wallets: Friendbot button is **not** shown; only the balance warning text appears.
 
 **Related:** Closes [#686](https://github.com/Stellar-songifi/lyricsflip/issues/686)
+
+---
+
+## On-chain
+
+### LF-176 · Removing or updating a card breaks rounds that use it
+
+**Area:** On-chain · **Priority:** P1 · **Type:** Bug · **Effort:** M  
+**Files:** `onchain/contracts/lyricsflip/src/lib.rs`, `onchain/contracts/lyricsflip/src/types.rs`, `onchain/contracts/lyricsflip/src/errors.rs`
+
+**Description**
+
+`remove_card` deleted the stored `Card` entry outright, so any active round that had already drawn that card panicked with `NonExistingCard` on `submit_answer`/`get_question`/`next_card`, locking players' wagers. `update_card` could silently change a card's `title`/`artist`/`year` while a round was using it, corrupting answer grading.
+
+**Tasks**
+
+- [x] Make `remove_card` a soft delete: keep the stored `Card` entry, drop it from every index, and set `DataKey::CardDisabled(card_id)` so `get_card` reports `NonExistingCard` and the card is never drawn again. Ids are not reused.
+- [x] Split card reads: private `read_card` (raw, used by all in-round paths) vs public `get_card` (panics `NonExistingCard` once disabled).
+- [x] Add a `DataKey::CardLiveRounds(card_id)` reverse index, maintained on `create_round_internal` and cleared on `finalize_round`/`cancel_round`.
+- [x] Guard `update_card`: reject changes to `title`/`artist`/`year` with `Error::CardInActiveRound` (44) while any referencing round is still live (finalized/cancelled/completed rounds and rounds past their deadline are ignored, so an abandoned round can never permanently freeze a card).
+- [x] Acceptance test: create a round, remove one of its cards mid-round, play the round to the end and finalize it.
+
+**Acceptance criteria**
+
+- A round that draws a card which is later removed still grades answers and finalizes without panicking; the player's wager is not locked.
+- `get_card` on a removed card returns `NonExistingCard`; a removed card cannot be resurrected by `update_card`.
+- `update_card` rejects answer-field changes while a live round references the card and allows them once the round is finalized.
+
+**Related:** Closes [#662](https://github.com/Stellar-songifi/lyricsflip/issues/662)

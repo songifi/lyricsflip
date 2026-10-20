@@ -351,6 +351,10 @@ runs a full batch with Mainnet limits enforced.
 
 ## Events
 
+See [`docs/api.md`](docs/api.md) for which function emits which event
+alongside its full signature, errors, and a CLI example. The table below is a
+quick numeric/topic reference across both contracts.
+
 Topics are listed in order after the event name, which soroban-sdk adds as the
 first topic (snake_case, e.g. `card_added`). Data is a map of the remaining
 fields. The complete event list — with topics and data fields — is generated in
@@ -437,6 +441,10 @@ sequence past the default TTL and verifies that entries touched during gameplay
 
 ## Error codes
 
+See [`docs/api.md`](docs/api.md) for which function can raise which error. The
+table below is a quick numeric-code reference across both contracts, kept in
+sync by `onchain/scripts/check-api-docs.sh` (LF-182, runs in CI).
+
 Contract errors reach clients as `Error(Contract, #<code>)`, and the frontend
 maps on the numeric code (`frontend/src/lib/stellar/errors.ts`). **Codes are
 stable: never renumber or reuse one.** New variants take the next free number
@@ -495,7 +503,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 41 | `InvalidAnswerWindow` | `set_answer_window` called with value outside [5, 180]s |
 | 42 | `InvalidLobbyTimeout` | `set_lobby_timeout` called with value outside [30, 86400]s |
 | 43 | `InvalidRoundDuration` | `set_round_duration` or `set_round_buffer` called with out-of-bounds value |
-| 40 | `Paused` | The contract is paused; round creation, joining, and reward claims are blocked |
+| 44 | `CardInActiveRound` | `update_card` tried to change a card's title/artist/year while a non-finalized round still references it (LF-176) |
 
 ### `lyricsflip-nft`
 

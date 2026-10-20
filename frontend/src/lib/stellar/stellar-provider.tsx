@@ -7,6 +7,7 @@
 // browser wallet (Freighter, xBull, Albedo, Lobstr, Hana).
 
 import { createContext, useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { StellarWalletsKit, Networks as KitNetworks } from '@creit.tech/stellar-wallets-kit';
 import { FreighterModule } from '@creit.tech/stellar-wallets-kit/modules/freighter';
 import { xBullModule } from '@creit.tech/stellar-wallets-kit/modules/xbull';
@@ -20,6 +21,10 @@ import { StrKey } from '@stellar/stellar-sdk';
 import { ConfigErrorScreen } from '@/components/organisms/config-error-screen';
 import { requestWalletChallenge, verifyWalletChallenge } from '../../services/wallet-auth';
 import { setAuthTokens, clearAuthTokens } from '../../services/api';
+import { toast } from '@/components/ui/toast';
+
+/** How often to poll the wallet for an address change, in milliseconds. */
+const ADDRESS_POLL_INTERVAL_MS = 5000;
 
 export interface StellarSetupResult {
   systemCalls: SystemCalls;
@@ -67,6 +72,11 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authError, setAuthError] = useState<Error | null>(null);
   const hasInit = useRef(false);
+  const queryClient = useQueryClient();
+  // Mirrors `account` for the polling effect, which must not re-subscribe
+  // (and thus reset its interval) every time the account changes.
+  const accountRef = useRef<StellarAccount | null>(null);
+  accountRef.current = account;
 
   const rebuildSystemCalls = useCallback((address: string | null) => {
     setSystemCalls(createSystemCalls(configRef.current, address));
@@ -115,8 +125,40 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
       setIsAuthenticated(false);
       setAuthError(null);
       clearAuthTokens();
+      queryClient.clear();
     }
-  }, [rebuildSystemCalls]);
+  }, [rebuildSystemCalls, queryClient]);
+
+  // Called when the wallet reports a different address than the one we have
+  // (or no address at all). Everything derived from the old account — system
+  // calls, cached queries, backend JWTs — is tied to that address, so it all
+  // has to go before the new address is used.
+  const handleAddressChange = useCallback(
+    (nextAddress: string | null) => {
+      const previousAddress = accountRef.current?.address ?? null;
+      if (nextAddress === previousAddress) return;
+
+      setAccount(nextAddress ? { address: nextAddress } : null);
+      rebuildSystemCalls(nextAddress);
+      setIsAuthenticated(false);
+      setAuthError(null);
+      clearAuthTokens();
+      queryClient.clear();
+
+      if (nextAddress) {
+        toast({
+          title: 'Wallet account changed',
+          description: `Now using ${nextAddress.slice(0, 4)}…${nextAddress.slice(-4)}.`,
+        });
+      } else {
+        toast({
+          title: 'Wallet disconnected',
+          description: 'Your wallet is no longer connected.',
+        });
+      }
+    },
+    [rebuildSystemCalls, queryClient],
+  );
 
   useEffect(() => {
     if (hasInit.current) return;
@@ -185,6 +227,39 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
       setIsLoading(false);
     }
   }, [rebuildSystemCalls]);
+
+  // Wallets Kit has no account-change event, so poll `getAddress` on an
+  // interval and whenever the window regains focus (the user usually
+  // switches accounts in the extension, then clicks back into the tab).
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkAddress = async () => {
+      try {
+        const { address } = await StellarWalletsKit.getAddress();
+        if (!cancelled) handleAddressChange(address || null);
+      } catch {
+        // `getAddress` throws when no wallet is connected/authorized; treat
+        // that as a disconnection only if we previously had an account.
+        if (!cancelled && accountRef.current) handleAddressChange(null);
+      }
+    };
+
+    const onFocus = () => {
+      void checkAddress();
+    };
+
+    window.addEventListener('focus', onFocus);
+    const intervalId = window.setInterval(() => {
+      void checkAddress();
+    }, ADDRESS_POLL_INTERVAL_MS);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onFocus);
+      window.clearInterval(intervalId);
+    };
+  }, [handleAddressChange]);
 
   const contextValue: StellarContextType = {
     setup: systemCalls ? { systemCalls, account } : null,
