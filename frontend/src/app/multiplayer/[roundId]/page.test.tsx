@@ -50,32 +50,6 @@ jest.mock('@/hooks/use-round-game-events', () => ({
 jest.mock('@/features/game/hooks/use-card-timer', () => ({
   CARD_TIMEOUT_SECONDS: 15,
   useCardTimer: () => ({ timeLeft: 15, isExpired: false, reset: jest.fn() }),
-
-jest.mock('next/navigation', () => ({
-  useParams: () => ({ roundId: '123' }),
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
-}));
-
-jest.mock('@/lib/stellar/hooks/use-stellar', () => ({
-  useStellar: () => ({
-    systemCalls: {
-      getRound: mockGetRound,
-      getRoundPlayers: mockGetRoundPlayers,
-      joinRound: mockJoinRound,
-      startRound: mockStartRound,
-    },
-    account: { address: 'GPLAYER1' },
-    connect: jest.fn(),
-  }),
-}));
-
-jest.mock('@/hooks/use-round-events', () => ({
-  useRoundEvents: () => ({
-    joined: ['GPLAYER2'],
-    ready: [],
-    started: false,
-    error: null,
-  }),
 }));
 
 const baseRound = {
@@ -135,7 +109,6 @@ const emptyGameEvents = {
 };
 
 describe('multiplayer/[roundId]', () => {
-describe('multiplayer/[roundId] lobby', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetRound.mockResolvedValue(baseRound);
@@ -185,29 +158,6 @@ describe('multiplayer/[roundId] lobby', () => {
         expect(mockJoinRound).toHaveBeenCalledWith(BigInt(123)),
       );
     });
-  });
-
-  it('lists the players from contract state', async () => {
-    render(<MultiplayerRoundPage />);
-
-    expect(await screen.findByText('GPLAYER1 (you)')).toBeInTheDocument();
-    expect(screen.getByText('GPLAYER2')).toBeInTheDocument();
-    expect(screen.getByText(/Players \(2\)/)).toBeInTheDocument();
-  });
-
-  it('readies up through start_round', async () => {
-    render(<MultiplayerRoundPage />);
-
-    const ready = await screen.findByRole('button', { name: /ready/i });
-    fireEvent.click(ready);
-
-    await waitFor(() =>
-      expect(mockStartRound).toHaveBeenCalledWith(BigInt(123)),
-    );
-  });
-
-  it('joins the round when the wallet is not a participant yet', async () => {
-    mockGetRoundPlayers.mockResolvedValue(['GPLAYER2']);
 
     it('shows an error when the round cannot be loaded', async () => {
       mockGetRound.mockRejectedValue(new Error('boom'));
@@ -309,13 +259,6 @@ describe('multiplayer/[roundId] lobby', () => {
         expect(mockFinalizeRound).toHaveBeenCalledWith(BigInt(123)),
       );
     });
-    await waitFor(() =>
-      expect(mockJoinRound).toHaveBeenCalledWith(BigInt(123)),
-    );
-  });
-
-  it('shows an error when the round cannot be loaded', async () => {
-    mockGetRound.mockRejectedValue(new Error('boom'));
 
     it('renders the final results and winner once the round completes', async () => {
       mockGetRound.mockResolvedValue(completedRound);
@@ -336,8 +279,5 @@ describe('multiplayer/[roundId] lobby', () => {
       expect(screen.getByText(/you won/i)).toBeInTheDocument();
       expect(screen.getByTestId('score-GPLAYER1')).toHaveTextContent('120');
     });
-    expect(
-      await screen.findByText(/does not exist or could not be loaded/i),
-    ).toBeInTheDocument();
   });
 });

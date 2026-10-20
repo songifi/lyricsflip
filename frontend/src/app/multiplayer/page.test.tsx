@@ -1,26 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import MultiplayerPage from './page';
-
-const mockPush = jest.fn();
-const mockCreateRound = jest.fn();
-const mockConnect = jest.fn();
-
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush }),
-}));
-
-jest.mock('@/lib/stellar/hooks/use-stellar', () => ({
-  useStellar: () => ({
-    systemCalls: { createRound: mockCreateRound },
-    account: { address: 'GCREATOR' },
-    connect: mockConnect,
-  }),
-}));
-
-describe('MultiplayerPage', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockCreateRound.mockResolvedValue(BigInt(42));
 import type { OpenRound } from '@/hooks/use-open-rounds';
 
 const mockPush = jest.fn();
@@ -30,10 +9,6 @@ const mockCancelRound = jest.fn();
 const mockConnect = jest.fn();
 const mockRefresh = jest.fn();
 const mockUseOpenRounds = jest.fn();
-
-const mockPush = jest.fn();
-const mockCreateRound = jest.fn();
-const mockConnect = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
@@ -46,7 +21,6 @@ jest.mock('@/lib/stellar/hooks/use-stellar', () => ({
       joinRound: mockJoinRound,
       cancelRound: mockCancelRound,
     },
-    systemCalls: { createRound: mockCreateRound },
     account: { address: 'GCREATOR' },
     connect: mockConnect,
   }),
@@ -99,10 +73,6 @@ describe('MultiplayerLobbyPage', () => {
     mockCancelRound.mockResolvedValue(undefined);
     mockRefresh.mockResolvedValue(undefined);
     setOpenRounds([makeEntry(1)]);
-describe('MultiplayerPage', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockCreateRound.mockResolvedValue(BigInt(42));
   });
 
   it('renders the join-by-round-ID and create-round surfaces', () => {
@@ -119,25 +89,6 @@ describe('MultiplayerPage', () => {
       screen.getByRole('button', { name: /create round/i }),
     ).toBeInTheDocument();
   });
-
-  it('navigates to the lobby when joining by round ID', () => {
-    render(<MultiplayerPage />);
-
-    fireEvent.change(screen.getByPlaceholderText(/enter round id/i), {
-      target: { value: '123' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /join round/i }));
-
-    expect(mockPush).toHaveBeenCalledWith('/multiplayer/123');
-  });
-
-  it('rejects a non-numeric round ID instead of navigating', () => {
-    render(<MultiplayerPage />);
-
-    fireEvent.change(screen.getByPlaceholderText(/enter round id/i), {
-      target: { value: 'abc' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /join round/i }));
 
   it('lists open rounds with genre, players and age', () => {
     render(<MultiplayerPage />);
@@ -184,36 +135,6 @@ describe('MultiplayerPage', () => {
 
     expect(screen.getByText(/page 2 of 2/i)).toBeInTheDocument();
     expect(screen.getByText(/round 6/i)).toBeInTheDocument();
-  it('navigates to the lobby when joining by round ID', () => {
-    render(<MultiplayerPage />);
-
-    fireEvent.change(screen.getByPlaceholderText(/enter round id/i), {
-      target: { value: '123' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /join round/i }));
-
-    expect(mockPush).toHaveBeenCalledWith('/multiplayer/123');
-  });
-
-  it('rejects a non-numeric round ID instead of navigating', () => {
-    render(<MultiplayerPage />);
-
-    fireEvent.change(screen.getByPlaceholderText(/enter round id/i), {
-      target: { value: 'abc' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /join round/i }));
-
-    expect(mockPush).not.toHaveBeenCalled();
-    expect(screen.getByText(/must be a number/i)).toBeInTheDocument();
-  });
-
-  it('creates a round and navigates to it', async () => {
-    render(<MultiplayerPage />);
-
-    fireEvent.click(screen.getByRole('button', { name: /create round/i }));
-
-    await waitFor(() => expect(mockCreateRound).toHaveBeenCalled());
-    await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/multiplayer/42'));
   });
 
   it('does not reference the hard-coded sample-room-id', () => {

@@ -14,7 +14,7 @@ const customJestConfig = {
     '/node_modules/(?!(@stellar|@creit\\.tech)/)'
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  testPathIgnorePatterns: ['/node_modules/', '/.next/'],
+  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/__tests__/fixtures/'],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: '<rootDir>/tsconfig.json'

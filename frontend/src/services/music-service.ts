@@ -1,5 +1,5 @@
 import { env } from '@/env';
-import type { LyricData } from '@/store/Types';
+import type { LyricData } from '@/store/types';
 
 export interface Song {
   id: number;

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchSongs } from '../services/musicService';
+import { fetchSongs } from '../services/music-service';
 
 export interface UseSongsOptions {
   genre?: string;
