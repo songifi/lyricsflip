@@ -10,6 +10,8 @@ use soroban_sdk::{
 
 /// Bumped on every release that changes the contract's code; see `upgrade`.
 pub const VERSION: u32 = 1;
+/// Current persisted storage layout. Kept separate from the code version.
+pub const SCHEMA_VERSION: u32 = 2;
 
 /// Longest `base_uri` accepted by `set_base_uri`, so `token_uri` fits in a
 /// fixed buffer alongside the largest `u128` token id (39 digits).
@@ -53,8 +55,6 @@ pub struct Mint {
     /// The milestone / achievement kind this token represents (LF-168).
     pub kind: u32,
     pub recipient: Address,
-    #[topic]
-    pub token_id: u128,
 }
 
 #[contractevent]
@@ -113,6 +113,25 @@ pub struct Burn {
     pub owner: Address,
 }
 
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContractUpgraded {
+    #[topic]
+    pub owner: Address,
+    pub new_wasm_hash: BytesN<32>,
+    pub old_version: u32,
+    pub new_version: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct SchemaMigrated {
+    #[topic]
+    pub caller: Address,
+    pub old_schema_version: u32,
+    pub new_schema_version: u32,
+}
+
 /// An approval that is valid up to and including `live_until_ledger`.
 #[contracttype]
 #[derive(Clone)]
@@ -155,9 +174,9 @@ pub enum Error {
     /// approved.
     NonTransferable = 11,
     /// Balance is insufficient or missing.
-    InsufficientBalance = 11,
+    InsufficientBalance = 12,
     /// The contract is paused; the requested operation is blocked.
-    Paused = 11,
+    Paused = 13,
 }
 
 #[contracttype]
@@ -184,6 +203,8 @@ pub enum DataKey {
     /// LF-170: position of token_id in the owner's index, for O(1) removal.
     OwnerTokenPosition((Address, u128)),
     Paused,
+    /// LF-157: Stored storage schema version for migration hooks.
+    SchemaVersion,
 }
 
 // ---------------------------------------------------------------------------
@@ -231,6 +252,9 @@ impl LyricsFlipNFT {
         env.storage().instance().set(&DataKey::TokenSymbol, &symbol);
         env.storage().instance().set(&DataKey::BaseUri, &base_uri);
         env.storage().instance().set(&DataKey::TokenCount, &0u128);
+        env.storage()
+            .instance()
+            .set(&DataKey::SchemaVersion, &SCHEMA_VERSION);
         bump_instance(&env);
     }
 
@@ -247,8 +271,6 @@ impl LyricsFlipNFT {
     /// `base_uri/{kind}.json` so every badge kind points to its own metadata
     /// file.
     pub fn mint(env: Env, caller: Address, recipient: Address, kind: u32) -> u128 {
-    /// Mints a new token.
-    pub fn mint(env: Env, caller: Address, recipient: Address) -> u128 {
         Self::require_not_paused(&env);
         caller.require_auth();
 
@@ -293,12 +315,10 @@ impl LyricsFlipNFT {
             .set(&DataKey::TokenCount, &token_id);
         bump_instance(&env);
 
-        NftMinted {
-            token_id,
-            kind,
         Mint {
             recipient,
             token_id,
+            kind,
         }
         .publish(&env);
 
@@ -334,9 +354,6 @@ impl LyricsFlipNFT {
         let key = DataKey::Balance(owner);
         let balance = env
             .storage()
-    /// Returns the number of tokens owned by `owner`.
-    pub fn balance(env: Env, owner: Address) -> i128 {
-        env.storage()
             .persistent()
             .get(&key)
             .unwrap_or(0);
@@ -380,28 +397,7 @@ impl LyricsFlipNFT {
         panic_with_error!(_env, Error::NonTransferable);
     }
 
-    /// Always panics with `NonTransferable` (LF-169).
-    /// Transfers a token.
-    pub fn transfer(env: Env, from: Address, to: Address, token_id: u128) {
-        Self::require_not_paused(&env);
-        from.require_auth();
-        Self::do_transfer(&env, &from, &to, token_id);
-    }
 
-    /// Transfers on behalf of `from` by a `spender` approved for the token
-    /// or for all of `from`'s tokens.
-    pub fn transfer_from(env: Env, spender: Address, from: Address, to: Address, token_id: u128) {
-        Self::require_not_paused(&env);
-        spender.require_auth();
-        let is_token_approved = Self::get_approved(env.clone(), token_id) == Some(spender.clone());
-        if spender != from
-            && !is_token_approved
-            && !Self::is_approved_for_all(env.clone(), from.clone(), spender)
-        {
-            panic_with_error!(env, Error::InsufficientApproval);
-        }
-        Self::do_transfer(&env, &from, &to, token_id);
-    }
 
     /// Burns `token_id` owned by `owner`. The caller must authenticate as `owner`.
     pub fn burn(env: Env, owner: Address, token_id: u128) {
@@ -454,80 +450,6 @@ impl LyricsFlipNFT {
     /// Returns `false` because operator approvals are disabled (LF-169).
     pub fn is_approved_for_all(_env: Env, _owner: Address, _operator: Address) -> bool {
         false
-        approver.require_auth();
-        let owner = Self::owner_of(env.clone(), token_id);
-        if approver != owner && !Self::is_approved_for_all(env.clone(), owner, approver.clone()) {
-            panic_with_error!(env, Error::InsufficientApproval);
-        }
-        let key = DataKey::Approval(token_id);
-        if live_until_ledger == 0 {
-            env.storage().persistent().remove(&key);
-        } else {
-            Self::assert_live_until(&env, live_until_ledger);
-            env.storage().persistent().set(
-                &key,
-                &Approval {
-                    approved: approved.clone(),
-                    live_until_ledger,
-                },
-            );
-            bump_persistent(&env, &key);
-        }
-        Approve {
-            approver,
-            token_id,
-            approved,
-            live_until_ledger,
-        }
-        .publish(&env);
-    }
-
-    /// Approves `operator` for all of `owner`'s tokens until
-    /// `live_until_ledger`; 0 revokes.
-    pub fn approve_for_all(env: Env, owner: Address, operator: Address, live_until_ledger: u32) {
-        owner.require_auth();
-        let key = DataKey::ApprovalForAll((owner.clone(), operator.clone()));
-        if live_until_ledger == 0 {
-            env.storage().persistent().remove(&key);
-        } else {
-            Self::assert_live_until(&env, live_until_ledger);
-            env.storage().persistent().set(&key, &live_until_ledger);
-            bump_persistent(&env, &key);
-        }
-        ApproveForAll {
-            owner,
-            operator,
-            live_until_ledger,
-        }
-        .publish(&env);
-    }
-
-    /// Returns the approved.
-    pub fn get_approved(env: Env, token_id: u128) -> Option<Address> {
-        let key = DataKey::Approval(token_id);
-        let approval = env
-            .storage()
-            .persistent()
-            .get::<_, Approval>(&key);
-        if approval.is_some() {
-            bump_persistent(&env, &key);
-        }
-        approval
-            .filter(|a| a.live_until_ledger >= env.ledger().sequence())
-            .map(|a| a.approved)
-    }
-
-    /// Returns whether approved for all.
-    pub fn is_approved_for_all(env: Env, owner: Address, operator: Address) -> bool {
-        let key = DataKey::ApprovalForAll((owner, operator));
-        let entry = env
-            .storage()
-            .persistent()
-            .get::<_, u32>(&key);
-        if entry.is_some() {
-            bump_persistent(&env, &key);
-        }
-        entry.is_some_and(|live_until| live_until >= env.ledger().sequence())
     }
 
     /// Returns the token collection name.
@@ -661,6 +583,14 @@ impl LyricsFlipNFT {
         VERSION
     }
 
+    /// Returns the stored storage schema version. Unmigrated / legacy deployments default to 1.
+    pub fn schema_version(env: Env) -> u32 {
+        env.storage()
+            .instance()
+            .get(&DataKey::SchemaVersion)
+            .unwrap_or(1)
+    }
+
     /// Returns whether the contract is paused.
     pub fn is_paused(env: Env) -> bool {
         env.storage()
@@ -724,7 +654,49 @@ impl LyricsFlipNFT {
     /// Replaces this contract's code in place, keeping all storage.
     pub fn upgrade(env: Env, caller: Address, new_wasm_hash: BytesN<32>) {
         Self::assert_owner(&env, &caller);
-        env.deployer().update_current_contract_wasm(new_wasm_hash);
+        let old_version = Self::version();
+        env.deployer().update_current_contract_wasm(new_wasm_hash.clone());
+        ContractUpgraded {
+            owner: caller,
+            new_wasm_hash,
+            old_version,
+            new_version: old_version,
+        }
+        .publish(&env);
+    }
+
+    /// Owner-only. Migrates stored state step-by-step from the stored
+    /// schema version up to `SCHEMA_VERSION`. Strictly idempotent: calling it
+    /// multiple times after migration is a no-op.
+    pub fn migrate(env: Env, caller: Address) {
+        Self::assert_owner(&env, &caller);
+
+        let stored_version = Self::schema_version(env.clone());
+        if stored_version >= SCHEMA_VERSION {
+            return;
+        }
+
+        let mut current_version = stored_version;
+        while current_version < SCHEMA_VERSION {
+            match current_version {
+                1 => {
+                    current_version = 2;
+                }
+                _ => break,
+            }
+        }
+
+        env.storage()
+            .instance()
+            .set(&DataKey::SchemaVersion, &current_version);
+        bump_instance(&env);
+
+        SchemaMigrated {
+            caller,
+            old_schema_version: stored_version,
+            new_schema_version: current_version,
+        }
+        .publish(&env);
     }
 
     // ---- Private helpers ----
@@ -826,14 +798,9 @@ impl LyricsFlipNFT {
             .unwrap_or_else(|| panic_with_error!(env, Error::InsufficientBalance));
         env.storage().persistent().set(&key, &new_balance);
         bump_persistent(env, &key);
-    fn add_balance(env: &Env, owner: &Address, delta: i128) {
-        let balance = Self::balance(env.clone(), owner.clone());
-        env.storage().persistent().set(
-            &DataKey::Balance(owner.clone()),
-            &balance.checked_add(delta).unwrap(),
-        );
     }
 
+    #[allow(dead_code)]
     fn assert_live_until(env: &Env, live_until_ledger: u32) {
         if live_until_ledger < env.ledger().sequence() {
             panic_with_error!(env, Error::InvalidLiveUntilLedger);

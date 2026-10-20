@@ -28,10 +28,11 @@ export interface GameState {
 export interface WagerDetails {
   genre: string;
   difficulty: string;
-  duration: string;
-  odds: string;
+  duration?: string;
+  odds?: string;
   wagerAmount: string;
-  potentialWin: string;
+  potentialWin?: string;
+  stakeStroops?: string;
 }
 
 export interface LyricData {

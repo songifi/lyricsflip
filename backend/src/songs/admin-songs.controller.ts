@@ -69,6 +69,9 @@ export class AdminSongsController {
     description:
       'Moves a song to approved, making it eligible for the next /admin/songs/sync run',
   })
+  @ApiResponse({ status: 201, description: 'Song approved' })
+  @ApiResponse({ status: 403, description: 'Caller is not an admin' })
+  @ApiResponse({ status: 404, description: 'Song not found' })
   approve(@Param('id', ParseUUIDPipe) id: string) {
     return this.songsService.approve(id);
   }

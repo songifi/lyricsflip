@@ -22,6 +22,21 @@ TypeScript build via `tsconfig.build.json`.
 | `store/` | Generic store/inventory; not related to the music game |
 | `sync/` | Generic offline-sync framework; not wired into AppModule |
 
+## LF-131 — un-quarantined copies removed
+
+LF-077 (#494) intended to *move* these modules here but instead *copied* them,
+leaving duplicate directories at `backend/src/<name>` that were still compiled
+and produced most of the `tsc` errors. Per LF-131 (#617) the 10 top-level
+copies have been deleted; `_experimental/` is now the single source of truth for
+these modules.
+
+`ResourceManagerModule` is **not** reinstated: it is infrastructure-only
+(AWS/Kubernetes autoscaling), was never wired into `AppModule`, and nothing
+outside `_experimental/` imports it. It stays quarantined here.
+
+Importing from `_experimental/` outside of `_experimental/` is now forbidden by
+an ESLint `no-restricted-imports` rule in `backend/.eslintrc.js`.
+
 ## To reinstate a module
 
 1. Move it back to `backend/src/`.
@@ -29,3 +44,5 @@ TypeScript build via `tsconfig.build.json`.
 3. Add any required packages to `package.json`.
 4. Fix remaining import errors.
 5. Wire the module into `AppModule`.
+6. Remove the `_experimental` import restriction for that path in
+   `backend/.eslintrc.js` if cross-boundary imports are needed.

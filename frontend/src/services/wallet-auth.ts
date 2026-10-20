@@ -1,4 +1,5 @@
 import { post } from './api';
+import { clearAuthTokens } from './auth-storage';
 
 // Talks to the backend's wallet-based auth endpoints (backend/src/auth/auth.controller.ts
 // `challenge`/`verify`). NEXT_PUBLIC_API_URL must point at the bare backend
@@ -31,3 +32,35 @@ export const verifyWalletChallenge = (
   signedChallenge: string,
 ): Promise<WalletAuthTokens> =>
   post<WalletAuthTokens>('/auth/verify', { address, signedChallenge });
+
+/**
+ * Storage keys that hold wallet-scoped identity/auth state. These must be
+ * cleared whenever the connected wallet address changes or the wallet is
+ * disconnected, otherwise stale JWTs stay tied to the previous account.
+ */
+const WALLET_SCOPED_STORAGE_KEYS = [
+  'walletAddress',
+  'wallet_address',
+  'walletAuthTokens',
+  'walletChallenge',
+  'walletChallengeExpiresAt',
+] as const;
+
+/**
+ * Clears all wallet-scoped auth state: the access/refresh tokens plus any
+ * cached wallet identity. Safe to call in the browser; a no-op on the server.
+ */
+export const resetWalletAuth = (): void => {
+  clearAuthTokens();
+
+  if (typeof window === 'undefined') return;
+
+  try {
+    for (const key of WALLET_SCOPED_STORAGE_KEYS) {
+      window.localStorage.removeItem(key);
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Storage may be unavailable (private mode, quota, etc.) - ignore.
+  }
+};
