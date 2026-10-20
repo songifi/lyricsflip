@@ -7,9 +7,15 @@ import axios, {
 
 import { env } from '@/env';
 
+// The backend serves every REST route under the versioned prefix `/api/v1`
+// (e.g. `/api/v1/auth/challenge`, `/api/v1/leaderboard`). `NEXT_PUBLIC_API_URL`
+// should therefore point at the `/api/v1` root, e.g.
+// `http://localhost:4000/api/v1`. When unset we fall back to that same root.
+const DEFAULT_API_BASE_URL = 'http://localhost:4000/api/v1';
+
 // Define the base configuration for API
 const apiConfig = {
-  baseURL: env.NEXT_PUBLIC_API_URL,
+  baseURL: env.NEXT_PUBLIC_API_URL || DEFAULT_API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
@@ -20,7 +26,7 @@ const apiConfig = {
 // Create axios instance with the configuration
 const apiClient = axios.create(apiConfig);
 
-// Tokens issued by wallet login (`POST /auth/sign-in`) are kept in localStorage.
+// Tokens issued by wallet login (`POST /api/v1/auth/sign-in`) are kept in localStorage.
 const ACCESS_TOKEN_KEY = 'accessToken';
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
@@ -53,6 +59,7 @@ let refreshPromise: Promise<string> | null = null;
 const refreshAccessToken = async (): Promise<string> => {
   const refreshToken = readToken(REFRESH_TOKEN_KEY);
   if (!refreshToken) throw new Error('No refresh token');
+  // Uses the same versioned base URL as `apiClient` (`/api/v1/auth/refresh`).
   const { data } = await axios.post<{ accessToken: string }>(
     `${apiConfig.baseURL}/auth/refresh`,
     { refreshToken },
