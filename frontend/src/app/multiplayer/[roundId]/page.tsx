@@ -1,5 +1,4 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -25,6 +24,7 @@ import {
   type Round,
 } from '@/lib/stellar/types';
 import { formatTime } from '@/lib/utils';
+import { useProfileStore } from '@/store/useProfileStore';
 
 /** Contract error code for `NoMoreCards` — the player has drawn every card. */
 const NO_MORE_CARDS = 34;
@@ -38,6 +38,36 @@ type AnswerOutcome = 'correct' | 'wrong' | 'miss';
 
 function parseRoundId(raw: string): bigint | null {
   return /^\d+$/.test(raw) ? BigInt(raw) : null;
+}
+
+type RoundPageProps = {
+  params: Promise<{ roundId: string }>;
+};
+
+export async function generateMetadata({
+  params,
+}: RoundPageProps): Promise<Metadata> {
+  const { roundId } = await params;
+  const title = `Round ${roundId}`;
+  const description = `Join multiplayer round ${roundId} on LyricsFlip — guess the song from the lyric and climb the leaderboard.`;
+  const url = `/multiplayer/${roundId}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  };
 }
 
 /**
@@ -69,6 +99,10 @@ const toDeadlineSeconds = (round: Round | null): number | null => {
 };
 
 export default function MultiplayerRoundPage() {
+  return <MultiplayerRoundClient />;
+}
+
+function MultiplayerRoundClient() {
   const router = useRouter();
   const params = useParams<{ roundId?: string | string[] }>();
   const rawRoundId = Array.isArray(params?.roundId)
@@ -78,6 +112,8 @@ export default function MultiplayerRoundPage() {
   const isValidId = roundId !== null;
 
   const { systemCalls, account, connect } = useStellar();
+  const profiles = useProfileStore((state) => state.profiles);
+  const fetchProfile = useProfileStore((state) => state.fetchProfile);
   const [round, setRound] = useState<Round | null>(null);
   const [players, setPlayers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -355,6 +391,20 @@ export default function MultiplayerRoundPage() {
     [allPlayers, mergedScores, gameEvents.answered],
   );
 
+  // ── Profiles (LF-230) ─────────────────────────────────────────────────────
+  // Fetch any player profile we don't have yet so the UI can show usernames
+  // instead of raw `G…` addresses. Failures fall back to the address.
+  useEffect(() => {
+    for (const player of scoreboardPlayers) {
+      if (!profiles[player]) void fetchProfile(player);
+    }
+  }, [scoreboardPlayers, profiles, fetchProfile]);
+
+  const displayName = useCallback(
+    (address: string) => profiles[address]?.username || address,
+    [profiles],
+  );
+
   const options: SongOption[] = question
     ? [
         question.option_one,
@@ -435,6 +485,7 @@ export default function MultiplayerRoundPage() {
           answered={gameEvents.answered}
           currentAddress={account.address}
           winners={winners}
+          displayName={displayName}
         />
 
         <Button
@@ -593,6 +644,7 @@ export default function MultiplayerRoundPage() {
           scores={mergedScores}
           answered={gameEvents.answered}
           currentAddress={account.address}
+          displayName={displayName}
         />
 
         {deadlinePassed && (
@@ -638,8 +690,10 @@ export default function MultiplayerRoundPage() {
         <ul className="space-y-1">
           {allPlayers.map((player) => (
             <li key={player} className="flex justify-between text-sm">
-              <span className="mr-2 truncate">
-                {player === account.address ? `${player} (you)` : player}
+              <span className="mr-2 truncate" title={player}>
+                {player === account.address
+                  ? `${displayName(player)} (you)`
+                  : displayName(player)}
               </span>
               <span
                 className={

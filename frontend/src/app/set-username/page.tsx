@@ -15,6 +15,8 @@ export default function SetUsername() {
   const { setUsername, getUsername } = useProfileStore();
   const [username, setUsernameInput] = useState('');
   const [status, setStatus] = useState<'idle' | 'available' | 'taken' | 'invalid'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Pre-fill if the user already set a username
   useEffect(() => {
@@ -25,6 +27,8 @@ export default function SetUsername() {
   }, [account?.address, getUsername]);
 
   useEffect(() => {
+    setErrorMessage(null);
+
     if (username.length < 1) {
       setStatus('idle');
       return;
@@ -37,27 +41,35 @@ export default function SetUsername() {
       return;
     }
 
-    // Duplicate-check against already-saved username for the same address
-    // (the backend check will replace this when LF-082 lands).
-    const handler = setTimeout(() => {
-      const existingForAddress = account?.address ? getUsername(account.address) : undefined;
-      // If the user types their own current username it counts as "available"
-      if (existingForAddress && existingForAddress !== username) {
-        // Could do a real backend duplicate check here
-        setStatus('available');
-      } else {
-        setStatus('available');
-      }
-    }, 400);
+    // Uniqueness and profanity are enforced by the backend on submit.
+    setStatus('available');
+  }, [username]);
 
-    return () => clearTimeout(handler);
-  }, [username, account?.address, getUsername]);
-
-  const handleSubmit = () => {
-    if (status !== 'available') return;
+  const handleSubmit = async () => {
+    if (status !== 'available' || isSubmitting) return;
     if (!account?.address) return;
-    setUsername(account.address, username);
-    router.push(`/profile/${account.address}`);
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      await setUsername(account.address, username);
+      router.push(`/profile/${account.address}`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Failed to save username';
+      const lower = message.toLowerCase();
+
+      if (lower.includes('taken') || lower.includes('unique') || lower.includes('duplicate')) {
+        setStatus('taken');
+      } else if (lower.includes('offensive') || lower.includes('profan')) {
+        setStatus('invalid');
+      }
+
+      setErrorMessage(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -122,9 +134,15 @@ export default function SetUsername() {
                       <div className="flex items-center text-red-600 mt-2 gap-x-2">
                         <CircleX className="w-5 h-5" />
                         <span>
-                          Username must be 4-15 characters &amp; use only letters,
-                          numbers, or _
+                          {errorMessage ??
+                            'Username must be 4-15 characters & use only letters, numbers, or _'}
                         </span>
+                      </div>
+                    )}
+                    {errorMessage && status !== 'invalid' && status !== 'taken' && (
+                      <div className="flex items-center text-red-600 mt-2 gap-x-2">
+                        <CircleX className="w-5 h-5" />
+                        <span>{errorMessage}</span>
                       </div>
                     )}
                   </div>
@@ -134,14 +152,18 @@ export default function SetUsername() {
             <div className="mt-auto mx-auto w-full">
               <button
                 onClick={handleSubmit}
-                disabled={status !== 'available' || !account}
+                disabled={status !== 'available' || !account || isSubmitting}
                 className={`w-full py-4 px-4 rounded-full transition-colors ${
-                  status === 'available' && account
+                  status === 'available' && account && !isSubmitting
                     ? 'bg-purplePrimary5 hover:bg-purplePrimary5/90 text-white'
                     : 'bg-gray-400 dark:bg-gray-600 text-gray-700 dark:text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {account ? 'Create Username' : 'Connect wallet to continue'}
+                {!account
+                  ? 'Connect wallet to continue'
+                  : isSubmitting
+                    ? 'Saving…'
+                    : 'Create Username'}
               </button>
             </div>
           </div>

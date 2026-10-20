@@ -5,7 +5,7 @@ import { GENRE_VALUES, type Genre } from '@/lib/stellar/types';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getGenreDisplayName } from '@/lib/stellar/genres';
 import {
   formatAmount,
@@ -13,6 +13,7 @@ import {
   WAGER_ASSET_CODE,
 } from '@/lib/utils';
 import { useOpenRounds, type OpenRound } from '@/hooks/use-open-rounds';
+import { useProfileStore } from '@/store/useProfileStore';
 
 const relativeAge = (createdAtSeconds: number | null, nowSeconds: number) => {
   if (createdAtSeconds === null) return 'just now';
@@ -33,6 +34,22 @@ export default function MultiplayerLobbyPage() {
   const [page, setPage] = useState(0);
 
   const openRounds = useOpenRounds({ systemCalls });
+  const profiles = useProfileStore((state) => state.profiles);
+  const fetchProfiles = useProfileStore((state) => state.fetchProfiles);
+
+  const displayName = (address: string) =>
+    profiles[address]?.username ?? `${address.slice(0, 6)}…`;
+
+  const playerAddresses = useMemo(
+    () => openRounds.rounds.flatMap((entry) => entry.players),
+    [openRounds.rounds],
+  );
+
+  useEffect(() => {
+    if (playerAddresses.length > 0) {
+      void fetchProfiles(playerAddresses);
+    }
+  }, [playerAddresses, fetchProfiles]);
 
   const totalPages = Math.max(
     1,
@@ -232,6 +249,11 @@ export default function MultiplayerLobbyPage() {
                         {WAGER_ASSET_CODE} ·{' '}
                         {relativeAge(entry.createdAtSeconds, nowSeconds)}
                       </p>
+                      {entry.players.length > 0 && (
+                        <p className="text-gray-500">
+                          {entry.players.map(displayName).join(', ')}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       {isOwner && (
