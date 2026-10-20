@@ -7,6 +7,9 @@ export const swaggerConfig = new DocumentBuilder()
   .addTag('lyricflip')
   .addTag('songs')
   .addTag('users')
+  .addTag('players')
+  .addTag('leaderboard')
+  .addTag('indexer')
   .addTag('admin')
   .setContact(
     'Songify Support',

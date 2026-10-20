@@ -35,6 +35,21 @@ export default () => ({
       process.env.LYRICSFLIP_CONTRACT_ID,
       process.env.LYRICSFLIP_NFT_CONTRACT_ID,
     ].filter((id): id is string => Boolean(id)),
+    // Indexer tuning (indexer/services/indexer.service.ts). All optional;
+    // defaults keep the poll loop cheap and the keeper off.
+    pollIntervalMs: parseInt(process.env.INDEXER_POLL_INTERVAL_MS, 10) || 5_000,
+    eventLimit: parseInt(process.env.INDEXER_EVENT_LIMIT, 10) || 100,
+    keeperEnabled: process.env.INDEXER_KEEPER_ENABLED === 'true',
+    // Soroban RPC event retention window (days). Used to detect a cursor that
+    // has fallen outside the window and trigger a state backfill (LF-223).
+    retentionDays: parseInt(process.env.INDEXER_RETENTION_DAYS, 10) || 7,
+    // Exponential backoff on RPC errors.
+    backoffBaseMs: parseInt(process.env.INDEXER_BACKOFF_BASE_MS, 10) || 1_000,
+    backoffMaxMs: parseInt(process.env.INDEXER_BACKOFF_MAX_MS, 10) || 60_000,
+    // Optional starting ledger when no cursor has been persisted yet.
+    startLedger: process.env.INDEXER_START_LEDGER
+      ? parseInt(process.env.INDEXER_START_LEDGER, 10)
+      : undefined,
   },
   // Health-check tuning (health/*): how long to wait on the RPC's
   // getLatestLedger before declaring it unreachable, and how many ledgers the
