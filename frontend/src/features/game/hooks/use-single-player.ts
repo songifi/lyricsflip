@@ -1,4 +1,5 @@
 import { fetchLyrics } from '@/services/music-service';
+import { fetchPracticeQuestions } from '@/services/practiceService';
 import { LyricData, SongOption, useStore } from '@/store';
 import { useEffect, useState } from 'react';
 
@@ -25,13 +26,37 @@ export const useSinglePlayer = (genre: string) => {
     isMultiplayer: boolean;
   } | null>(null);
   const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
-    fetchLyrics().then((data) => {
-      if (data && data.length > 0) {
-        setLyricsList(data);
-      }
-    });
+    let cancelled = false;
+    setIsLoading(true);
+    setIsOffline(false);
+
+    fetchPracticeQuestions(genre)
+      .then((data) => {
+        if (cancelled) return;
+        if (data && data.length > 0) {
+          setLyricsList(data);
+          setIsOffline(false);
+        } else {
+          setLyricsList([]);
+          setIsOffline(true);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLyricsList([]);
+        setIsOffline(true);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [genre]);
 
   // Start game and timer
@@ -136,5 +161,7 @@ export const useSinglePlayer = (genre: string) => {
     gameResult,
     resetGame,
     isCardFlipped,
+    isLoading,
+    isOffline,
   };
 };

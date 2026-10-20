@@ -24,14 +24,26 @@ export default () => ({
   stellar: {
     network: process.env.STELLAR_NETWORK,
   },
-  // Soroban RPC endpoint + deployed game contract, consumed by the event
+  // Soroban RPC endpoint + deployed contracts, consumed by the event
   // indexer (indexer/services/indexer.service.ts). SOROBAN_RPC_URL takes
   // precedence to match health/stellar-rpc.health.ts's own fallback order.
+  // Both the game contract and the NFT contract are indexed so that
+  // `NftMinted` events are picked up alongside game events.
   soroban: {
     rpcUrl: process.env.SOROBAN_RPC_URL || process.env.STELLAR_RPC_URL,
-    contractIds: process.env.LYRICSFLIP_CONTRACT_ID
-      ? [process.env.LYRICSFLIP_CONTRACT_ID]
-      : [],
+    contractIds: [
+      process.env.LYRICSFLIP_CONTRACT_ID,
+      process.env.LYRICSFLIP_NFT_CONTRACT_ID,
+    ].filter((id): id is string => Boolean(id)),
+  },
+  // Health-check tuning (health/*): how long to wait on the RPC's
+  // getLatestLedger before declaring it unreachable, and how many ledgers the
+  // indexer may fall behind the RPC's latest ledger before /health/ready
+  // reports the indexer as unhealthy.
+  health: {
+    rpcTimeoutMs: parseInt(process.env.RPC_HEALTH_TIMEOUT_MS, 10) || 3_000,
+    indexerMaxLagLedgers:
+      parseInt(process.env.INDEXER_MAX_LAG_LEDGERS, 10) || 100,
   },
   cors: {
     // Comma-separated list of allowed origins, or `*` for all (main.ts).
