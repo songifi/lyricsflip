@@ -22,6 +22,7 @@ import {
   type Card,
   type Milestone,
   type QuestionCard,
+  type QuestionKind,
   type Round,
 } from '@/lib/stellar/types';
 import { useGameTimer } from '@/features/game/hooks/use-game-timer';
@@ -37,10 +38,54 @@ const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.TenWins]: 'Music Connoisseur',
 };
 
+/** All question kinds the contract supports (LF-029). */
+const QUESTION_KINDS: QuestionKind[] = ['Title', 'Artist', 'Year'];
+
+/** Prompt shown above the options for each question kind. */
+const QUESTION_PROMPTS: Record<QuestionKind, string> = {
+  Title: 'Name the song',
+  Artist: 'Name the artist',
+  Year: 'Name the year',
+};
+
+/**
+ * Pick the question kind for the next card. When a round setting is supplied
+ * via the `kind` query param we honour it; otherwise we rotate through the
+ * three kinds so every round exercises all of them.
+ */
+function pickQuestionKind(
+  roundSetting: string | null,
+  cardIndex: number,
+): QuestionKind {
+  if (roundSetting) {
+    const match = QUESTION_KINDS.find(
+      (kind) => kind.toLowerCase() === roundSetting.toLowerCase(),
+    );
+    if (match) return match;
+  }
+  return QUESTION_KINDS[cardIndex % QUESTION_KINDS.length];
+}
+
+/**
+ * Parse a year option into a BigInt for `Answer.year`. Returns null when the
+ * option isn't a valid non-negative integer so callers can guard against
+ * submitting garbage to the contract.
+ */
+function parseYearOption(option: string): bigint | null {
+  const trimmed = option.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  try {
+    return BigInt(trimmed);
+  } catch {
+    return null;
+  }
+}
+
 export default function SinglePlayerGame() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const roundId = searchParams?.get('roundId') ?? null;
+  const kindSetting = searchParams?.get('kind') ?? null;
   const { account, systemCalls } = useStellar();
 
   const [round, setRound] = useState<Round | null>(null);
@@ -48,6 +93,7 @@ export default function SinglePlayerGame() {
   const [error, setError] = useState<string | null>(null);
   const [card, setCard] = useState<Card | null>(null);
   const [question, setQuestion] = useState<QuestionCard | null>(null);
+  const [questionKind, setQuestionKind] = useState<QuestionKind>('Title');
   const [totalCards, setTotalCards] = useState(0);
   const [answeredCount, setAnsweredCount] = useState(0);
   const [txStatus, setTxStatus] = useState<string | null>(null);
@@ -125,14 +171,17 @@ export default function SinglePlayerGame() {
     setTxStatus('Drawing next card…');
     const { result: nextCard, startedAtMs } = await systemCalls.nextCardWithMeta(id);
     setTxStatus('Building question…');
-    const questionCard = await systemCalls.buildQuestionCard(nextCard, 'Title');
+    // Rotate (or honour the round setting) so all three kinds get played.
+    const kind = pickQuestionKind(kindSetting, answeredCount);
+    const questionCard = await systemCalls.buildQuestionCard(nextCard, kind);
+    setQuestionKind(kind);
     setCard(nextCard);
     setQuestion(questionCard);
     // The contract's 15 s window started when `next_card` closed in a ledger,
     // which is several seconds before this line runs.
     setCardStartedAtMs(startedAtMs);
     setTxStatus(null);
-  }, [roundId, systemCalls, resetCardTimer]);
+  }, [answeredCount, kindSetting, roundId, systemCalls, resetCardTimer]);
 
   useEffect(() => {
     const fetchRoundData = async () => {
@@ -199,13 +248,15 @@ export default function SinglePlayerGame() {
   );
 
   // ── Game options ──────────────────────────────────────────────────────────
+  // The contract returns every option as a string, including years, so we keep
+  // them as-is and only convert to BigInt at submit time.
   const options: SongOption[] = question
     ? [
         question.option_one,
         question.option_two,
         question.option_three,
         question.option_four,
-      ].map((title) => ({ title, artist: '' }))
+      ].map((option) => ({ title: option, artist: '' }))
     : [];
 
   const isRoundFinished = totalCards > 0 && answeredCount >= totalCards;
@@ -219,6 +270,22 @@ export default function SinglePlayerGame() {
       setCorrectOption({ title: card.title, artist: card.artist });
       setAnswerResult(null);
 
+      // Build the Answer variant that matches the question kind. Year options
+      // arrive as strings, so parse them safely before hitting the contract.
+      let answer: Answer;
+      if (questionKind === 'Artist') {
+        answer = Answer.artist(option.title);
+      } else if (questionKind === 'Year') {
+        const year = parseYearOption(option.title);
+        if (year === null) {
+          setError(`Invalid year option: ${option.title}`);
+          return;
+        }
+        answer = Answer.year(year);
+      } else {
+        answer = Answer.title(option.title);
+      }
+
       try {
         const id = BigInt(roundId);
         // Show "Submitting…" until the transaction is included in a ledger;
@@ -226,7 +293,7 @@ export default function SinglePlayerGame() {
         setIsSubmitting(true);
         setTxStatus('Submitting answer…');
         const { result: isCorrect, closedAtMs } =
-          await systemCalls.submitAnswerWithMeta(id, Answer.title(option.title));
+          await systemCalls.submitAnswerWithMeta(id, answer);
 
         // `submit_answer` returns false for a wrong answer *and* for an answer
         // that landed after the card window. The ledger close time of the
@@ -246,7 +313,7 @@ export default function SinglePlayerGame() {
           fireConfetti();
         }
         setAnswerResult(isCorrect ? 'correct' : wasLate ? 'late' : 'wrong');
-        await systemCalls.submitAnswer(id, Answer.title(option.title));
+        await systemCalls.submitAnswer(id, answer);
         setAnsweredCount((prev) => prev + 1);
         setTxStatus(null);
       } catch (err) {
@@ -256,7 +323,7 @@ export default function SinglePlayerGame() {
         setIsSubmitting(false);
       }
     },
-    [card, cardStartedAtMs, roundId, selectedOption, systemCalls],
+    [card, cardStartedAtMs, questionKind, roundId, selectedOption, systemCalls],
   );
 
   const handleNextCard = useCallback(async () => {
@@ -329,6 +396,10 @@ export default function SinglePlayerGame() {
             ]}
             isFlipped={isCardFlipped}
           />
+
+          <p className="text-sm font-semibold text-gray-900">
+            {QUESTION_PROMPTS[questionKind]}
+          </p>
 
           <p className="text-xs text-gray-500">
             Answers close {CARD_LEDGER_LATENCY_SECONDS}s early to cover one
