@@ -36,6 +36,15 @@ export default () => ({
       process.env.LYRICSFLIP_NFT_CONTRACT_ID,
     ].filter((id): id is string => Boolean(id)),
   },
+  // Health-check tuning (health/*): how long to wait on the RPC's
+  // getLatestLedger before declaring it unreachable, and how many ledgers the
+  // indexer may fall behind the RPC's latest ledger before /health/ready
+  // reports the indexer as unhealthy.
+  health: {
+    rpcTimeoutMs: parseInt(process.env.RPC_HEALTH_TIMEOUT_MS, 10) || 3_000,
+    indexerMaxLagLedgers:
+      parseInt(process.env.INDEXER_MAX_LAG_LEDGERS, 10) || 100,
+  },
   cors: {
     // Comma-separated list of allowed origins, or `*` for all (main.ts).
     origin: process.env.CORS_ORIGINS

@@ -6,10 +6,12 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from './decorators/public.decorator';
+import { AccessTokenGuard } from './guards/access-token.guard';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './providers/auth.service';
 import { SignInDto } from './dtos/signIn.dto';
@@ -90,6 +92,21 @@ export class AuthController {
   @ApiBody({ type: RefreshTokenDto })
   public async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshToken(refreshTokenDto);
+  }
+
+  @Post('logout')
+  @UseGuards(AccessTokenGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Log out',
+    description:
+      'Revokes the refresh-token family associated with the supplied refresh token.',
+  })
+  @ApiResponse({ status: 204, description: 'Logged out; token family revoked.' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid access token.' })
+  @ApiBody({ type: RefreshTokenDto })
+  public async logout(@Body() refreshTokenDto: RefreshTokenDto) {
+    await this.authService.logout(refreshTokenDto);
   }
 
   @Post('forgot-password')

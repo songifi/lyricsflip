@@ -19,6 +19,18 @@ LyricsFlip has no tagged releases yet. Only the latest commit on `main` receives
 
 Vulnerabilities in third-party dependencies should be reported to their maintainers. Let us know as well if LyricsFlip is affected.
 
+## Threat Model and Invariants
+
+Our threat model — actors, assets, and the attacks we defend against — along with the core protocol invariants and the tests that enforce them, is documented in [`docs/security/threat-model.md`](docs/security/threat-model.md). Read it before reviewing or changing escrow, round finalization, or reward logic.
+
+Dependency and static analysis run automatically in CI on every pull request:
+
+- `cargo audit` for the Soroban contracts in `onchain/`
+- `npm audit --omit=dev` for `frontend/` and `backend/`
+- CodeQL code scanning for the repository
+
+A failing audit or CodeQL finding blocks the PR.
+
 ## Reporting a Vulnerability
 
 Do not open a public issue, pull request, or discussion for security problems.
