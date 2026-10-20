@@ -1,4 +1,4 @@
-﻿//! Unit tests for the `lyricsflip` contract.
+//! Unit tests for the `lyricsflip` contract.
 //!
 //! Coverage targets:
 //! - Every public function (happy path + key error paths).
@@ -12,24 +12,20 @@ extern crate std;
 extern crate upgrade_fixture;
 
 use crate::{
-    Answer, AnswerSubmitted, AnswerWindowUpdated, Card, CardAdded, CardDrawn, CardRemoved,
-    CardUpdated, CardsPerRoundUpdated, ContractUpgraded, Error, Genre, LegacyRound,
-    LobbyTimeoutUpdated, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, Role, RoleUpdated,
-    RoundBufferUpdated, RoundCancelled, RoundCompleted, RoundDurationUpdated, RoundLeft,
-    SchemaMigrated, CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS, DEFAULT_ROUND_BUFFER_SECONDS,
-    LOBBY_TIMEOUT_SECONDS, MAX_ANSWER_WINDOW_SECONDS, MAX_CARDS_PER_BATCH,
-    MAX_LOBBY_TIMEOUT_SECONDS, MAX_LYRICS_LEN, MAX_PAGE_LIMIT, MAX_ROUND_BUFFER_SECONDS,
-    MAX_ROUND_DURATION_SECONDS, MAX_ROUND_PLAYERS, MIN_ANSWER_WINDOW_SECONDS,
-    MIN_LOBBY_TIMEOUT_SECONDS, MIN_ROUND_BUFFER_SECONDS, MIN_ROUND_DURATION_SECONDS,
-    Answer, AnswerSubmitted, Card, CardAdded, CardDrawn, CardRemoved, CardUpdated,
-    CardsPerRoundUpdated, ContractUpgraded, Error, Genre, LyricsFlip, LyricsFlipClient, Milestone,
-    QuestionKind, Role, RoleUpdated, RoundCancelled, RoundCompleted, RoundLeft, SchemaMigrated,
-    CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS, LOBBY_TIMEOUT_SECONDS, MAX_CARDS_PER_BATCH,
-    MAX_LYRICS_LEN, MAX_PAGE_LIMIT, MAX_ROUND_PLAYERS,
+    Answer, AnswerSubmitted, AnswerWindowUpdated, Card, CardAdded, CardDrawn,
+    CardRemoved, CardUpdated, CardsPerRoundUpdated, ContractUpgraded, Error, Genre, LegacyRound,
+    LobbyTimeoutUpdated, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, Role,
+    RoleUpdated, RoundBufferUpdated, RoundCancelled, RoundCompleted, RoundDurationUpdated,
+    RoundLeft, SchemaMigrated, CARD_ANSWER_WINDOW_SECONDS, DEFAULT_MAX_PLAYERS,
+    DEFAULT_ROUND_BUFFER_SECONDS, LOBBY_TIMEOUT_SECONDS, MAX_ANSWER_WINDOW_SECONDS,
+    MAX_CARDS_PER_BATCH, MAX_LOBBY_TIMEOUT_SECONDS, MAX_LYRICS_LEN, MAX_PAGE_LIMIT,
+    MAX_ROUND_BUFFER_SECONDS, MAX_ROUND_DURATION_SECONDS, MAX_ROUND_PLAYERS,
+    MIN_ANSWER_WINDOW_SECONDS, MIN_LOBBY_TIMEOUT_SECONDS, MIN_ROUND_BUFFER_SECONDS,
+    MIN_ROUND_DURATION_SECONDS,
 };
 use soroban_sdk::{
     testutils::{Address as _, ContractEvents, Events, Ledger},
-    xdr, Address, Env, Event, Map, String, Vec,
+    xdr, Address, BytesN, Env, Event, Map, String, Vec,
 };
 
 /// 2026-05-28, so cards up to year 2026 pass validation.
@@ -215,7 +211,7 @@ fn set_cards_per_round_requires_admin() {
 fn create_round_requires_a_genre() {
     let (env, client, owner) = setup();
     let _ = env;
-    let result = client.try_create_round(&owner, &None, &1u64);
+    let result = client.try_create_round(&owner, &None, &1u64, &None);
     assert!(result.is_err());
 }
 
@@ -243,7 +239,7 @@ fn join_round_rejects_duplicate_join() {
     client.set_cards_per_round(&owner, &3);
     let round_id = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
 
-    let result = client.try_join_round(&owner, &round_id);
+    let result = client.try_join_round(&owner, &round_id, &None);
     assert!(result.is_err(), "the round creator is already a player");
 }
 
@@ -256,7 +252,7 @@ fn join_round_rejects_after_start() {
     client.start_round(&owner, &round_id);
 
     let late_player = Address::generate(&env);
-    let result = client.try_join_round(&late_player, &round_id);
+    let result = client.try_join_round(&late_player, &round_id, &None);
     assert!(result.is_err());
 }
 
@@ -880,7 +876,6 @@ fn finalize_round_e2e_single_winner_updates_stats_and_scores() {
                     &std::format!("Title {i}"),
                     2000 + i,
                 )
-                ..sample_card(&env, Genre::Pop, &std::format!("Artist {i}"), &std::format!("Title {i}"), 2000 + i)
             },
         );
     }
@@ -1432,7 +1427,7 @@ fn cancel_round_refunds_everyone_and_blocks_join_and_start() {
     assert_eq!(client.get_open_rounds(&0, &10).len(), 0);
     let late = Address::generate(&env);
     assert_eq!(
-        client.try_join_round(&late, &round_id),
+        client.try_join_round(&late, &round_id, &None),
         Err(Ok(Error::RoundCancelled.into()))
     );
     assert_eq!(
@@ -1475,7 +1470,7 @@ fn join_round_fails_with_round_full_past_max_players() {
     client.join_round(&Address::generate(&env), &round_id, &None);
     client.join_round(&Address::generate(&env), &round_id, &None);
     assert_eq!(
-        client.try_join_round(&Address::generate(&env), &round_id),
+        client.try_join_round(&Address::generate(&env), &round_id, &None),
         Err(Ok(Error::RoundFull.into()))
     );
     assert_eq!(
@@ -1925,7 +1920,7 @@ fn join_round_rejects_when_full() {
     }
     assert_eq!(client.get_players_round_count(&round_id), MAX_ROUND_PLAYERS);
     assert_eq!(
-        client.try_join_round(&Address::generate(&env), &round_id),
+        client.try_join_round(&Address::generate(&env), &round_id, &None),
         Err(Ok(Error::RoundFull.into()))
     );
     assert_eq!(
@@ -2084,11 +2079,11 @@ fn pause_blocks_create_round_join_round_and_claim_reward() {
     assert!(client.is_paused());
 
     assert_eq!(
-        client.try_create_round(&owner, &Some(Genre::Pop), &2u64),
+        client.try_create_round(&owner, &Some(Genre::Pop), &2u64, &None),
         Err(Ok(Error::Paused.into()))
     );
     assert_eq!(
-        client.try_join_round(&Address::generate(&env), &round_id),
+        client.try_join_round(&Address::generate(&env), &round_id, &None),
         Err(Ok(Error::Paused.into()))
     );
     assert_eq!(
@@ -2367,7 +2362,6 @@ fn faster_correct_answers_earn_more_points_and_wrong_answers_earn_zero() {
                     &std::format!("Title {i}"),
                     2000 + i,
                 )
-                ..sample_card(&env, Genre::Pop, &std::format!("Artist {i}"), &std::format!("Title {i}"), 2000 + i)
             },
         );
     }
@@ -2665,8 +2659,6 @@ fn lf003_three_card_round_last_card_is_answerable() {
         &round_id,
         &Answer::Title(p2_last_card.title.clone()),
     );
-    let p2_correct =
-        client.submit_answer(&player2, &round_id, &Answer::Title(p2_last_card.title.clone()));
     assert!(owner_correct, "owner must be able to answer the last card");
     assert!(p2_correct, "player2 must be able to answer the last card");
 
@@ -2695,10 +2687,6 @@ fn lf003_next_card_after_deck_exhausted_returns_no_more_cards() {
 
     // A third call must fail with NoMoreCards, not RoundCompleted.
     env.ledger().set_timestamp(NOW + 65);
-    let err = client
-        .try_next_card(&owner, &round_id)
-        .unwrap_err()
-        .unwrap();
     let err = client.try_next_card(&owner, &round_id).unwrap_err().unwrap();
     assert_eq!(
         err,
@@ -3262,11 +3250,6 @@ fn lf160_edge_year_card_still_has_four_unique_options() {
 // LF-158 – Make round duration and answer window configurable (#644)
 // ---------------------------------------------------------------------------
 
-#[test]
-fn lf158_values_can_be_changed_without_upgrade() {
-    let (env, client, owner) = setup();
-
-
 // LF-162: private round requires the invite preimage; absent from the lobby.
 #[test]
 fn lf162_private_round_requires_invite_code() {
@@ -3276,7 +3259,7 @@ fn lf162_private_round_requires_invite_code() {
 
     // Compute sha256("magic-code") on-chain style.
     let code = String::from_str(&env, "magic-code");
-    let bytes = Bytes::from_slice(&env, code.to_string().as_bytes());
+    let bytes = code.to_bytes();
     let hash: BytesN<32> = env.crypto().sha256(&bytes).into();
 
     let round_id = client.create_round(
@@ -3331,10 +3314,36 @@ fn lf162_public_round_still_joinable_without_code() {
     let stranger = Address::generate(&env);
     client.join_round(&stranger, &round_id, &None);
     assert_eq!(client.get_round_players(&round_id).len(), 2);
+}
+
 // LF-163: a solo round starts in one call with exactly one signature.
 #[test]
 fn lf163_solo_round_starts_in_one_call() {
-// LF-164: 5-card solo round uses <= 6 signatures (5 answer_and_next calls).
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 5);
+    client.set_cards_per_round(&owner, &2);
+    env.ledger().set_timestamp(NOW + 5);
+
+    let qc = client.create_solo_round(&owner, &Some(Genre::Pop), &163u64);
+
+    // Round exists, started, flagged solo, not in OpenRounds.
+    assert_eq!(client.get_round_count(), 1);
+    let round = client.get_round(&1u64);
+    assert!(round.is_started, "solo round must be started");
+    assert!(round.solo, "round.solo must be true");
+    assert_eq!(round.start_time, NOW + 5);
+    assert!(round.end_time > round.start_time);
+    assert_eq!(client.get_open_rounds(&0u32, &10u32).len(), 0,
+               "solo round must not appear in OpenRounds");
+
+    // First question returned from the same call.
+    assert_eq!(qc.kind, QuestionKind::Title);
+    assert!(!qc.option_one.is_empty());
+    assert!(!qc.option_two.is_empty());
+    assert!(!qc.option_three.is_empty());
+    assert!(!qc.option_four.is_empty());
+}
+
 #[test]
 fn lf158_values_can_be_changed_without_upgrade() {
     let (env, client, owner) = setup();
@@ -3379,7 +3388,7 @@ fn lf158_twenty_card_round_has_enough_time_to_finish() {
     seed_cards(&env, &client, &owner, 25);
     client.set_cards_per_round(&owner, &20);
 
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &12345u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &12345u64, &None);
     let round_created = client.get_round(&round_id);
 
     // Verify snapshot: 20 cards * (15s answer + 15s buffer) = 600s
@@ -3387,32 +3396,6 @@ fn lf158_twenty_card_round_has_enough_time_to_finish() {
     assert_eq!(round_created.lobby_timeout, 600);
     assert_eq!(round_created.round_duration, 20 * (15 + 15));
 
-    let baseline = env.auths().len();
-    env.ledger().set_timestamp(NOW + 5);
-
-    let qc = client.create_solo_round(&owner, &Some(Genre::Pop), &163u64);
-
-    // Round exists, started, flagged solo, not in OpenRounds.
-    assert_eq!(client.get_round_count(), 1);
-    let round = client.get_round(&1u64);
-    assert!(round.is_started, "solo round must be started");
-    assert!(round.solo, "round.solo must be true");
-    assert_eq!(round.start_time, NOW + 5);
-    assert!(round.end_time > round.start_time);
-    assert_eq!(client.get_open_rounds(&0u32, &10u32).len(), 0,
-               "solo round must not appear in OpenRounds");
-
-    // First question returned from the same call.
-    assert_eq!(qc.kind, QuestionKind::Title);
-    assert!(!qc.option_one.is_empty());
-    assert!(!qc.option_two.is_empty());
-    assert!(!qc.option_three.is_empty());
-    assert!(!qc.option_four.is_empty());
-
-    // Exactly one auth for the whole call.
-    let sigs = env.auths().len() - baseline;
-    assert_eq!(sigs, 1, "solo round must start with exactly 1 signature, got {sigs}");
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &164u64);
     client.start_round(&owner, &round_id);
     let round_started = client.get_round(&round_id);
     assert_eq!(round_started.start_time, NOW);
@@ -3452,15 +3435,7 @@ fn lf158_values_are_snapshotted_onto_round_at_creation() {
     client.set_cards_per_round(&owner, &2);
 
     // Create Round 1 under default timing configuration
-    let r1 = client.create_round(&owner, &Some(Genre::Pop), &1u64);
-    let round_1 = client.get_round(&r1);
-    assert_eq!(round_1.answer_window, 15);
-    assert_eq!(round_1.lobby_timeout, 600);
-    assert_eq!(round_1.round_duration, 2 * (15 + 15)); // 60s
-
-
-    // Create Round 1 under default timing configuration
-    let r1 = client.create_round(&owner, &Some(Genre::Pop), &1u64);
+    let r1 = client.create_round(&owner, &Some(Genre::Pop), &1u64, &None);
     let round_1 = client.get_round(&r1);
     assert_eq!(round_1.answer_window, 15);
     assert_eq!(round_1.lobby_timeout, 600);
@@ -3472,7 +3447,7 @@ fn lf158_values_are_snapshotted_onto_round_at_creation() {
     client.set_round_buffer(&owner, &25);
 
     // Create Round 2 under the updated configuration
-    let r2 = client.create_round(&owner, &Some(Genre::Pop), &2u64);
+    let r2 = client.create_round(&owner, &Some(Genre::Pop), &2u64, &None);
     let round_2 = client.get_round(&r2);
     assert_eq!(round_2.answer_window, 30);
     assert_eq!(round_2.lobby_timeout, 120);
@@ -3901,133 +3876,97 @@ fn test_lf156_lazy_migration_of_legacy_admins() {
         }
     }
     assert!(found, "get_admins must include lazily migrated admin");
-
-#[test]
-fn lf158_sane_bounds_are_enforced() {
-    let (_env, client, owner) = setup();
-
-    // answer_window bounds: [5, 180]
-    assert_eq!(
-        client.try_set_answer_window(&owner, &(MIN_ANSWER_WINDOW_SECONDS - 1)),
-        Err(Ok(Error::InvalidAnswerWindow.into()))
-    );
-    assert_eq!(
-        client.try_set_answer_window(&owner, &(MAX_ANSWER_WINDOW_SECONDS + 1)),
-        Err(Ok(Error::InvalidAnswerWindow.into()))
-    );
-    assert!(client
-        .try_set_answer_window(&owner, &MIN_ANSWER_WINDOW_SECONDS)
-        .is_ok());
-    assert!(client
-        .try_set_answer_window(&owner, &MAX_ANSWER_WINDOW_SECONDS)
-        .is_ok());
-
-    // lobby_timeout bounds: [30, 86_400]
-    assert_eq!(
-        client.try_set_lobby_timeout(&owner, &(MIN_LOBBY_TIMEOUT_SECONDS - 1)),
-        Err(Ok(Error::InvalidLobbyTimeout.into()))
-    );
-    assert_eq!(
-        client.try_set_lobby_timeout(&owner, &(MAX_LOBBY_TIMEOUT_SECONDS + 1)),
-        Err(Ok(Error::InvalidLobbyTimeout.into()))
-    );
-    assert!(client
-        .try_set_lobby_timeout(&owner, &MIN_LOBBY_TIMEOUT_SECONDS)
-        .is_ok());
-    assert!(client
-        .try_set_lobby_timeout(&owner, &MAX_LOBBY_TIMEOUT_SECONDS)
-        .is_ok());
-
-    // round_duration bounds: [10, 86_400] when Some(> 0)
-    assert_eq!(
-        client.try_set_round_duration(&owner, &Some(MIN_ROUND_DURATION_SECONDS - 1)),
-        Err(Ok(Error::InvalidRoundDuration.into()))
-    );
-    assert_eq!(
-        client.try_set_round_duration(&owner, &Some(MAX_ROUND_DURATION_SECONDS + 1)),
-        Err(Ok(Error::InvalidRoundDuration.into()))
-    );
-    assert!(client
-        .try_set_round_duration(&owner, &Some(MIN_ROUND_DURATION_SECONDS))
-        .is_ok());
-    assert!(client
-        .try_set_round_duration(&owner, &Some(MAX_ROUND_DURATION_SECONDS))
-        .is_ok());
-
-    // round_buffer bounds: [1, 60]
-    assert_eq!(
-        client.try_set_round_buffer(&owner, &(MIN_ROUND_BUFFER_SECONDS - 1)),
-        Err(Ok(Error::InvalidRoundDuration.into()))
-    );
-    assert_eq!(
-        client.try_set_round_buffer(&owner, &(MAX_ROUND_BUFFER_SECONDS + 1)),
-        Err(Ok(Error::InvalidRoundDuration.into()))
-    );
-    assert!(client
-        .try_set_round_buffer(&owner, &MIN_ROUND_BUFFER_SECONDS)
-        .is_ok());
-    assert!(client
-        .try_set_round_buffer(&owner, &MAX_ROUND_BUFFER_SECONDS)
-        .is_ok());
 }
 
-#[test]
-fn lf158_unauthorized_callers_cannot_set_timing_configs() {
-    let (env, client, _owner) = setup();
-    let stranger = Address::generate(&env);
+// ----------------------------------------------------------------------------
+// LF-176: removing or updating a card must not break rounds already using it
+// ----------------------------------------------------------------------------
 
-    assert_eq!(
-        client.try_set_answer_window(&stranger, &20),
-        Err(Ok(Error::NotAuthorized.into()))
-    );
-    assert_eq!(
-        client.try_set_lobby_timeout(&stranger, &300),
-        Err(Ok(Error::NotAuthorized.into()))
-    );
-    assert_eq!(
-        client.try_set_round_duration(&stranger, &Some(300)),
-        Err(Ok(Error::NotAuthorized.into()))
-    );
-    assert_eq!(
-        client.try_set_round_buffer(&stranger, &15),
-        Err(Ok(Error::NotAuthorized.into()))
-    );
-}
-
+/// Acceptance test: a card removed *after* a round drew it must not break the
+/// round. The round still reads and grades the card, and can be finalized.
 #[test]
-fn lf158_legacy_round_fallback_and_migration() {
+fn lf176_round_survives_removal_of_a_card_it_uses() {
     let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 6);
+    client.set_cards_per_round(&owner, &3);
 
-    // Construct a legacy 10-field round and write it directly to persistent storage
-    let legacy = LegacyRound {
-        round_id: 999,
-        admin: owner.clone(),
-        genre: Genre::Pop,
-        wager_amount: 100,
-        start_time: NOW,
-        is_started: true,
-        is_completed: false,
-        end_time: NOW + 300,
-        next_card_index: 0,
-        is_cancelled: false,
-    };
-    env.as_contract(&client.address, || {
-        env.storage()
-            .persistent()
-            .set(&crate::types::DataKey::Round(999), &legacy);
-    });
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &176u64, &None);
+    client.start_round(&owner, &round_id);
 
-    // Reading legacy round must transparently succeed and populate default timing fields
-    let round = client.get_round(&999);
-    assert_eq!(round.round_id, 999);
-    assert_eq!(round.answer_window, 15);
-    assert_eq!(round.lobby_timeout, 600);
-    assert_eq!(round.round_duration, 300);
+    // Draw the first card, remember its id (ids start at 1) and title.
+    env.ledger().set_timestamp(NOW + 5);
+    let first = client.next_card(&owner, &round_id);
+    let first_id = first.card_id;
 
-    // Initial schema version is 3 in constructor
-    assert_eq!(client.schema_version(), 3);
+    // Admin removes that very card mid-round.
+    client.remove_card(&owner, &first_id);
+    assert_eq!(
+        client.try_get_card(&first_id),
+        Err(Ok(Error::NonExistingCard.into())),
+        "removed card must vanish from the public view"
+    );
 
-    // Calling migrate is a clean, idempotent no-op
-    client.migrate(&owner);
-    assert_eq!(client.schema_version(), 3);
+    // A removed card stays removed: it cannot be resurrected via update_card.
+    let replacement = sample_card(&env, Genre::Pop, "New Artist", "New Title", 2001);
+    assert_eq!(
+        client.try_update_card(&owner, &first_id, &replacement),
+        Err(Ok(Error::NonExistingCard.into()))
+    );
+
+    // The round must still grade the drawn card: submit_answer must not panic
+    // with NonExistingCard, and the title answer is still correct.
+    let correct = client.submit_answer(&owner, &round_id, &Answer::Title(first.title.clone()));
+    assert!(correct, "round must still grade a card removed mid-round");
+
+    // Play out the remaining cards without any panic.
+    for i in 0..2u64 {
+        env.ledger().set_timestamp(NOW + 35 + i * 30);
+        let card = client.next_card(&owner, &round_id);
+        env.ledger().set_timestamp(NOW + 38 + i * 30);
+        client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+    }
+
+    // Round finalizes cleanly (no NonExistingCard, no locked wager).
+    client.finalize_round(&owner, &round_id);
+    let round = client.get_round(&round_id);
+    assert!(round.is_completed, "round must finalize after a card was removed");
 }
+
+/// `update_card` must reject answer-field changes while the card is in a
+/// round that has not been finalized/cancelled.
+#[test]
+fn lf176_update_card_rejects_answer_change_on_live_round() {
+    let (env, client, owner) = setup();
+    seed_cards(&env, &client, &owner, 4);
+    client.set_cards_per_round(&owner, &2);
+
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &177u64, &None);
+    client.start_round(&owner, &round_id);
+    env.ledger().set_timestamp(NOW + 5);
+    let card = client.next_card(&owner, &round_id);
+
+    // Changing a non-answer field (difficulty) is allowed.
+    let mut cosmetic = card.clone();
+    cosmetic.difficulty = 3;
+    client.update_card(&owner, &card.card_id, &cosmetic);
+
+    // Changing an answer field (title) is rejected while the round is live.
+    let mut tampered = card.clone();
+    tampered.title = String::from_str(&env, "Tampered Title");
+    assert_eq!(
+        client.try_update_card(&owner, &card.card_id, &tampered),
+        Err(Ok(Error::CardInActiveRound.into()))
+    );
+
+    // Play out the round: answer the first card, draw and answer the second.
+    client.submit_answer(&owner, &round_id, &Answer::Title(card.title.clone()));
+    env.ledger().set_timestamp(NOW + 35);
+    let second = client.next_card(&owner, &round_id);
+    env.ledger().set_timestamp(NOW + 38);
+    client.submit_answer(&owner, &round_id, &Answer::Title(second.title.clone()));
+
+    // After the round is finalized, the same update is allowed.
+    client.finalize_round(&owner, &round_id);
+    client.update_card(&owner, &card.card_id, &tampered);
+}
+

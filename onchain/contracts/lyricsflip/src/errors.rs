@@ -76,16 +76,19 @@ pub enum Error {
     BatchTooLarge = 32,
     /// The caller is not the pending owner of the contract.
     NotPendingOwner = 33,
+    /// The deck has no cards left to draw; call `finalize_round`.
     NoMoreCards = 34,
-    RoundCancelled = 35,
     /// The round was cancelled and cannot accept further actions.
     RoundCancelled = 35,
     /// Card difficulty or round difficulty is not between 1 and 3.
     InvalidCardDifficulty = 36,
     /// Round decade is not a valid decade start year.
     InvalidDecade = 37,
+    /// `submit_answer` was called before any card was drawn.
     NoActiveCard = 38,
+    /// The player has already answered this card in this round.
     AlreadyAnswered = 39,
+    /// The contract is paused by the owner (LF-174).
     Paused = 40,
     /// LF-158: The answer window is invalid (outside [MIN_ANSWER_WINDOW_SECONDS, MAX_ANSWER_WINDOW_SECONDS]).
     InvalidAnswerWindow = 41,
@@ -93,10 +96,8 @@ pub enum Error {
     InvalidLobbyTimeout = 42,
     /// LF-158: The round duration or buffer is invalid.
     InvalidRoundDuration = 43,
-    /// `submit_answer` was called before any card was drawn.
-    NoActiveCard = 38,
-    /// The player has already answered this card in this round.
-    AlreadyAnswered = 39,
-    /// The contract is paused by the owner (LF-174).
-    Paused = 40,
+    /// LF-176: `update_card` would change the title/artist/year of a card
+    /// that an unfinalized round still references. Wait for the round to
+    /// finalize (or be cancelled) before editing the card.
+    CardInActiveRound = 44,
 }
