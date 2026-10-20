@@ -21,13 +21,15 @@ import {
   MILESTONES,
   type Card,
   type Milestone,
+  type PlayerStats,
   type QuestionCard,
   type QuestionKind,
   type Round,
 } from '@/lib/stellar/types';
 import { useGameTimer } from '@/features/game/hooks/use-game-timer';
+import { toast } from 'sonner';
+import { parseContractError, getContractErrorCode } from '@/lib/stellar/errors';
 import GameResultPopup from '@/components/organisms/game-result-popup';
-import { getContractErrorCode } from '@/lib/stellar/errors';
 
 interface SongOption {
   title: string;
@@ -39,6 +41,24 @@ const MILESTONE_NAMES: Record<Milestone, string> = {
   [MILESTONES.Streak5]: 'Streak Master',
   [MILESTONES.TenWins]: 'Music Connoisseur',
 };
+
+const MILESTONE_DEFINITIONS: Array<{
+  milestone: Milestone;
+  isReached: (stats: PlayerStats) => boolean;
+}> = [
+  {
+    milestone: MILESTONES.FirstWin,
+    isReached: (stats) => stats.rounds_won >= BigInt(1),
+  },
+  {
+    milestone: MILESTONES.Streak5,
+    isReached: (stats) => stats.max_streak >= BigInt(5),
+  },
+  {
+    milestone: MILESTONES.TenWins,
+    isReached: (stats) => stats.rounds_won >= BigInt(10),
+  },
+];
 
 /** All question kinds the contract supports (LF-029). */
 const QUESTION_KINDS: QuestionKind[] = ['Title', 'Artist', 'Year'];
@@ -121,9 +141,14 @@ export default function SinglePlayerGame() {
     endTimeSeconds: round ? round.end_time : null,
   });
 
-  // Badge modal state (Issue #476)
-  const [isBadgeModalOpen, setIsBadgeModalOpen] = useState(false);
-  const [earnedBadgeName, setEarnedBadgeName] = useState<string>('');
+  // Badge modal state (Issue #476 / LF-191)
+  const [earnedBadgeQueue, setEarnedBadgeQueue] = useState<string[]>([]);
+  const isBadgeModalOpen = earnedBadgeQueue.length > 0;
+  const currentBadgeName = earnedBadgeQueue[0] ?? '';
+
+  const handleCloseBadgeModal = useCallback(() => {
+    setEarnedBadgeQueue((prev) => prev.slice(1));
+  }, []);
   const statusRef = useRef<HTMLParagraphElement>(null);
 
   // ── Per-card 15-second timer (Issue #472) ────────────────────────────────
@@ -225,28 +250,36 @@ export default function SinglePlayerGame() {
     fetchRoundData();
   }, [roundId, systemCalls, loadNextCard]);
 
-  // ── Milestone / badge check ───────────────────────────────────────────────
+  // ── Milestone / badge check (Issue #677 / LF-191) ─────────────────────────
   const checkMilestoneAndShowBadge = useCallback(
     async (finalScore: number, total: number) => {
       if (!systemCalls || !account?.address) return;
       try {
         const stats = await systemCalls.getPlayerStat(account.address);
-        let milestone: Milestone | null = null;
-        if (stats.rounds_won === BigInt(1)) milestone = MILESTONES.FirstWin;
-        else if (stats.current_streak === BigInt(5)) milestone = MILESTONES.Streak5;
-        else if (stats.rounds_won === BigInt(10)) milestone = MILESTONES.TenWins;
+        const newlyEarnedBadges: string[] = [];
 
-        if (milestone !== null) {
+        for (const def of MILESTONE_DEFINITIONS) {
+          if (!def.isReached(stats)) continue;
+
           try {
-            await systemCalls.claimReward(milestone);
-          } catch {
-            // Already claimed or contract error; still show the modal
+            const alreadyClaimed = await systemCalls.isMilestoneClaimed(
+              account.address,
+              def.milestone,
+            );
+            if (alreadyClaimed) continue;
+
+            await systemCalls.claimReward(def.milestone);
+            newlyEarnedBadges.push(MILESTONE_NAMES[def.milestone]);
+          } catch (err) {
+            toast.error(parseContractError(err).message);
           }
-          setEarnedBadgeName(MILESTONE_NAMES[milestone]);
-          setIsBadgeModalOpen(true);
         }
-      } catch {
-        // Non-critical
+
+        if (newlyEarnedBadges.length > 0) {
+          setEarnedBadgeQueue((prev) => [...prev, ...newlyEarnedBadges]);
+        }
+      } catch (err) {
+        console.warn('Failed to check player milestones:', err);
       }
     },
     [account?.address, systemCalls],
@@ -537,8 +570,8 @@ export default function SinglePlayerGame() {
 
       <BadgeModal
         isOpen={isBadgeModalOpen}
-        badgeName={earnedBadgeName}
-        onClose={() => setIsBadgeModalOpen(false)}
+        badgeName={currentBadgeName}
+        onClose={handleCloseBadgeModal}
       />
 
       {showResultModal && (

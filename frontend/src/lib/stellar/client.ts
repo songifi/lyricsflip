@@ -109,6 +109,10 @@ export interface SystemCalls {
    */
   claimReward: (milestone: Milestone) => Promise<bigint>;
   /**
+   * Returns whether the player has already claimed the NFT for `milestone` (LF-191).
+   */
+  isMilestoneClaimed: (player: string, milestone: Milestone) => Promise<boolean>;
+  /**
    * LF-183: there is no `claim_winnings` on the deployed contract —
    * `create_round` always sets `wager_amount: 0`, so no pot ever accrues to
    * claim. Kept as an explicit "not implemented" stub (see `getCategories`
@@ -211,6 +215,7 @@ type LyricsFlipContract = {
   get_cards_of_a_year: (args: { year: bigint; seed: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
   build_question_card: (args: { card: WireCard; seed: bigint; kind: number }) => Promise<contract.AssembledTransaction<QuestionCard>>;
   claim_reward: (args: { caller: string; milestone: number }) => Promise<contract.AssembledTransaction<bigint>>;
+  is_milestone_claimed: (args: { player: string; milestone: number }) => Promise<contract.AssembledTransaction<boolean>>;
 };
 
 type GameClientInstance = Awaited<ReturnType<typeof contract.Client.from<LyricsFlipContract>>>;
@@ -490,6 +495,12 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       return submit(() => client.claim_reward({ caller, milestone }));
+    },
+
+    isMilestoneClaimed: async (player, milestone) => {
+      const client = await getGameClient(config, publicKey);
+      const res = await client.is_milestone_claimed({ player, milestone });
+      return res.result;
     },
 
     claimWinnings,

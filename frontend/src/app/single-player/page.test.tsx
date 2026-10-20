@@ -13,6 +13,8 @@ const mockSubmitAnswer = jest.fn();
 const mockSubmitAnswerWithMeta = jest.fn();
 const mockGetPlayerStat = jest.fn();
 const mockClaimReward = jest.fn();
+const mockIsMilestoneClaimed = jest.fn();
+const mockToastError = jest.fn();
 const mockFinalizeRound = jest.fn().mockResolvedValue(undefined);
 const mockGetRoundScores = jest.fn().mockResolvedValue({ GPLAYER1: 1 });
 
@@ -27,9 +29,18 @@ const mockSystemCalls = {
   submitAnswerWithMeta: mockSubmitAnswerWithMeta,
   getPlayerStat: mockGetPlayerStat,
   claimReward: mockClaimReward,
+  isMilestoneClaimed: mockIsMilestoneClaimed,
   finalizeRound: mockFinalizeRound,
   getRoundScores: mockGetRoundScores,
 };
+
+jest.mock('sonner', () => ({
+  toast: {
+    error: (...args: unknown[]) => mockToastError(...args),
+    loading: jest.fn(),
+    success: jest.fn(),
+  },
+}));
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), prefetch: jest.fn() }),
@@ -95,6 +106,14 @@ describe('SinglePlayerPage', () => {
     mockBuildQuestionCard.mockResolvedValue(question);
     mockSubmitAnswer.mockResolvedValue(true);
     mockSubmitAnswerWithMeta.mockResolvedValue({ result: true, closedAtMs: null });
+    mockGetPlayerStat.mockResolvedValue({
+      total_rounds: BigInt(0),
+      rounds_won: BigInt(0),
+      current_streak: BigInt(0),
+      max_streak: BigInt(0),
+    });
+    mockIsMilestoneClaimed.mockResolvedValue(false);
+    mockClaimReward.mockResolvedValue(BigInt(100));
   });
 
   it('loads the round and renders the lyric with four answer options', async () => {
@@ -203,6 +222,188 @@ describe('SinglePlayerPage', () => {
     expect(await screen.findByText('Wrong')).toBeInTheDocument();
   });
 
+  describe('Milestone checks and badge flow (LF-191)', () => {
+    const completeAndFinishRound = async () => {
+      render(<SinglePlayerPage />);
+      fireEvent.click(
+        await screen.findByRole('button', { name: /option 1: thriller/i }),
+      );
+      const finishBtn = await screen.findByRole('button', {
+        name: /finish round/i,
+      });
+      fireEvent.click(finishBtn);
+    };
+
+    it('skips milestone claims when stats thresholds are not reached', async () => {
+      mockGetPlayerStat.mockResolvedValue({
+        total_rounds: BigInt(1),
+        rounds_won: BigInt(0),
+        current_streak: BigInt(0),
+        max_streak: BigInt(2),
+      });
+
+      await completeAndFinishRound();
+
+      await waitFor(() => {
+        expect(mockGetPlayerStat).toHaveBeenCalled();
+      });
+      expect(mockClaimReward).not.toHaveBeenCalled();
+      expect(
+        screen.queryByText(/You Just earned a new badge/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it('claims FirstWin when rounds_won >= 1 and milestone is unclaimed', async () => {
+      mockGetPlayerStat.mockResolvedValue({
+        total_rounds: BigInt(1),
+        rounds_won: BigInt(1),
+        current_streak: BigInt(1),
+        max_streak: BigInt(1),
+      });
+      mockIsMilestoneClaimed.mockResolvedValue(false);
+
+      await completeAndFinishRound();
+
+      await waitFor(() => {
+        expect(mockClaimReward).toHaveBeenCalledWith(0);
+      });
+      expect(await screen.findByText(/First Win/)).toBeInTheDocument();
+    });
+
+    it('handles skipped thresholds (e.g. 11 wins) and claims TenWins', async () => {
+      mockGetPlayerStat.mockResolvedValue({
+        total_rounds: BigInt(15),
+        rounds_won: BigInt(11),
+        current_streak: BigInt(1),
+        max_streak: BigInt(2),
+      });
+      // FirstWin (0) is already claimed, TenWins (2) is unclaimed
+      mockIsMilestoneClaimed.mockImplementation(
+        async (_player: string, milestone: number) => milestone === 0,
+      );
+
+      await completeAndFinishRound();
+
+      await waitFor(() => {
+        expect(mockClaimReward).toHaveBeenCalledWith(2);
+      });
+      expect(mockClaimReward).not.toHaveBeenCalledWith(0);
+      expect(await screen.findByText(/Music Connoisseur/)).toBeInTheDocument();
+    });
+
+    it('checks Streak5 against max_streak rather than current_streak', async () => {
+      mockGetPlayerStat.mockResolvedValue({
+        total_rounds: BigInt(10),
+        rounds_won: BigInt(0),
+        current_streak: BigInt(1), // current is low
+        max_streak: BigInt(5), // max reaches threshold
+      });
+      mockIsMilestoneClaimed.mockResolvedValue(false);
+
+      await completeAndFinishRound();
+
+      await waitFor(() => {
+        expect(mockClaimReward).toHaveBeenCalledWith(1);
+      });
+      expect(await screen.findByText(/Streak Master/)).toBeInTheDocument();
+    });
+
+    it('skips already claimed milestones', async () => {
+      mockGetPlayerStat.mockResolvedValue({
+        total_rounds: BigInt(5),
+        rounds_won: BigInt(5),
+        current_streak: BigInt(2),
+        max_streak: BigInt(2),
+      });
+      mockIsMilestoneClaimed.mockResolvedValue(true);
+
+      await completeAndFinishRound();
+
+      await waitFor(() => {
+        expect(mockGetPlayerStat).toHaveBeenCalled();
+      });
+      expect(mockClaimReward).not.toHaveBeenCalled();
+      expect(
+        screen.queryByText(/You Just earned a new badge/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it('handles mint failure without opening modal and shows error toast', async () => {
+      mockGetPlayerStat.mockResolvedValue({
+        total_rounds: BigInt(1),
+        rounds_won: BigInt(1),
+        current_streak: BigInt(1),
+        max_streak: BigInt(1),
+      });
+      mockIsMilestoneClaimed.mockResolvedValue(false);
+      mockClaimReward.mockRejectedValue(
+        new Error('Transaction failed: Error(Contract, #24)'),
+      );
+
+      await completeAndFinishRound();
+
+      await waitFor(() => {
+        expect(mockToastError).toHaveBeenCalledWith(
+          expect.stringContaining('You have not reached that milestone yet.'),
+        );
+      });
+      expect(
+        screen.queryByText(/You Just earned a new badge/i),
+      ).not.toBeInTheDocument();
+    });
+
+    it('claims multiple unclaimed milestones in a row and queues modals', async () => {
+      mockGetPlayerStat.mockResolvedValue({
+        total_rounds: BigInt(12),
+        rounds_won: BigInt(10),
+        current_streak: BigInt(5),
+        max_streak: BigInt(5),
+      });
+      mockIsMilestoneClaimed.mockResolvedValue(false);
+
+      await completeAndFinishRound();
+
+      await waitFor(() => {
+        expect(mockClaimReward).toHaveBeenCalledWith(0);
+        expect(mockClaimReward).toHaveBeenCalledWith(1);
+        expect(mockClaimReward).toHaveBeenCalledWith(2);
+      });
+
+      // First badge modal (First Win)
+      expect(await screen.findByText(/First Win/)).toBeInTheDocument();
+
+      // Dismiss first modal
+      const closeBtn1 = screen.getByRole('button', {
+        name: /close badge notification/i,
+      });
+      fireEvent.click(closeBtn1);
+
+      // Second badge modal (Streak Master)
+      expect(await screen.findByText(/Streak Master/)).toBeInTheDocument();
+
+      // Dismiss second modal
+      const closeBtn2 = screen.getByRole('button', {
+        name: /close badge notification/i,
+      });
+      fireEvent.click(closeBtn2);
+
+      // Third badge modal (Music Connoisseur)
+      expect(await screen.findByText(/Music Connoisseur/)).toBeInTheDocument();
+
+      // Dismiss third modal
+      const closeBtn3 = screen.getByRole('button', {
+        name: /close badge notification/i,
+      });
+      fireEvent.click(closeBtn3);
+
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/You Just earned a new badge/i),
+        ).not.toBeInTheDocument();
+      });
+    });
+  });
+
   it('calls finalizeRound and queries authoritative round scores when round completes', async () => {
     mockGetRoundCards.mockResolvedValue([BigInt(7)]);
     mockGetRound.mockResolvedValue({ ...round, next_card_index: 0 });
@@ -271,4 +472,3 @@ describe('SinglePlayerPage', () => {
     });
   });
 });
-
