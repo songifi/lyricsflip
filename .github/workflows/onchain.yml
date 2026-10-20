@@ -151,15 +151,23 @@ jobs:
       - name: Check TypeScript bindings are fresh
         run: bash onchain/scripts/check-bindings-fresh.sh
 
+  api-docs-check:
+    name: Contract API docs are up to date (LF-182)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check docs/api.md covers every public function, error, and event
+        run: bash onchain/scripts/check-api-docs.sh
+
   ci-summary:
     name: LyricsFlip Contracts
     if: always()
-    needs: [build, test, audit, bindings-check]
+    needs: [build, test, bindings-check, api-docs-check]
     runs-on: ubuntu-latest
     steps:
       - name: Require contract checks
         run: |
-          if [[ "${{ needs.build.result }}" != "success" || "${{ needs.test.result }}" != "success" || "${{ needs.audit.result }}" != "success" || "${{ needs.bindings-check.result }}" != "success" ]]; then
+          if [[ "${{ needs.build.result }}" != "success" || "${{ needs.test.result }}" != "success" || "${{ needs.bindings-check.result }}" != "success" || "${{ needs.api-docs-check.result }}" != "success" ]]; then
             echo "Contract checks did not all pass."
             exit 1
           fi

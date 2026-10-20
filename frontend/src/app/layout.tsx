@@ -1,3 +1,11 @@
+import type { Metadata } from 'next';
+import { Inter, JetBrains_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
+import './globals.css';
+import { metadata as siteMetadata } from './metadata';
+import ClientShell from './client-shell';
+
+export const metadata: Metadata = siteMetadata;
 "use client"
 import Navbar, { MobileNav } from '@/components/molecules/navbar';
 import { metadata } from "./metadata";
@@ -79,6 +87,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} ${jetBrainsMono.variable} ${interV.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors`}>
+        <ClientShell>{children}</ClientShell>
         <ThemeProvider>
             <Suspense fallback={
               <div className="flex items-center justify-center min-h-screen">
