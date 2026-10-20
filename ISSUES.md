@@ -8,6 +8,34 @@ For the full list of all 125+ tracked issues, see the [GitHub Issues](https://gi
 
 ## Frontend
 
+### LF-196 · Make `useRoundEvents` reliable
+
+**Area:** Frontend · **Priority:** P2 · **Type:** Bug · **Effort:** S  
+**Files:** `frontend/src/hooks/use-round-events.ts`
+
+**Description**
+
+`useRoundEvents` looks back only one day (17,280 ledgers), so lobbies older than that show no players. It also:
+- builds state only from events, never from `get_round_players`
+- keeps polling every 4 s after an error, with no backoff
+- ignores `RoundLeft` and `RoundCancelled`, so players who left stay listed.
+
+**Tasks**
+
+- [x] Seed state from `getRoundPlayers` and `getRound`, then apply events on top.
+- [x] Handle `RoundLeft` and `RoundCancelled`.
+- [x] Back off exponentially on errors, and stop polling once the round is started or cancelled. Hand over to LF-195 for in-game events.
+- [x] Unit-test the hook with a mocked `rpc.Server`.
+
+**Acceptance criteria**
+
+- [x] A lobby created more than a day ago shows the correct players.
+- [x] A player who leaves disappears from the list.
+
+**Related:** Closes [#682](https://github.com/Stellar-songifi/lyricsflip/issues/682)
+
+---
+
 ### LF-200 · Pre-check XLM balance and offer Friendbot on testnet
 
 **Area:** Frontend · **Priority:** P2 · **Type:** Feature · **Effort:** S  
