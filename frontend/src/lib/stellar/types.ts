@@ -77,6 +77,9 @@ export interface Round {
   end_time: bigint;
   next_card_index: number;
   is_cancelled: boolean;
+  answer_window?: bigint;
+  lobby_timeout?: bigint;
+  round_duration?: bigint;
 }
 
 export interface RoundFilter {

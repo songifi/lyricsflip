@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/error-reporting';
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
@@ -13,7 +14,9 @@ interface GlobalErrorProps {
  */
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
-    console.error('[LyricsFlip Global Error]', error);
+    const route =
+      typeof window !== 'undefined' ? window.location.pathname : undefined;
+    reportError(error, { route, source: 'global-error' });
   }, [error]);
 
   return (
