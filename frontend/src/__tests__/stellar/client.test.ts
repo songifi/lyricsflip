@@ -2,7 +2,7 @@
  * Tests for src/lib/stellar/client.ts
  * Mocks `contract.Client.from` and `StellarWalletsKit` so no network is needed.
  */
-import { createSystemCalls } from '@/lib/stellar/client';
+import { createSystemCalls, clearGameClientCache } from '@/lib/stellar/client';
 import { contract } from '@stellar/stellar-sdk';
 import { StellarWalletsKit } from '@creit.tech/stellar-wallets-kit';
 import type { StellarConfig } from '@/lib/stellar/stellar-config';
@@ -97,6 +97,7 @@ const mockContractMethods = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  clearGameClientCache();
   (contract.Client.from as jest.Mock).mockResolvedValue(mockContractMethods);
 });
 
@@ -460,3 +461,82 @@ describe('not-implemented stubs', () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Client caching (LF-189)
+// ---------------------------------------------------------------------------
+describe('contract client caching (LF-189)', () => {
+  it('memoizes contract.Client.from across repeated calls for the same wallet', async () => {
+    mockContractMethods.get_cards_count.mockResolvedValue(makeAssembled(BigInt(10)));
+    mockContractMethods.get_max_players.mockResolvedValue(makeAssembled(4));
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+
+    await calls.getCardsCount();
+    await calls.getMaxPlayers();
+    await calls.getCardsCount();
+
+    expect(contract.Client.from).toHaveBeenCalledTimes(1);
+    expect(contract.Client.from).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contractId: TEST_CONFIG.lyricsflipContractId,
+        publicKey: TEST_ADDRESS,
+        rpcUrl: TEST_CONFIG.rpcUrl,
+        networkPassphrase: TEST_CONFIG.networkPassphrase,
+      }),
+    );
+  });
+
+  it('creates a new client when the wallet account changes', async () => {
+    mockContractMethods.get_cards_count.mockResolvedValue(makeAssembled(BigInt(10)));
+    const SECOND_ADDRESS = 'GSECONDACCOUNT1234567890TEST';
+
+    const calls1 = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+    const calls2 = createSystemCalls(TEST_CONFIG, SECOND_ADDRESS);
+
+    await calls1.getCardsCount();
+    await calls2.getCardsCount();
+
+    expect(contract.Client.from).toHaveBeenCalledTimes(2);
+    expect(contract.Client.from).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ publicKey: TEST_ADDRESS }),
+    );
+    expect(contract.Client.from).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ publicKey: SECOND_ADDRESS }),
+    );
+  });
+
+  it('clearGameClientCache invalidates the cache and forces a re-instantiation', async () => {
+    mockContractMethods.get_cards_count.mockResolvedValue(makeAssembled(BigInt(10)));
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+
+    await calls.getCardsCount();
+    expect(contract.Client.from).toHaveBeenCalledTimes(1);
+
+    clearGameClientCache();
+
+    await calls.getCardsCount();
+    expect(contract.Client.from).toHaveBeenCalledTimes(2);
+  });
+
+  it('evicts rejected client instantiation from cache so subsequent calls can retry', async () => {
+    (contract.Client.from as jest.Mock)
+      .mockRejectedValueOnce(new Error('Network error during spec fetch'))
+      .mockResolvedValue(mockContractMethods);
+
+    mockContractMethods.get_cards_count.mockResolvedValue(makeAssembled(BigInt(10)));
+
+    const calls = createSystemCalls(TEST_CONFIG, TEST_ADDRESS);
+
+    await expect(calls.getCardsCount()).rejects.toThrow('Network error during spec fetch');
+
+    // Next call should retry and not return the cached rejected promise
+    const count = await calls.getCardsCount();
+    expect(count).toBe(BigInt(10));
+    expect(contract.Client.from).toHaveBeenCalledTimes(2);
+  });
+});
+

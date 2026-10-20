@@ -46,4 +46,25 @@ export class RedisService {
       }
     } while (cursor !== '0');
   }
+
+  // Atomically evaluates a Lua script against Redis. Used by the WebSocket
+  // rate limiter to perform a token-bucket check-and-update in a single round
+  // trip so it stays consistent across multiple backend instances.
+  async eval(
+    script: string,
+    keys: string[],
+    args: (string | number)[],
+  ): Promise<unknown> {
+    return this.client.eval(script, keys.length, ...keys, ...args);
+  }
+
+  // Increments a counter and sets its TTL on first creation. Returns the new
+  // counter value. Useful for tracking consecutive violations.
+  async incrWithTtl(key: string, ttl: number): Promise<number> {
+    const value = await this.client.incr(key);
+    if (value === 1) {
+      await this.client.expire(key, ttl);
+    }
+    return value;
+  }
 }

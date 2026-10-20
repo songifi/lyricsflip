@@ -28,7 +28,8 @@ import {
 } from '@/lib/stellar/types';
 import { useGameTimer } from '@/features/game/hooks/use-game-timer';
 import { toast } from 'sonner';
-import { parseContractError } from '@/lib/stellar/errors';
+import { parseContractError, getContractErrorCode } from '@/lib/stellar/errors';
+import GameResultPopup from '@/components/organisms/game-result-popup';
 
 interface SongOption {
   title: string;
@@ -129,6 +130,9 @@ export default function SinglePlayerGame() {
   const [answerResult, setAnswerResult] = useState<
     'correct' | 'wrong' | 'late' | null
   >(null);
+  const [isFinalizing, setIsFinalizing] = useState(false);
+  const [isRoundFinalized, setIsRoundFinalized] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
 
   // Exactly one round timer: it derives the remaining time from the round's
   // on-chain `end_time`, so a page refresh resumes with the correct value
@@ -347,7 +351,6 @@ export default function SinglePlayerGame() {
           fireConfetti();
         }
         setAnswerResult(isCorrect ? 'correct' : wasLate ? 'late' : 'wrong');
-        await systemCalls.submitAnswer(id, answer);
         setAnsweredCount((prev) => prev + 1);
         setTxStatus(null);
       } catch (err) {
@@ -360,13 +363,89 @@ export default function SinglePlayerGame() {
     [card, cardStartedAtMs, questionKind, roundId, selectedOption, systemCalls],
   );
 
+  const finalizeAndShowResults = useCallback(async () => {
+    if (!systemCalls || !roundId || isFinalizing || isRoundFinalized) return;
+    const id = BigInt(roundId);
+    setIsFinalizing(true);
+    setTxStatus('Finalizing round…');
+
+    try {
+      await systemCalls.finalizeRound(id);
+    } catch (err) {
+      const code = getContractErrorCode(err);
+      if (code !== 19) {
+        console.warn('Finalize round non-fatal error:', err);
+      }
+    }
+
+    setIsRoundFinalized(true);
+
+    // Fetch authoritative score from contract
+    let authoritativeScore = score;
+    try {
+      const scores = await systemCalls.getRoundScores(id);
+      if (account?.address && scores[account.address] !== undefined) {
+        authoritativeScore = scores[account.address];
+        setScore(authoritativeScore);
+      } else if (round?.admin && scores[round.admin] !== undefined) {
+        authoritativeScore = scores[round.admin];
+        setScore(authoritativeScore);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch authoritative round scores:', err);
+    }
+
+    setTxStatus(null);
+    setIsFinalizing(false);
+    setShowResultModal(true);
+
+    await checkMilestoneAndShowBadge(authoritativeScore, totalCards);
+  }, [
+    account?.address,
+    checkMilestoneAndShowBadge,
+    isFinalizing,
+    isRoundFinalized,
+    round?.admin,
+    roundId,
+    score,
+    systemCalls,
+    totalCards,
+  ]);
+
   const handleNextCard = useCallback(async () => {
     if (isRoundFinished) {
-      await checkMilestoneAndShowBadge(score, totalCards);
+      await finalizeAndShowResults();
       return;
     }
     await loadNextCard();
-  }, [checkMilestoneAndShowBadge, isRoundFinished, loadNextCard, score, totalCards]);
+  }, [finalizeAndShowResults, isRoundFinished, loadNextCard]);
+
+  useEffect(() => {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const hasDeadlineElapsed =
+      round !== null &&
+      round.end_time > BigInt(0) &&
+      timeLeft === 0 &&
+      BigInt(nowSeconds) >= round.end_time;
+
+    if (
+      isGameStarted &&
+      hasDeadlineElapsed &&
+      !isRoundFinalized &&
+      !isFinalizing &&
+      !isSubmitting
+    ) {
+      finalizeAndShowResults();
+    }
+  }, [
+    isGameStarted,
+    round,
+    timeLeft,
+    isRoundFinalized,
+    isFinalizing,
+    isSubmitting,
+    finalizeAndShowResults,
+  ]);
 
   // ── Screen-reader status updates ──────────────────────────────────────────
   useEffect(() => {
@@ -481,7 +560,7 @@ export default function SinglePlayerGame() {
               onClick={handleNextCard}
               className="self-end rounded bg-black px-4 py-2 text-white"
             >
-              {isRoundFinished ? 'Finish round' : 'Next card'}
+              Next card
             </button>
           )}
         </section>
@@ -494,6 +573,13 @@ export default function SinglePlayerGame() {
         badgeName={currentBadgeName}
         onClose={handleCloseBadgeModal}
       />
+
+      {showResultModal && (
+        <GameResultPopup
+          isWin={score > 0}
+          isMultiplayer={false}
+        />
+      )}
     </main>
   );
 }

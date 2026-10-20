@@ -1,12 +1,3 @@
-import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
-import localFont from 'next/font/local';
-import './globals.css';
-import { metadata as siteMetadata } from './metadata';
-import ClientShell from './client-shell';
-
-export const metadata: Metadata = siteMetadata;
-"use client"
 import Navbar, { MobileNav } from '@/components/molecules/navbar';
 import { metadata } from "./metadata";
 import { ClientProvider } from '@/components/providers/client-provider';
@@ -18,6 +9,12 @@ import './globals.css';
 import dynamic from 'next/dynamic';
 import { Suspense, useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages, getTranslations } from 'next-intl/server';
+import type { Metadata } from 'next';
+import ClientShell from './client-shell';
+
+export const metadata: Metadata = metadata;
 
 const inter = Inter({
   variable: '--font-geist-sans',
@@ -71,13 +68,17 @@ function DeferredStellarProvider({ children }: { children: React.ReactNode }) {
   return <DynamicStellarProvider>{children}</DynamicStellarProvider>;
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const t = await getTranslations('common');
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       {/* Inline script runs before paint to avoid a flash of wrong theme */}
       <head>
         <script
@@ -87,30 +88,33 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.variable} ${jetBrainsMono.variable} ${interV.variable} antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors`}>
-        <ClientShell>{children}</ClientShell>
-        <ThemeProvider>
-            <Suspense fallback={
-              <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                  <h2 className="text-xl font-semibold mb-2">Loading...</h2>
-                  <p className="text-gray-500">Please wait while we prepare the game</p>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ClientProvider>
+            <ClientShell>{children}</ClientShell>
+            <ThemeProvider>
+              <Suspense fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                  <div className="text-center">
+                    <h2 className="text-xl font-semibold mb-2">{t('loading')}</h2>
+                    <p className="text-gray-500">{t('pleaseWait')}</p>
+                  </div>
                 </div>
-              </div>
-            }>
-              <DeferredStellarProvider>
-                <Navbar />
-                {/* WalletStatusBanner sits below the navbar so it is visible on every route */}
-                <WalletStatusBanner />
-                {/* pb-20 on mobile so the fixed MobileNav bar never overlaps content; md:pb-0 restores normal flow on desktop */}
-                <main className="pb-20 md:pb-0">
-                  {children}
-                </main>
-                <MobileNav />
-              </DeferredStellarProvider>
-            </Suspense>
-            <Toaster richColors position="top-center" />
-          </ThemeProvider>
-        </ClientProvider>
+              }>
+                <DeferredStellarProvider>
+                  <Navbar />
+                  {/* WalletStatusBanner sits below the navbar so it is visible on every route */}
+                  <WalletStatusBanner />
+                  {/* pb-20 on mobile so the fixed MobileNav bar never overlaps content; md:pb-0 restores normal flow on desktop */}
+                  <main className="pb-20 md:pb-0">
+                    {children}
+                  </main>
+                  <MobileNav />
+                </DeferredStellarProvider>
+              </Suspense>
+              <Toaster richColors position="top-center" />
+            </ThemeProvider>
+          </ClientProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
