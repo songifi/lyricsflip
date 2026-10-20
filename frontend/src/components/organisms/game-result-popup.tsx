@@ -8,7 +8,7 @@ import { Button } from '@/components/atoms/button';
 import { Modal } from './modal';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
-import { WAGER_ASSET_CODE } from '@/lib/utils';
+import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface GameResultPopupProps {
@@ -29,7 +29,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { systemCalls } = useStellar();
+  const { systemCalls, account } = useStellar();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedRoundData, setFetchedRoundData] = useState<any>(null);
@@ -50,8 +50,26 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
 
       try {
         setIsLoading(true);
-        const data = await systemCalls.getRound(BigInt(effectiveRoundId));
-        setFetchedRoundData(data);
+        const id = BigInt(effectiveRoundId);
+        const [data, scores, cards] = await Promise.all([
+          systemCalls.getRound(id),
+          systemCalls.getRoundScores(id).catch((): Record<string, number> => ({})),
+          systemCalls.getRoundCards(id).catch(() => []),
+        ]);
+
+        const playerScore =
+          account?.address && scores[account.address] !== undefined
+            ? scores[account.address]
+            : (scores[data.admin] ?? 0);
+
+        setFetchedRoundData({
+          ...data,
+          score: playerScore,
+          maxRounds: cards.length || 1,
+          wagerAmount: formatAmount(data.wager_amount),
+          potentialWin: formatAmount(data.wager_amount),
+          odds: '1.0',
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to get round data');
       } finally {
@@ -60,7 +78,7 @@ const GameResultPopup: React.FC<GameResultPopupProps> = ({
     };
 
     fetchRoundData();
-  }, [effectiveRoundId, systemCalls, propRoundData]);
+  }, [effectiveRoundId, systemCalls, account?.address, propRoundData]);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);

@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Check } from 'lucide-react';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { useState, useEffect } from 'react';
-import { WAGER_ASSET_CODE, formatAmount } from '@/lib/utils';
+import { formatAmount, WAGER_ASSET_CODE } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export interface GameResultModalProps {
@@ -30,8 +30,7 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
   const store = useModalStore();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { systemCalls } = useStellar();
-
+  const { systemCalls, account } = useStellar();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedRoundData, setFetchedRoundData] = useState<any>(null);
@@ -57,9 +56,27 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
     const fetchRoundData = async () => {
       try {
         setIsLoading(true);
-        const data = await systemCalls.getRound(BigInt(effectiveRoundId));
+        const id = BigInt(effectiveRoundId);
+        const [data, scores, cards] = await Promise.all([
+          systemCalls.getRound(id),
+          systemCalls.getRoundScores(id).catch((): Record<string, number> => ({})),
+          systemCalls.getRoundCards(id).catch(() => []),
+        ]);
+
+        const playerScore =
+          account?.address && scores[account.address] !== undefined
+            ? scores[account.address]
+            : (scores[data.admin] ?? 0);
+
         if (isMounted) {
-          setFetchedRoundData(data);
+          setFetchedRoundData({
+            ...data,
+            score: playerScore,
+            maxRounds: cards.length || 1,
+            wagerAmount: formatAmount(data.wager_amount),
+            potentialWin: formatAmount(data.wager_amount),
+            odds: '1.0',
+          });
         }
       } catch (err) {
         if (isMounted) {
@@ -76,7 +93,7 @@ export const GameResultModal = (props: GameResultModalProps = {}) => {
     return () => {
       isMounted = false;
     };
-  }, [effectiveRoundId, systemCalls, props.roundData]);
+  }, [effectiveRoundId, systemCalls, account?.address, props.roundData]);
 
   const handleClaimWinnings = async () => {
     if (!effectiveRoundId) {
