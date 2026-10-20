@@ -481,7 +481,7 @@ stellar contract invoke \
 ### `update_card(env: Env, caller: Address, card_id: u64, card: Card)`
 - Signer: admin wallet.
 - State changes: replaces the canonical card metadata and reindexes the card.
-- Errors: `DuplicateCard`, validation failures, admin authorization failures.
+- Errors: `DuplicateCard`, `CardInActiveRound` (LF-176: title/artist/year cannot change while a non-finalized round still references the card), validation failures, admin authorization failures.
 - Events: `CardUpdated { card_id, genre }`.
 - Example:
 
@@ -495,7 +495,7 @@ stellar contract invoke \
 
 ### `remove_card(env: Env, caller: Address, card_id: u64)`
 - Signer: admin wallet.
-- State changes: removes the card and its indexes.
+- State changes: soft-removes the card (LF-176). The card is dropped from every index and from all future draws and `get_card`, but its stored entry is kept so rounds that already drew it can still be read and graded. The id is never reused.
 - Errors: `NonExistingCard` and admin authorization failures.
 - Events: `CardRemoved { card_id }`.
 - Example:

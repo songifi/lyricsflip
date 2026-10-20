@@ -36,3 +36,32 @@ New wallets that don't exist on-chain, or don't hold enough XLM for fees, fail w
 - Mainnet / non-testnet wallets: Friendbot button is **not** shown; only the balance warning text appears.
 
 **Related:** Closes [#686](https://github.com/Stellar-songifi/lyricsflip/issues/686)
+
+---
+
+## On-chain
+
+### LF-176 · Removing or updating a card breaks rounds that use it
+
+**Area:** On-chain · **Priority:** P1 · **Type:** Bug · **Effort:** M  
+**Files:** `onchain/contracts/lyricsflip/src/lib.rs`, `onchain/contracts/lyricsflip/src/types.rs`, `onchain/contracts/lyricsflip/src/errors.rs`
+
+**Description**
+
+`remove_card` deleted the stored `Card` entry outright, so any active round that had already drawn that card panicked with `NonExistingCard` on `submit_answer`/`get_question`/`next_card`, locking players' wagers. `update_card` could silently change a card's `title`/`artist`/`year` while a round was using it, corrupting answer grading.
+
+**Tasks**
+
+- [x] Make `remove_card` a soft delete: keep the stored `Card` entry, drop it from every index, and set `DataKey::CardDisabled(card_id)` so `get_card` reports `NonExistingCard` and the card is never drawn again. Ids are not reused.
+- [x] Split card reads: private `read_card` (raw, used by all in-round paths) vs public `get_card` (panics `NonExistingCard` once disabled).
+- [x] Add a `DataKey::CardLiveRounds(card_id)` reverse index, maintained on `create_round_internal` and cleared on `finalize_round`/`cancel_round`.
+- [x] Guard `update_card`: reject changes to `title`/`artist`/`year` with `Error::CardInActiveRound` (44) while any referencing round is still live (finalized/cancelled/completed rounds and rounds past their deadline are ignored, so an abandoned round can never permanently freeze a card).
+- [x] Acceptance test: create a round, remove one of its cards mid-round, play the round to the end and finalize it.
+
+**Acceptance criteria**
+
+- A round that draws a card which is later removed still grades answers and finalizes without panicking; the player's wager is not locked.
+- `get_card` on a removed card returns `NonExistingCard`; a removed card cannot be resurrected by `update_card`.
+- `update_card` rejects answer-field changes while a live round references the card and allows them once the round is finalized.
+
+**Related:** Closes [#662](https://github.com/Stellar-songifi/lyricsflip/issues/662)

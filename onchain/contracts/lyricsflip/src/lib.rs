@@ -18,14 +18,10 @@ pub use events::{
     OwnershipTransferred, Paused, PlayerReady, RewardClaimed, RoleUpdated, RoundBufferUpdated,
     RoundCancelled, RoundCompleted, RoundCreated, RoundDurationUpdated, RoundJoined, RoundLeft,
     RoundStarted, SchemaMigrated, Unpaused,
-    AnswerSubmitted, CardAdded, CardDrawn, CardRemoved, CardUpdated, CardsPerRoundUpdated,
-    ContractUpgraded, OwnershipTransferStarted, OwnershipTransferred, Paused, PlayerReady,
-    RewardClaimed, RoleUpdated, RoundCancelled, RoundCompleted, RoundCreated, RoundJoined,
-    RoundLeft, RoundStarted, SchemaMigrated, Unpaused,
 };
 pub use types::{
-    Answer, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone, PlayerStats,
-    QuestionCard, QuestionKind, Role, Round, RoundFilter,
+    Answer, AnswerResult, Card, CardPos, DataKey, Genre, LegacyCard, LegacyRound, Milestone,
+    PlayerStats, QuestionCard, QuestionKind, Role, Round, RoundFilter, RoundV3,
 };
 
 use soroban_sdk::{
@@ -37,8 +33,6 @@ use soroban_sdk::{
 pub const VERSION: u32 = 1;
 /// Current persisted storage layout. Kept separate from the code version.
 pub const SCHEMA_VERSION: u32 = 4;
-pub const SCHEMA_VERSION: u32 = 3;
-pub const SCHEMA_VERSION: u32 = 2;
 
 pub const DEFAULT_ROUND_DURATION_SECONDS: u64 = 300;
 pub const MIN_ROUND_DURATION_SECONDS: u64 = 10;
@@ -382,6 +376,8 @@ impl LyricsFlip {
             .persistent()
             .set(&DataKey::RoundFinalized(round_id), &true);
         bump_persistent(&env, &DataKey::RoundFinalized(round_id));
+        // LF-176: the round no longer constrains `update_card` on its cards.
+        Self::clear_live_rounds(&env, round_id);
         bump_instance(&env);
     }
 
@@ -501,20 +497,41 @@ impl LyricsFlip {
             .unwrap_or(DEFAULT_ROUND_BUFFER_SECONDS)
     }
 
-    /// Returns the card.
+    /// Returns the card. A soft-removed card (LF-176) is reported as
+    /// `NonExistingCard`: it is gone from the catalogue even though rounds
+    /// that already drew it keep a readable copy for grading.
     pub fn get_card(env: Env, card_id: u64) -> Card {
+        if Self::is_card_disabled(&env, card_id) {
+            panic_with_error!(env, Error::NonExistingCard);
+        }
+        Self::read_card(&env, card_id)
+    }
+
+    /// LF-176: true when `remove_card` has soft-removed this card.
+    fn is_card_disabled(env: &Env, card_id: u64) -> bool {
+        env.storage()
+            .persistent()
+            .get(&DataKey::CardDisabled(card_id))
+            .unwrap_or(false)
+    }
+
+    /// Raw card read for in-round paths (`next_card`, `submit_answer`,
+    /// question building, round creation): a soft-removed card (LF-176) must
+    /// stay readable so rounds that already drew it can finish and be graded.
+    /// Panics `NonExistingCard` only when no stored card exists at all.
+    fn read_card(env: &Env, card_id: u64) -> Card {
         let stored: Val = env
             .storage()
             .persistent()
             .get(&DataKey::Card(card_id))
             .unwrap_or_else(|| panic_with_error!(env, Error::NonExistingCard));
         let map: soroban_sdk::Map<soroban_sdk::Val, soroban_sdk::Val> =
-            match soroban_sdk::Map::try_from_val(&env, &stored) {
+            match soroban_sdk::Map::try_from_val(env, &stored) {
                 Ok(m) => m,
                 Err(_) => panic_with_error!(env, Error::NonExistingCard),
             };
         let card = if map.len() == 6 {
-            let legacy = LegacyCard::try_from_val(&env, &stored)
+            let legacy = LegacyCard::try_from_val(env, &stored)
                 .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard));
             let card = Card::from(legacy);
             env.storage()
@@ -522,10 +539,10 @@ impl LyricsFlip {
                 .set(&DataKey::Card(card_id), &card);
             card
         } else {
-            Card::try_from_val(&env, &stored)
+            Card::try_from_val(env, &stored)
                 .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingCard))
         };
-        bump_persistent(&env, &DataKey::Card(card_id));
+        bump_persistent(env, &DataKey::Card(card_id));
         card
     }
 
@@ -550,7 +567,7 @@ impl LyricsFlip {
         let card_id = round_cards
             .get(current_index)
             .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
-        let card = Self::get_card(env.clone(), card_id);
+        let card = Self::read_card(&env, card_id);
         let kind = QuestionKind::Title;
         Self::build_question_card(env, card, round_id, kind)
     }
@@ -716,7 +733,6 @@ impl LyricsFlip {
             owner: caller.clone(),
         }
         .publish(&env);
-        Paused { owner: caller.clone() }.publish(&env);
     }
 
     /// Owner-only. Resumes normal operation.
@@ -729,11 +745,17 @@ impl LyricsFlip {
             owner: caller.clone(),
         }
         .publish(&env);
-        Unpaused { owner: caller.clone() }.publish(&env);
     }
 
-    /// Creates a round.
-    pub fn create_round(env: Env, caller: Address, genre: Option<Genre>, seed: u64) -> u64 {
+    /// Creates a round. `invite_hash` (LF-162) makes the round private: only
+    /// a joiner that presents a code whose sha256 matches may enter.
+    pub fn create_round(
+        env: Env,
+        caller: Address,
+        genre: Option<Genre>,
+        seed: u64,
+        invite_hash: Option<BytesN<32>>,
+    ) -> u64 {
         if genre.is_none() {
             panic_with_error!(env, Error::NonExistingGenre);
         }
@@ -758,7 +780,7 @@ impl LyricsFlip {
         difficulty: Option<u32>,
         seed: u64,
     ) -> u64 {
-        Self::create_round_internal(&env, caller, filter, difficulty, seed)
+        Self::create_round_internal(&env, caller, filter, difficulty, seed, None)
     }
 
     fn create_round_internal(
@@ -802,7 +824,7 @@ impl LyricsFlip {
             let scan_count = source_count.min(MAX_ROUND_FILTER_SCAN);
             for i in 0..scan_count {
                 let card_id = Self::index_get(env, &source, i);
-                let card = Self::get_card((*env).clone(), card_id);
+                let card = Self::read_card(env, card_id);
                 let matches_decade = filter
                     .decade
                     .map(|decade| card.year / 10 * 10 == decade)
@@ -829,7 +851,7 @@ impl LyricsFlip {
         }
         let genre = filter
             .genre
-            .unwrap_or_else(|| Self::get_card((*env).clone(), cards.get(0).unwrap()).genre);
+            .unwrap_or_else(|| Self::read_card(env, cards.get(0).unwrap()).genre);
 
         let round_count: u64 = env
             .storage()
@@ -865,6 +887,7 @@ impl LyricsFlip {
             answer_window,
             lobby_timeout,
             round_duration,
+            is_private: invite_hash.is_some(),
             solo: false,
         };
 
@@ -880,6 +903,20 @@ impl LyricsFlip {
             .set(&DataKey::RoundCards(round_id), &cards);
         bump_persistent(&env, &DataKey::RoundCards(round_id));
 
+        // LF-162: remember the invite preimage hash for private rounds.
+        if let Some(hash) = invite_hash {
+            env.storage()
+                .persistent()
+                .set(&DataKey::RoundInviteHash(round_id), &hash);
+            bump_persistent(&env, &DataKey::RoundInviteHash(round_id));
+        }
+
+        // LF-176: track which rounds reference each card so `update_card`
+        // can refuse answer-field changes while they are still playable.
+        for card_id in cards.iter() {
+            Self::add_live_round(env, card_id, round_id);
+        }
+
         env.storage()
             .persistent()
             .set(&DataKey::Round(round_id), &round);
@@ -890,10 +927,13 @@ impl LyricsFlip {
             &env.ledger().timestamp(),
         );
 
-        let mut open = Self::read_open_rounds(env);
-        open.push_back(round_id);
-        env.storage().persistent().set(&DataKey::OpenRounds, &open);
-        bump_persistent(&env, &DataKey::OpenRounds);
+        // LF-162: private rounds are not discoverable in the public lobby.
+        if !round.is_private {
+            let mut open = Self::read_open_rounds(env);
+            open.push_back(round_id);
+            env.storage().persistent().set(&DataKey::OpenRounds, &open);
+            bump_persistent(env, &DataKey::OpenRounds);
+        }
 
         bump_instance(env);
 
@@ -987,8 +1027,14 @@ impl LyricsFlip {
         }
     }
 
-    /// Joins round.
-    pub fn join_round(env: Env, caller: Address, round_id: u64) {
+    /// Joins round. For a private round (LF-162), `invite_code` must be a
+    /// string whose sha256 equals the round's stored `RoundInviteHash`.
+    pub fn join_round(
+        env: Env,
+        caller: Address,
+        round_id: u64,
+        invite_code: Option<String>,
+    ) {
         caller.require_auth();
         // LF-162: private rounds require the preimage of RoundInviteHash.
         if let Some(expected) = env
@@ -996,9 +1042,8 @@ impl LyricsFlip {
             .persistent()
             .get::<_, BytesN<32>>(&DataKey::RoundInviteHash(round_id))
         {
-            let provided = code
-                .unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
-            let bytes = Bytes::from_slice(&env, provided.to_string().as_bytes());
+            let provided = invite_code.unwrap_or_else(|| panic_with_error!(env, Error::NotAuthorized));
+            let bytes = provided.to_bytes();
             let hash = env.crypto().sha256(&bytes);
             if hash.to_array() != expected.to_array() {
                 panic_with_error!(env, Error::NotAuthorized); // invite_hash mismatch
@@ -1102,6 +1147,8 @@ impl LyricsFlip {
             .persistent()
             .set(&DataKey::Round(round_id), &round);
         Self::remove_open_round(&env, round_id);
+        // LF-176: a cancelled round no longer constrains `update_card`.
+        Self::clear_live_rounds(&env, round_id);
 
         let players = Self::read_round_players(&env, round_id);
         let mut refund_per_player = 0;
@@ -1127,10 +1174,16 @@ impl LyricsFlip {
     /// after this function returns it.
     pub fn next_card(env: Env, caller: Address, round_id: u64) -> Card {
         caller.require_auth();
-        if !Self::is_round_player(&env, round_id, &caller) {
+        Self::next_card_internal(&env, &caller, round_id)
+    }
+
+    /// LF-164: auth-free body of `next_card` so `answer_and_next` can draw the
+    /// next card under a single `require_auth` frame.
+    fn next_card_internal(env: &Env, caller: &Address, round_id: u64) -> Card {
+        if !Self::is_round_player(env, round_id, caller) {
             panic_with_error!(env, Error::NotAParticipant);
         }
-        let round = Self::read_round(&env, round_id);
+        let round = Self::read_round(env, round_id);
         if !round.is_started {
             panic_with_error!(env, Error::RoundNotStarted);
         }
@@ -1143,7 +1196,7 @@ impl LyricsFlip {
             panic_with_error!(env, Error::RoundAlreadyFinalized);
         }
 
-        let round_cards = Self::read_round_cards(&env, round_id);
+        let round_cards = Self::read_round_cards(env, round_id);
         // LF-003: use NoMoreCards (not RoundCompleted) so the caller knows
         // the deck is exhausted without implying the round is finished.
         let player_index: u32 = env
@@ -1154,26 +1207,26 @@ impl LyricsFlip {
         let card_id = round_cards
             .get(player_index)
             .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
-        let card = Self::get_card(env.clone(), card_id);
+        let card = Self::read_card(env, card_id);
 
         CardDrawn {
             round_id,
             index: player_index,
             card_id,
         }
-        .publish(&env);
+        .publish(env);
 
         let started_at_key = DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id));
         env.storage()
             .persistent()
             .set(&started_at_key, &env.ledger().timestamp());
-        bump_persistent(&env, &started_at_key);
+        bump_persistent(env, &started_at_key);
 
         let player_index_key = DataKey::PlayerCardIndex((round_id, caller.clone()));
         env.storage()
             .persistent()
             .set(&player_index_key, &(player_index + 1));
-        bump_persistent(&env, &player_index_key);
+        bump_persistent(env, &player_index_key);
 
         let mut round = round;
         round.next_card_index = round.next_card_index.max(player_index + 1);
@@ -1184,7 +1237,7 @@ impl LyricsFlip {
         env.storage()
             .persistent()
             .set(&DataKey::Round(round_id), &round);
-        bump_persistent(&env, &DataKey::Round(round_id));
+        bump_persistent(env, &DataKey::Round(round_id));
 
         card
     }
@@ -1228,11 +1281,22 @@ impl LyricsFlip {
 
     /// Replaces the contents of `card_id`, moving it between the genre,
     /// artist and year indexes as needed.
+    ///
+    /// LF-176: rejects changes to the answer fields (title, artist, year)
+    /// while an unfinalized round still references the card, so an in-flight
+    /// round can never be scored against edited answers. Genre, difficulty
+    /// and lyrics edits stay allowed: they don't change the correct answer.
     pub fn update_card(env: Env, caller: Address, card_id: u64, card: Card) {
         caller.require_auth();
         Self::assert_admin(&env, &caller);
         let old = Self::get_card(env.clone(), card_id);
         Self::validate_card(&env, &card);
+
+        let answer_fields_changed =
+            old.title != card.title || old.artist != card.artist || old.year != card.year;
+        if answer_fields_changed && Self::card_has_live_round(&env, card_id) {
+            panic_with_error!(env, Error::CardInActiveRound);
+        }
 
         let new_key = Self::card_key(&env, &card);
         if let Some(existing) = env
@@ -1274,7 +1338,10 @@ impl LyricsFlip {
         .publish(&env);
     }
 
-    /// Removes a card from storage and every index. Its id is not reused.
+    /// Soft-removes a card (LF-176): drops it from every index and from all
+    /// future draws and views, but keeps the stored `Card` entry so rounds
+    /// that already drew the card can still read and grade it. The id is
+    /// never reused; `get_card` reports `NonExistingCard` afterwards.
     pub fn remove_card(env: Env, caller: Address, card_id: u64) {
         caller.require_auth();
         Self::assert_admin(&env, &caller);
@@ -1290,7 +1357,10 @@ impl LyricsFlip {
         env.storage()
             .persistent()
             .remove(&DataKey::CardPos(card_id));
-        env.storage().persistent().remove(&DataKey::Card(card_id));
+        env.storage()
+            .persistent()
+            .set(&DataKey::CardDisabled(card_id), &true);
+        bump_persistent(&env, &DataKey::CardDisabled(card_id));
 
         CardRemoved { card_id }.publish(&env);
     }
@@ -1438,7 +1508,6 @@ impl LyricsFlip {
         let old_version = Self::version();
         env.deployer()
             .update_current_contract_wasm(new_wasm_hash.clone());
-        env.deployer().update_current_contract_wasm(new_wasm_hash.clone());
         ContractUpgraded {
             owner: caller,
             new_wasm_hash,
@@ -1504,8 +1573,6 @@ impl LyricsFlip {
                     bump_persistent(&env, &DataKey::Admins);
 
                     current_version = 4;
-                    // Future migrations from v1 to subsequent schema versions
-                    current_version = 2;
                 }
                 _ => break,
             }
@@ -1562,7 +1629,7 @@ impl LyricsFlip {
         let current_index = player_index - 1;
         let round_cards = Self::read_round_cards(&env, round_id);
         let current_card_id = round_cards.get(current_index).unwrap();
-        let current_card = Self::get_card(env.clone(), current_card_id);
+        let current_card = Self::read_card(&env, current_card_id);
 
         let answered_key =
             DataKey::RoundPlayerAnswered((round_id, caller.clone(), current_card_id));
@@ -1862,7 +1929,7 @@ impl LyricsFlip {
             let mut seen: u64 = 0;
             while false_answers.len() < 3 && seen < sample {
                 let id = candidates.get((start + seen) as u32).unwrap();
-                let value = get_value(&Self::get_card(env.clone(), id));
+                let value = get_value(&Self::read_card(env, id));
                 let norm_value = ascii_lower_string(env, &value);
                 let norm_correct = ascii_lower_string(env, &correct);
                 if norm_value != norm_correct && !Self::contains_string(&false_answers, &value) {
@@ -2165,7 +2232,7 @@ impl LyricsFlip {
         let mut cards: Vec<Card> = Vec::new(env);
         for idx in Self::get_random_numbers(env, seed, amount, limit, true).iter() {
             let card_id = Self::index_get(env, index, idx as u32);
-            cards.push_back(Self::get_card(env.clone(), card_id));
+            cards.push_back(Self::read_card(env, card_id));
         }
         cards
     }
@@ -2185,6 +2252,16 @@ impl LyricsFlip {
             let legacy = LegacyRound::try_from_val(env, &stored)
                 .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingRound));
             let round = Round::from(legacy);
+            env.storage()
+                .persistent()
+                .set(&DataKey::Round(round_id), &round);
+            round
+        } else if map.len() == 13 {
+            // Lazy upgrade of schema-v3 rounds (pre LF-162/163) to the
+            // current layout: missing flags default to false.
+            let v3 = RoundV3::try_from_val(env, &stored)
+                .unwrap_or_else(|_| panic_with_error!(env, Error::NonExistingRound));
+            let round = Round::from(v3);
             env.storage()
                 .persistent()
                 .set(&DataKey::Round(round_id), &round);
@@ -2340,6 +2417,90 @@ impl LyricsFlip {
         if let Some(idx) = open.first_index_of(round_id) {
             open.remove(idx);
             env.storage().persistent().set(&DataKey::OpenRounds, &open);
+        }
+    }
+
+    // ---- LF-176: card <-> live-round bookkeeping ----
+
+    /// Registers `round_id` in the reverse index for `card_id`.
+    fn add_live_round(env: &Env, card_id: u64, round_id: u64) {
+        let key = DataKey::CardLiveRounds(card_id);
+        let mut live: Vec<u64> = env.storage().persistent().get(&key).unwrap_or(Vec::new(env));
+        if !live.contains(round_id) {
+            live.push_back(round_id);
+            env.storage().persistent().set(&key, &live);
+            bump_persistent(env, &key);
+        }
+    }
+
+    /// Drops `round_id` from the reverse index for `card_id`, deleting the
+    /// entry when no live rounds remain.
+    fn remove_live_round(env: &Env, card_id: u64, round_id: u64) {
+        let key = DataKey::CardLiveRounds(card_id);
+        if let Some(mut live) = env.storage().persistent().get::<_, Vec<u64>>(&key) {
+            if let Some(idx) = live.first_index_of(round_id) {
+                live.remove(idx);
+                if live.is_empty() {
+                    env.storage().persistent().remove(&key);
+                } else {
+                    env.storage().persistent().set(&key, &live);
+                    bump_persistent(env, &key);
+                }
+            }
+        }
+    }
+
+    /// Drops `round_id` from the reverse index of every card it references.
+    fn clear_live_rounds(env: &Env, round_id: u64) {
+        for card_id in Self::read_round_cards(env, round_id).iter() {
+            Self::remove_live_round(env, card_id, round_id);
+        }
+    }
+
+    /// True while `card_id` belongs to a round that is still playable, i.e.
+    /// neither finalized nor cancelled and not past its self-heal deadline
+    /// (round deadline once started, lobby timeout before that).
+    fn card_has_live_round(env: &Env, card_id: u64) -> bool {
+        let live: Vec<u64> = env
+            .storage()
+            .persistent()
+            .get(&DataKey::CardLiveRounds(card_id))
+            .unwrap_or(Vec::new(env));
+        for round_id in live.iter() {
+            if Self::is_round_live(env, round_id) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// A round constrains its cards' answer fields until it is finalized or
+    /// cancelled, or until it can no longer be played at all. Rounds whose
+    /// deadline (or lobby timeout) has passed are skipped so abandoned
+    /// rounds can never permanently freeze a card.
+    fn is_round_live(env: &Env, round_id: u64) -> bool {
+        if env
+            .storage()
+            .persistent()
+            .get(&DataKey::RoundFinalized(round_id))
+            .unwrap_or(false)
+        {
+            return false;
+        }
+        let round = Self::read_round(env, round_id);
+        if round.is_cancelled || round.is_completed {
+            return false;
+        }
+        let now = env.ledger().timestamp();
+        if round.is_started {
+            now < round.end_time
+        } else {
+            let created_at: u64 = env
+                .storage()
+                .persistent()
+                .get(&DataKey::RoundCreatedAt(round_id))
+                .unwrap_or(0);
+            now < created_at + round.lobby_timeout
         }
     }
 
@@ -2535,6 +2696,7 @@ impl LyricsFlip {
             RoundFilter { genre, decade: None },
             None,
             seed,
+            None,
         );
         // Never leave a solo round in the multiplayer lobby.
         Self::remove_open_round(&env, round_id);
@@ -2566,7 +2728,7 @@ impl LyricsFlip {
         let card_id = round_cards
             .get(0)
             .unwrap_or_else(|| panic_with_error!(env, Error::NoMoreCards));
-        let card = Self::get_card(env.clone(), card_id);
+        let card = Self::read_card(&env, card_id);
         env.storage().persistent().set(
             &DataKey::PlayerCardIndex((round_id, caller.clone())),
             &1u32,
@@ -2575,14 +2737,56 @@ impl LyricsFlip {
             &DataKey::PlayerCardStartedAt((round_id, caller.clone(), card_id)),
             &env.ledger().timestamp(),
         );
-        CardDrawn { round_id, player: caller.clone(), index: 0 }.publish(&env);
+        CardDrawn {
+            round_id,
+            index: 0,
+            card_id,
+        }
+        .publish(&env);
 
         Self::build_question_card(env, card, round_id, QuestionKind::Title)
     }
+
+    // LF-164: combined answer+draw. Reuses submit_answer's scoring path so
+    // lf159 timing points, lf004 AlreadyAnswered guard and streaks are unchanged.
+    pub fn answer_and_next(
+        env: Env,
+        caller: Address,
+        round_id: u64,
+        choice: Answer,
+    ) -> AnswerResult {
+        caller.require_auth();
+
+        let (correct, points) =
+            Self::submit_answer_internal(&env, &caller, round_id, &choice);
+
+        let next_index: u32 = env
+            .storage()
+            .persistent()
+            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
+            .unwrap_or(0);
+
+        let round_cards = Self::read_round_cards(&env, round_id);
+        let round = Self::read_round(&env, round_id);
+
+        let next = if (next_index as u64) < (round_cards.len() as u64) {
+            let mut v = Vec::new(&env);
+            v.push_back(Self::next_card_internal(&env, &caller, round_id));
+            v
+        } else {
+            let ready = Self::are_all_required_answers_submitted(&env, round_id);
+            let past = round.end_time != 0 && env.ledger().timestamp() >= round.end_time;
+            if ready || past {
+                Self::finalize_round(env.clone(), caller.clone(), round_id);
+            }
+            Vec::new(&env)
+        };
+
+        AnswerResult { correct, points, correct_option: 0, next }
+    }
 }
 
-// LF-164: combined answer+draw. Reuses submit_answer's scoring path so
-// lf159 timing points, lf004 AlreadyAnswered guard and streaks are unchanged.
+// Private helpers shared by the exported entry points above.
 impl LyricsFlip {
     fn submit_answer_internal(
         env: &Env,
@@ -2615,7 +2819,7 @@ impl LyricsFlip {
         let current_index = player_index - 1;
         let round_cards = Self::read_round_cards(env, round_id);
         let current_card_id = round_cards.get(current_index).unwrap();
-        let current_card = Self::get_card(env.clone(), current_card_id);
+        let current_card = Self::read_card(env, current_card_id);
 
         let answered_key =
             DataKey::RoundPlayerAnswered((round_id, caller.clone(), current_card_id));
@@ -2686,40 +2890,6 @@ impl LyricsFlip {
         .publish(env);
 
         (is_correct, points)
-    }
-
-    pub fn answer_and_next(
-        env: Env,
-        caller: Address,
-        round_id: u64,
-        choice: Answer,
-    ) -> AnswerResult {
-        caller.require_auth();
-
-        let (correct, points) =
-            Self::submit_answer_internal(&env, &caller, round_id, &choice);
-
-        let next_index: u32 = env
-            .storage()
-            .persistent()
-            .get(&DataKey::PlayerCardIndex((round_id, caller.clone())))
-            .unwrap_or(0);
-
-        let round_cards = Self::read_round_cards(&env, round_id);
-        let round = Self::read_round(&env, round_id);
-
-        let next = if (next_index as u64) < (round_cards.len() as u64) {
-            Some(Self::next_card(env.clone(), caller.clone(), round_id))
-        } else {
-            let ready = Self::are_all_required_answers_submitted(&env, round_id);
-            let past = round.end_time != 0 && env.ledger().timestamp() >= round.end_time;
-            if ready || past {
-                Self::finalize_round(env.clone(), caller.clone(), round_id);
-            }
-            None
-        };
-
-        AnswerResult { correct, points, correct_option: 0, next }
     }
 }
 
