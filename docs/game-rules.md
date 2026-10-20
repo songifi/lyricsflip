@@ -1,98 +1,173 @@
 # Game Rules & Glossary
 
-This document is the single source of truth for LyricsFlip game rules. It defines each game mode, the round lifecycle, scoring, winner selection, wager escrow and payout, fees, refunds, and NFT milestones. It also defines the UI terms used across the app and maps each one to contract behaviour (or flags it for removal).
+This document is the single source of truth for LyricsFlip game rules. Every rule below is
+backed by a named function or constant in the contract. Source files:
 
-Related issues: LF-005 (wager escrow), LF-013 (scoring), LF-014 (payouts).
+- [`contracts/game/src/lib.rs`](../contracts/game/src/lib.rs) — entry points and constants
+- [`contracts/game/src/types.rs`](../contracts/game/src/types.rs) — data structures
+- [`contracts/game/src/events.rs`](../contracts/game/src/events.rs) — emitted events
 
-## Game Modes
+If this document and the contract disagree, the contract wins — please open an issue.
 
-| Mode | Description | Wager |
-| --- | --- | --- |
-| Solo | A single player completes a round against the card timer. No opponent, no pot. | None |
-| Head-to-head | Two players are matched into a round. Both stake an equal wager into escrow. | Equal stakes |
-| Tournament | Bracket of head-to-head rounds; winners advance until a single champion remains. | Equal stakes per round |
+Related issues: LF-005 (`rounds_won` tracking), LF-013 (scoring), LF-014 (payouts),
+LF-135 (wager escrow — **planned**), LF-177 (card difficulty — **planned**),
+LF-246 (this rewrite).
+
+## Rounds
+
+There are no fixed game modes. A round is a generic container for **1 to 8 players**.
+
+- `get_max_players()` returns the current maximum number of players per round
+  (default **8**).
+- `set_max_players(admin, n)` updates the maximum. The contract rejects values below
+  **2** (`MIN_PLAYERS`) or above the hard cap of **8** (`MAX_PLAYERS`).
+- A round with a single player is a solo practice round; any number of players from 2 to
+  `get_max_players()` compete in the same round.
+
+> **Planned:** tournaments and brackets are not implemented. Tracked in LF-135.
 
 ## Round Lifecycle
 
-1. **Lobby** — players join a mode. Head-to-head and tournament rounds require both players to stake before the round starts.
-2. **Escrow** — each player's wager is transferred into the escrow contract (LF-005). The round cannot start until all required stakes are escrowed.
-3. **Active** — the round begins and the card timer starts.
-4. **Submission** — each player submits their answer before the card timer expires.
-5. **Resolution** — answers are scored, a winner is selected, and the pot is paid out (LF-014).
-6. **Settled** — the round is final; results are recorded and any refunds are issued.
+1. **Created** — `create_round(...)` stores the round with its players, cards, and
+   `start_time`. The round deadline is `start_time + ROUND_DURATION_SECONDS`.
+2. **Active** — players submit answers via `submit_answer(...)` while
+   `ledger.timestamp() < start_time + ROUND_DURATION_SECONDS`.
+3. **Completed** — `complete_round(...)` (or `settle_round(...)` when a pool is
+   involved) scores the answers, selects winners, updates `PlayerStats`, and emits
+   `RoundCompleted { round_id, winners, scores }`.
+
+`ROUND_DURATION_SECONDS` is **300** (5 minutes) — see
+[`lib.rs`](../contracts/game/src/lib.rs).
 
 ## Card Timer
 
-- Each card has a fixed duration, shown in the UI as **duration**.
-- The timer starts when the round enters the **Active** state.
-- A submission received after the timer expires is rejected and counts as no submission for that card.
-- If a player does not submit before the timer expires, the round is resolved against them (see *Timeouts*).
+- Each card has an answer window of `CARD_ANSWER_WINDOW_SECONDS` = **15** seconds,
+  measured from the moment the card is presented to the player.
+- An answer submitted **after** the window is still **accepted** and recorded, but it is
+  **scored as wrong** (zero points). It is never rejected outright.
+- A player who never submits an answer for a card scores zero for that card.
 
 ## Scoring
 
-- Each correct answer earns the answer-time points multiplied by the card's
-  **difficulty** (1 = easy, 2 = medium, 3 = hard).
-- Existing cards without a difficulty are migrated with the default difficulty
-  of 2 (medium).
-- Round creation can additionally filter by an optional genre and decade
-  (specified by its first year, such as 1990); the wager difficulty selects
-  cards at the matching difficulty.
-- Incorrect or missing answers award zero points for that card.
-- Each correct answer awards points based on **how quickly** the player answered. Answers within `FIRST_LEDGER_GRACE_SECONDS` (6s) earn full `MAX_CORRECT_POINTS` (100); each extra second costs `POINTS_DECAY_PER_SECOND` (5), floored at `MIN_CORRECT_POINTS` (10).
-- Answers after `CARD_ANSWER_WINDOW_SECONDS` (15s) are recorded but scored as wrong.
+Points depend only on **how quickly** a correct answer arrives. Cards have no difficulty
+(see *Planned* below).
+
+| Constant | Value | Meaning |
+| --- | --- | --- |
+| `FIRST_LEDGER_GRACE_SECONDS` | **6** | Answers within this many seconds earn full points. |
+| `MAX_CORRECT_POINTS` | **100** | Points for a correct answer inside the grace window. |
+| `POINTS_DECAY_PER_SECOND` | **5** | Points lost for each second beyond the grace window. |
+| `MIN_CORRECT_POINTS` | **10** | Floor — a correct answer never scores less than this. |
+| `CARD_ANSWER_WINDOW_SECONDS` | **15** | Answers after this are scored as wrong. |
+
+All constants are defined in [`lib.rs`](../contracts/game/src/lib.rs).
+
+The score for one correct answer is:
+
+```
+elapsed = answer_time - card_presented_time
+if elapsed <= FIRST_LEDGER_GRACE_SECONDS:
+    points = MAX_CORRECT_POINTS
+else:
+    points = max(MAX_CORRECT_POINTS - (elapsed - FIRST_LEDGER_GRACE_SECONDS) * POINTS_DECAY_PER_SECOND,
+                 MIN_CORRECT_POINTS)
+```
+
+- Incorrect answers, missing answers, and answers after `CARD_ANSWER_WINDOW_SECONDS`
+  award **zero** points for that card.
 - The round score is the sum of points across all cards in the round.
+
+> **Planned:** card difficulty (easy/medium/hard multipliers) is not implemented.
+> Tracked in LF-177.
 
 ## Streaks
 
-- Consecutive correct answers form a **streak**.
-- A streak increases the points awarded for subsequent correct answers, up to a documented cap.
+- Consecutive correct answers update the player's **streak** in `PlayerStats`.
+- Streaks **do not** change the points awarded for a card. They are a statistic only.
 - An incorrect or missing answer resets the streak to zero.
 
 ## Winner Selection
 
-- **Solo:** the player wins by completing the round; there is no opponent and no pot.
-- **Head-to-head:** the player with the higher round score wins.
-- **Ties:** if both players have the same score, the round is a tie. The escrowed wagers are refunded to each player (see *Refunds*); no pot is paid out.
-- **Timeouts:** if a player fails to submit before the card timer expires, the opponent wins by default. If both players time out, the round is a tie and wagers are refunded.
-- **Tournament:** the winner of each head-to-head round advances; the final round winner is the champion.
+Winners are chosen by `complete_round(...)` / `settle_round(...)` in this order:
 
-## Wager Escrow & Payout
+1. **Highest round score** wins.
+2. If scores tie, the player with the **lowest total answer time** wins.
+3. If both score and total answer time tie, the round has **shared co-winners** — every
+   tied player is recorded as a winner.
+4. If **every** player scores zero, the round has **no winners**.
 
-- Wagers are held in escrow (LF-005) for the duration of the round.
-- On resolution, the escrowed wagers form the **pot**.
-- The winner receives the pot minus the protocol fee (LF-014).
-- On a tie, the pot is not paid out; each player's wager is refunded.
+Each winner's `rounds_won` in `PlayerStats` is incremented by **1** (see LF-005).
 
-## Fees
+## Fees & Payouts
 
-- A protocol fee is deducted from the pot before payout (LF-014).
-- The fee rate is defined by the contract and is the same for all head-to-head and tournament rounds.
-- Solo rounds have no pot and therefore no fee.
+- `settle_round(...)` splits the round pool into a **payout** and a **protocol fee**.
+- The fee rate is snapshotted when the round is created, so later fee changes do not
+  affect rounds already in flight.
+- `MAX_FEE_BPS` = **1000** basis points (**10%**). `set_fee_bps(admin, bps)` rejects
+  values above this cap.
+- The fee is sent to the **treasury address snapshotted at round creation**.
+- Admin changes emit `FeeUpdated` and `TreasuryUpdated` events.
 
-## Refunds
+> **Planned:** wager escrow and staking are not implemented. Tracked in LF-135.
+> (Note: LF-005 was about `rounds_won`, not escrow.)
 
-- Ties refund each player's escrowed wager in full.
-- Cancelled rounds (for example, a round that never reaches the required number of staked players) refund all escrowed wagers in full.
-- Refunds are issued during the **Settled** state.
+## Worked Example
 
-## NFT Milestones
+Three players — **Ada**, **Bo**, and **Cy** — play a 3-card round. The pool is
+**1,000** tokens, the fee is **500 bps (5%)**, and the treasury is `T`.
 
-- Completing defined milestones (for example, winning a set number of rounds or reaching a streak threshold) mints an NFT to the player.
-- Milestones are evaluated at round settlement.
-- Each milestone NFT is minted at most once per player.
+### Answers
+
+| Player | Card 1 | Card 2 | Card 3 |
+| --- | --- | --- | --- |
+| Ada | correct @ 4s | correct @ 9s | wrong |
+| Bo | correct @ 6s | correct @ 12s | wrong |
+| Cy | correct @ 10s | wrong | wrong |
+
+### Scoring (time decay)
+
+- **Ada:** Card 1 = 100 (within 6s). Card 2 = 100 − (9−6)×5 = **85**. Card 3 = 0.
+  Total = **185**. Total answer time = 4 + 9 = **13s**.
+- **Bo:** Card 1 = 100 (exactly 6s). Card 2 = 100 − (12−6)×5 = **70**. Card 3 = 0.
+  Total = **170**. Total answer time = 6 + 12 = **18s**.
+- **Cy:** Card 1 = 100 − (10−6)×5 = **80**. Cards 2 and 3 = 0. Total = **80**.
+  Total answer time = **10s**.
+
+### Winner
+
+Ada has the highest score (**185**), so Ada wins outright. `RoundCompleted` is emitted
+with `winners = [Ada]` and `scores = {Ada: 185, Bo: 170, Cy: 80}`. Ada's `rounds_won`
+increases by 1.
+
+### Tie-break illustration
+
+Suppose Ada and Bo had both scored **185**. Ada's total answer time is **13s** and Bo's
+is **18s**, so Ada still wins on the lower total answer time. If both had scored 185
+*and* both had a total answer time of 13s, they would be **shared co-winners** and each
+would gain +1 `rounds_won`.
+
+### Fee & payout
+
+- Fee = 1,000 × 500 / 10,000 = **50** tokens, sent to the snapshotted treasury `T`.
+- Payout = 1,000 − 50 = **950** tokens, sent to Ada.
 
 ## Glossary
 
 | UI term | Meaning | Contract behaviour |
 | --- | --- | --- |
-| **Odds** | Not a contract concept. The contract has no notion of odds or probability of winning. | **Remove from the UI.** Do not display odds; there is no contract value to map it to. |
-| **Pot** | The total escrowed wagers for a head-to-head or tournament round. | Maps to the escrow balance for the round (LF-005). Paid to the winner minus the protocol fee (LF-014). |
-| **Potential win** | The amount a player would receive if they win. | Maps to `pot - protocol fee`. Must be computed from the escrowed pot and the contract fee rate, not from odds. |
-| **Difficulty** | How hard a card is. | Multiplies the card's time-adjusted points by 1, 2, or 3. |
-| **Duration** | How long a player has to answer a card. | Maps to the card timer; submissions after expiry are rejected. |
+| **Odds** | Not a contract concept. | **Remove from the UI.** There is no contract value to map it to. |
+| **Pot / Pool** | Total tokens staked for a round. | **Planned** (LF-135). When implemented, `settle_round` splits it into payout + fee. |
+| **Potential win** | Amount a player would receive if they win. | **Planned** (LF-135). Will be `pool − fee`, computed from the snapshotted fee rate. |
+| **Difficulty** | How hard a card is. | **Not implemented** (LF-177). Cards have no difficulty; points depend only on answer time. |
+| **Duration** | How long a player has to answer a card. | `CARD_ANSWER_WINDOW_SECONDS` = **15s**. Late answers are accepted but scored as wrong. |
+| **Round deadline** | When the round closes. | `start_time + ROUND_DURATION_SECONDS` = **300s**. |
+| **Streak** | Consecutive correct answers. | Tracked in `PlayerStats` only; does **not** affect points. |
 
 ## References
 
-- LF-005 — wager escrow
+- LF-005 — `rounds_won` tracking (not escrow)
 - LF-013 — scoring
 - LF-014 — payouts and fees
+- LF-135 — wager escrow (**planned**)
+- LF-177 — card difficulty (**planned**)
+- LF-246 — this document rewrite

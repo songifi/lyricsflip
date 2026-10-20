@@ -22,6 +22,68 @@ export interface IndexerMetrics {
 }
 
 /**
+ * Domain event names emitted by the indexer. NotificationService listens for
+ * these to persist and push notifications to users.
+ */
+export const IndexerDomainEvents = {
+  ROUND_JOINED: 'round.joined',
+  ROUND_STARTED: 'round.started',
+  ROUND_COMPLETED: 'round.completed',
+  REWARD_CLAIMABLE: 'reward.claimable',
+  NFT_MINTED: 'nft.minted',
+  ROUND_CANCELLED: 'round.cancelled',
+} as const;
+
+export interface RoundJoinedEvent {
+  roundId: string;
+  /** Admin/owner of the round who should be notified. */
+  adminId: string;
+  playerId: string;
+  playerAddress?: string;
+}
+
+export interface RoundStartedEvent {
+  roundId: string;
+  playerIds: string[];
+  timestamp: Date;
+}
+
+export interface RoundCompletedPlayerResult {
+  playerId: string;
+  /** True when this player finished first. */
+  won: boolean;
+  /** 1-based placement, or null when unranked. */
+  placement: number | null;
+  score?: number;
+}
+
+export interface RoundCompletedEvent {
+  roundId: string;
+  results: RoundCompletedPlayerResult[];
+}
+
+export interface RewardClaimableEvent {
+  roundId: string;
+  playerId: string;
+  amount: string;
+  asset?: string;
+}
+
+export interface NftMintedEvent {
+  playerId: string;
+  nftId: string;
+  roundId?: string;
+}
+
+export interface RoundCancelledEvent {
+  roundId: string;
+  playerIds: string[];
+  /** Refund amount per player, keyed by playerId. */
+  refunds: Record<string, string>;
+  reason?: string;
+}
+
+/**
  * IndexerService polls Soroban RPC for contract events and upserts database state.
  *
  * Responsibilities:
@@ -187,8 +249,14 @@ export class IndexerService implements OnModuleInit {
         case 'RoundCompleted':
           await this.handleRoundCompleted(event);
           break;
+        case 'RewardClaimable':
+          await this.handleRewardClaimable(event);
+          break;
         case 'NftMinted':
           await this.handleNftMinted(event);
+          break;
+        case 'RoundCancelled':
+          await this.handleRoundCancelled(event);
           break;
         default:
           this.logger.warn(`Unknown event type: ${eventType}`);
@@ -225,10 +293,14 @@ export class IndexerService implements OnModuleInit {
 
   private async handleRoundJoined(event: any): Promise<void> {
     // TODO: Insert into round_players table
-    this.eventEmitter.emit('player.joined_round', {
+    // Notify the round admin that a player joined.
+    const payload: RoundJoinedEvent = {
       roundId: event.data.roundId,
+      adminId: event.data.adminId ?? event.data.ownerId,
       playerId: event.data.playerId,
-    });
+      playerAddress: event.data.playerAddress,
+    };
+    this.eventEmitter.emit(IndexerDomainEvents.ROUND_JOINED, payload);
   }
 
   private async handlePlayerReady(event: any): Promise<void> {
@@ -241,10 +313,12 @@ export class IndexerService implements OnModuleInit {
 
   private async handleRoundStarted(event: any): Promise<void> {
     // TODO: Update rounds.status = 'started'
-    this.eventEmitter.emit('round.started', {
+    const payload: RoundStartedEvent = {
       roundId: event.data.roundId,
+      playerIds: event.data.playerIds ?? [],
       timestamp: new Date(),
-    });
+    };
+    this.eventEmitter.emit(IndexerDomainEvents.ROUND_STARTED, payload);
   }
 
   private async handleAnswerSubmitted(event: any): Promise<void> {
@@ -258,18 +332,54 @@ export class IndexerService implements OnModuleInit {
 
   private async handleRoundCompleted(event: any): Promise<void> {
     // TODO: Update rounds, compute scores, insert into results
-    this.eventEmitter.emit('round.completed', {
-      roundId: event.data.roundId,
-      results: event.data.results,
+    const rawResults: any[] = event.data.results ?? [];
+    const results: RoundCompletedPlayerResult[] = rawResults.map((result) => {
+      const placement: number | null =
+        result.placement ?? result.rank ?? null;
+      return {
+        playerId: result.playerId,
+        won: result.won ?? placement === 1,
+        placement,
+        score: result.score,
+      };
     });
+
+    const payload: RoundCompletedEvent = {
+      roundId: event.data.roundId,
+      results,
+    };
+    this.eventEmitter.emit(IndexerDomainEvents.ROUND_COMPLETED, payload);
+  }
+
+  private async handleRewardClaimable(event: any): Promise<void> {
+    const payload: RewardClaimableEvent = {
+      roundId: event.data.roundId,
+      playerId: event.data.playerId,
+      amount: event.data.amount,
+      asset: event.data.asset,
+    };
+    this.eventEmitter.emit(IndexerDomainEvents.REWARD_CLAIMABLE, payload);
   }
 
   private async handleNftMinted(event: any): Promise<void> {
     // TODO: Insert into nfts table
-    this.eventEmitter.emit('nft.minted', {
+    const payload: NftMintedEvent = {
       playerId: event.data.playerId,
       nftId: event.data.nftId,
-    });
+      roundId: event.data.roundId,
+    };
+    this.eventEmitter.emit(IndexerDomainEvents.NFT_MINTED, payload);
+  }
+
+  private async handleRoundCancelled(event: any): Promise<void> {
+    const refunds: Record<string, string> = event.data.refunds ?? {};
+    const payload: RoundCancelledEvent = {
+      roundId: event.data.roundId,
+      playerIds: event.data.playerIds ?? Object.keys(refunds),
+      refunds,
+      reason: event.data.reason,
+    };
+    this.eventEmitter.emit(IndexerDomainEvents.ROUND_CANCELLED, payload);
   }
 
   private loadCursorFromStorage(): void {

@@ -53,6 +53,7 @@ export class LeaderboardController {
     description: 'Player rank successfully retrieved',
   })
   @ApiResponse({ status: 404, description: 'Player not found' })
+  @Get('rank/:playerId')
   getPlayerRank(@Param('playerId') playerId: string) {
     return this.leaderboardService.getPlayerRank(playerId);
   }

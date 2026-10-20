@@ -9,6 +9,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { IndexerHealthIndicator } from './indexer.health';
 import { RedisHealthIndicator } from './redis.health';
 import { StellarRpcHealthIndicator } from './stellar-rpc.health';
+import { IndexerLagHealthIndicator } from './indexer-lag.health';
 
 @ApiTags('health')
 @Public()
@@ -20,17 +21,32 @@ export class HealthController {
     private readonly redis: RedisHealthIndicator,
     private readonly stellarRpc: StellarRpcHealthIndicator,
     private readonly indexer: IndexerHealthIndicator,
+    private readonly indexerLag: IndexerLagHealthIndicator,
   ) {}
 
-  /** 200 with per-dependency status, or 503 when any dependency is down. */
-  @Get()
+  /** Liveness probe: process-only, always 200 while the app is running. */
+  @Get('live')
+  live() {
+    return { status: 'ok' };
+  }
+
+  /** Readiness probe: 200 with per-dependency status, or 503 when any dependency is down. */
+  @Get('ready')
   @HealthCheck()
-  check() {
+  ready() {
     return this.health.check([
       () => this.db.pingCheck('database', { timeout: 3000 }),
       () => this.redis.isHealthy('redis'),
       () => this.stellarRpc.isHealthy('stellarRpc'),
       () => this.indexer.isHealthy('indexer'),
+      () => this.indexerLag.isHealthy('indexerLag'),
     ]);
+  }
+
+  /** Backwards-compatible alias for readiness. */
+  @Get()
+  @HealthCheck()
+  check() {
+    return this.ready();
   }
 }

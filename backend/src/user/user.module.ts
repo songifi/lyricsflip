@@ -13,6 +13,8 @@ import jwtConfig from '@app/auth/authConfig/jwt.config';
 import { LeaderboardModule } from '../leaderboard/leaderboard.module';
 import { PlayerController } from './player.controller';
 import { PlayerService } from './providers/player.service';
+import { UpdateProfileProvider } from './providers/update-profile.provider';
+import { FindPublicProfileProvider } from './providers/find-public-profile.provider';
 
 @Module({
   controllers: [UserController, PlayerController],
@@ -22,6 +24,8 @@ import { PlayerService } from './providers/player.service';
     CreateUserProvider,
     HashingProvider,
     PlayerService,
+    UpdateProfileProvider,
+    FindPublicProfileProvider,
   ],
   imports: [
     TypeOrmModule.forFeature([User]),
