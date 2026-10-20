@@ -34,12 +34,13 @@ const renderProvider = () =>
 // The provider reads configuration from `window.__ENV` in the browser, so
 // tests must supply a contract id for the provider to render its children
 // instead of the "App is not configured" screen.
-const TEST_CONTRACT_ID = 'CTESTCONTRACTID';
+const TEST_CONTRACT_ID = 'CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const TEST_NFT_CONTRACT_ID = 'CBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB';
 
 beforeEach(() => {
   window.__ENV = {
     NEXT_PUBLIC_LYRICSFLIP_CONTRACT_ID: TEST_CONTRACT_ID,
-    NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: 'CTESTNFTID',
+    NEXT_PUBLIC_LYRICSFLIP_NFT_CONTRACT_ID: TEST_NFT_CONTRACT_ID,
   };
 });
 

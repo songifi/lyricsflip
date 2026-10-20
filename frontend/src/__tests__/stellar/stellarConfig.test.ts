@@ -1,4 +1,4 @@
-import { createConfig } from '@/lib/stellar/stellarConfig';
+import { createConfig } from '@/lib/stellar/stellar-config';
 import { StrKey } from '@stellar/stellar-sdk';
 import testnetDeployment from '../../../../deployments/testnet.json';
 

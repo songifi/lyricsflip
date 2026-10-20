@@ -1,4 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+
+const usePrefersReducedMotion = (): boolean => {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return;
+    }
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(query.matches);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setPrefersReducedMotion(event.matches);
+    };
+    query.addEventListener("change", handleChange);
+    return () => query.removeEventListener("change", handleChange);
+  }, []);
+
+  return prefersReducedMotion;
+};
 
 export interface QuestionCardData {
   lyric: string;
@@ -30,6 +49,14 @@ export const QuestionCard: React.FC <QuestionCardProps> = ({
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const revealRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (reveal && revealRef.current) {
+      revealRef.current.focus();
+    }
+  }, [reveal]);
 
   useEffect(() => {
     setSelectedIndex(null);
@@ -64,45 +91,69 @@ export const QuestionCard: React.FC <QuestionCardProps> = ({
 
   const canSubmit = selectedIndex !== null && !submitted && !disabled && !busy;
 
+  const isFlipped = reveal !== null;
+  const flipClassName = prefersReducedMotion
+    ? "question-card__flip question-card__flip--cross-fade"
+    : "question-card__flip";
+
   return (
-    <div className="question-card">
-      <p className="question-card__lyric">{card.lyric}</p>
-      <p className="question-card__kind">{card.kind}</p>
-      <ul className="question-card__options">
-        {card.options.map((option, index) => (
-          <li key={index}>
-            <button
-              type="button"
-              className={
-                selectedIndex === index
-                  ? "question-card__option question-card__option--selected"
-                  : "question-card__option"
-              }
-              onClick={() => setSelectedIndex(index)}
-              disabled={submitted || disabled || busy}
-              aria-pressed={selectedIndex === index}
-            >
-              {option}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        className="question-card__submit"
-        onClick={handleSubmit}
-        disabled={!canSubmit}
-      >
-        {busy ? "Submitting..." : "Submit"}
-      </button>
-      {error && <p className="question-card__error">{error}</p>}
-      {reveal && (
-        <div className="question-card__reveal">
-          <p className="question-card__reveal-title">{reveal.title}</p>
-          <p className="question-card__reveal-artist">{reveal.artist}</p>
-          <p className="question-card__reveal-year">{reveal.year}</p>
+    <div
+      className="question-card"
+      data-reduced-motion={prefersReducedMotion ? "true" : "false"}
+    >
+      <div className={flipClassName}>
+        <div
+          className="question-card__face question-card__face--front"
+          aria-hidden={isFlipped}
+        >
+          <p className="question-card__lyric">{card.lyric}</p>
+          <p className="question-card__kind">{card.kind}</p>
+          <ul className="question-card__options">
+            {card.options.map((option, index) => (
+              <li key={index}>
+                <button
+                  type="button"
+                  className={
+                    selectedIndex === index
+                      ? "question-card__option question-card__option--selected"
+                      : "question-card__option"
+                  }
+                  onClick={() => setSelectedIndex(index)}
+                  disabled={submitted || disabled || busy}
+                  aria-pressed={selectedIndex === index}
+                >
+                  {option}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button
+            type="button"
+            className="question-card__submit"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+          >
+            {busy ? "Submitting..." : "Submit"}
+          </button>
+          {error && <p className="question-card__error">{error}</p>}
         </div>
-      )}
+        <div
+          className="question-card__face question-card__face--back"
+          aria-hidden={!isFlipped}
+        >
+          {reveal && (
+            <div
+              className="question-card__reveal"
+              ref={revealRef}
+              tabIndex={-1}
+            >
+              <p className="question-card__reveal-title">{reveal.title}</p>
+              <p className="question-card__reveal-artist">{reveal.artist}</p>
+              <p className="question-card__reveal-year">{reveal.year}</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

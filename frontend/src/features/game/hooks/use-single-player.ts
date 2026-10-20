@@ -1,3 +1,4 @@
+import { fetchLyrics } from '@/services/music-service';
 import { fetchPracticeQuestions } from '@/services/practiceService';
 import { LyricData, SongOption, useStore } from '@/store';
 import { useEffect, useState } from 'react';

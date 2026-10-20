@@ -10,16 +10,20 @@ import { User } from './user.entity';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import jwtConfig from '@app/auth/authConfig/jwt.config';
+import { LeaderboardModule } from '../leaderboard/leaderboard.module';
+import { PlayerController } from './player.controller';
+import { PlayerService } from './providers/player.service';
 import { UpdateProfileProvider } from './providers/update-profile.provider';
 import { FindPublicProfileProvider } from './providers/find-public-profile.provider';
 
 @Module({
-  controllers: [UserController],
+  controllers: [UserController, PlayerController],
   providers: [
     UserService,
     FindOneUserByEmailProvider,
     CreateUserProvider,
     HashingProvider,
+    PlayerService,
     UpdateProfileProvider,
     FindPublicProfileProvider,
   ],
@@ -28,6 +32,7 @@ import { FindPublicProfileProvider } from './providers/find-public-profile.provi
     forwardRef(() => AuthModule),
     ConfigModule.forFeature(jwtConfig),
     JwtModule.registerAsync(jwtConfig.asProvider()),
+    forwardRef(() => LeaderboardModule),
   ],
   exports: [UserService, FindOneUserByEmailProvider],
 })
