@@ -1,5 +1,4 @@
-'use client';
-
+import type { Metadata } from 'next';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -44,6 +43,36 @@ function parseRoundId(raw: string): bigint | null {
   return /^\d+$/.test(raw) ? BigInt(raw) : null;
 }
 
+type RoundPageProps = {
+  params: Promise<{ roundId: string }>;
+};
+
+export async function generateMetadata({
+  params,
+}: RoundPageProps): Promise<Metadata> {
+  const { roundId } = await params;
+  const title = `Round ${roundId}`;
+  const description = `Join multiplayer round ${roundId} on LyricsFlip — guess the song from the lyric and climb the leaderboard.`;
+  const url = `/multiplayer/${roundId}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  };
+}
+
 /**
  * Seconds left until an absolute unix-seconds deadline, updated once a second.
  * `null` means "no deadline yet" (round not started / malformed value).
@@ -73,6 +102,10 @@ const toDeadlineSeconds = (round: Round | null): number | null => {
 };
 
 export default function MultiplayerRoundPage() {
+  return <MultiplayerRoundClient />;
+}
+
+function MultiplayerRoundClient() {
   const router = useRouter();
   const params = useParams<{ roundId?: string | string[] }>();
   const rawRoundId = Array.isArray(params?.roundId)

@@ -2,9 +2,13 @@
 
 import { useEffect, useRef } from 'react';
 
+export type QuestionKind = 'Title' | 'Artist' | 'Year';
+
 interface SongOption {
   title: string;
   artist: string;
+  /** Optional year value; may be provided as a string or number. */
+  year?: string | number;
 }
 
 interface SongOptionsProps {
@@ -14,6 +18,30 @@ interface SongOptionsProps {
   correctOption?: SongOption | null;
   /** Disables input, e.g. while an answer is being submitted on-chain. */
   disabled?: boolean;
+  /** Which question kind is being asked; controls the compared/displayed value. */
+  questionKind?: QuestionKind;
+}
+
+/**
+ * Returns the value that should be compared/displayed for a given option
+ * based on the question kind. Year values are always normalized to strings.
+ */
+function getOptionValue(
+  option: SongOption | null | undefined,
+  questionKind: QuestionKind,
+): string {
+  if (!option) return '';
+  switch (questionKind) {
+    case 'Artist':
+      return option.artist ?? '';
+    case 'Year':
+      return option.year !== undefined && option.year !== null
+        ? String(option.year)
+        : '';
+    case 'Title':
+    default:
+      return option.title ?? '';
+  }
 }
 
 export function SongOptions({
@@ -22,6 +50,7 @@ export function SongOptions({
   selectedOption = null,
   correctOption = null,
   disabled = false,
+  questionKind = 'Title',
 }: SongOptionsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -65,13 +94,16 @@ export function SongOptions({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLocked, options, onSelect]);
 
+  const selectedValue = getOptionValue(selectedOption, questionKind);
+  const correctValue = getOptionValue(correctOption, questionKind);
+
   // Derive an accessible status message for screen readers
   const getLiveMessage = () => {
     if (!selectedOption) return '';
-    const isCorrect = correctOption?.title === selectedOption.title;
+    const isCorrect = correctValue === selectedValue;
     return isCorrect
-      ? `Correct! The answer is ${selectedOption.title}`
-      : `Wrong. The correct answer is ${correctOption?.title ?? ''}`;
+      ? `Correct! The answer is ${selectedValue}`
+      : `Wrong. The correct answer is ${correctValue}`;
   };
 
   return (
@@ -98,8 +130,11 @@ export function SongOptions({
         aria-label="Answer choices"
       >
         {options.map((option, index) => {
-          const isSelected = selectedOption?.title === option.title;
-          const isCorrect = correctOption?.title === option.title;
+          const optionValue = getOptionValue(option, questionKind);
+          const isSelected =
+            selectedOption !== null && selectedValue === optionValue;
+          const isCorrect =
+            correctOption !== null && correctValue === optionValue;
           const isDisabled = isLocked;
 
           let buttonClasses =
@@ -118,8 +153,10 @@ export function SongOptions({
           }
 
           // Build an accessible label that includes the keyboard shortcut
-          const ariaLabel = `Option ${index + 1}: ${option.title}${
-            option.artist ? `, by ${option.artist}` : ''
+          const ariaLabel = `Option ${index + 1}: ${optionValue}${
+            questionKind === 'Title' && option.artist
+              ? `, by ${option.artist}`
+              : ''
           }${isCorrect ? ' – correct' : isSelected ? ' – incorrect' : ''}`;
 
           return (
@@ -142,8 +179,8 @@ export function SongOptions({
               >
                 {index + 1}
               </span>
-              <span className="font-medium">{option.title}</span>
-              {option.artist && (
+              <span className="font-medium">{optionValue}</span>
+              {questionKind === 'Title' && option.artist && (
                 <p className="text-sm text-gray-600 mt-1">{option.artist}</p>
               )}
             </button>
