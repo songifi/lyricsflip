@@ -148,6 +148,32 @@ export const Answer = {
   title: (value: string): Answer => ({ tag: 'Title', values: [value] }),
 };
 
+/**
+ * Safely parses a year option string (as returned by the contract) into a `bigint`.
+ * Returns `null` when the option is not a valid integer, so callers can fall back
+ * to option indexes or surface a friendly error instead of throwing mid-round.
+ */
+export const parseYearOption = (option: string): bigint | null => {
+  const trimmed = option.trim();
+  if (!/^-?\d+$/.test(trimmed)) {
+    return null;
+  }
+  try {
+    return BigInt(trimmed);
+  } catch {
+    return null;
+  }
+};
+
+/** Builds a `Year` answer from an option string, throwing if the option is not a valid year. */
+export const yearAnswerFromOption = (option: string): Answer => {
+  const year = parseYearOption(option);
+  if (year === null) {
+    throw new Error(`Invalid year option: ${option}`);
+  }
+  return Answer.year(year);
+};
+
 export interface StellarAccount {
   address: string;
 }

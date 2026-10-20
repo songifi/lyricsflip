@@ -49,6 +49,10 @@ export const LYRICSFLIP_ERRORS: Record<number, ContractErrorInfo> = {
   38: { name: 'NoActiveCard', message: 'No card has been drawn yet for this round.' },
   39: { name: 'AlreadyAnswered', message: 'You have already answered this card.' },
   40: { name: 'Paused', message: 'The game is temporarily paused.' },
+  41: { name: 'InvalidAnswerWindow', message: 'The answer window must be between 5 and 180 seconds.' },
+  42: { name: 'InvalidLobbyTimeout', message: 'The lobby timeout must be between 30 and 86400 seconds.' },
+  43: { name: 'InvalidRoundDuration', message: 'That round duration or buffer is out of range.' },
+  44: { name: 'CardInActiveRound', message: 'This card is in an active round and its answer fields cannot change yet.' },
 };
 
 export const LYRICSFLIP_NFT_ERRORS: Record<number, ContractErrorInfo> = {

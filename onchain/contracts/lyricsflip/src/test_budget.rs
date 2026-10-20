@@ -8,6 +8,7 @@ use crate::budget_thresholds::*;
 use crate::{
     Answer, Card, Genre, LyricsFlip, LyricsFlipClient, Milestone, QuestionKind, MAX_ROUND_PLAYERS,
 };
+use crate::{Answer, Card, Genre, LyricsFlip, LyricsFlipClient, QuestionKind, MAX_ROUND_PLAYERS};
 use soroban_sdk::{
     testutils::{Address as _, Ledger},
     Address, Env, String,
@@ -276,12 +277,17 @@ fn create_solo_round_budget() {
         CREATE_SOLO_ROUND_MAX_MEM,
         || {
             client.create_solo_round(&owner, &Some(Genre::Pop), &42u64);
+        },
+    );
+}
+
+#[test]
 fn answer_and_next_budget() {
     let (env, client, owner) = setup_catalogue();
     client.set_cards_per_round(&owner, &5);
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
     client.start_round(&owner, &round_id);
-    let card = client.next_card(&round_id);
+    let card = client.next_card(&owner, &round_id);
     measure(
         &env,
         "answer_and_next",

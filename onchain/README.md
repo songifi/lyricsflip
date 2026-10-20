@@ -503,7 +503,7 @@ Every variant is currently referenced by the contract. The ones marked
 | 41 | `InvalidAnswerWindow` | `set_answer_window` called with value outside [5, 180]s |
 | 42 | `InvalidLobbyTimeout` | `set_lobby_timeout` called with value outside [30, 86400]s |
 | 43 | `InvalidRoundDuration` | `set_round_duration` or `set_round_buffer` called with out-of-bounds value |
-| 40 | `Paused` | The contract is paused; round creation, joining, and reward claims are blocked |
+| 44 | `CardInActiveRound` | `update_card` tried to change a card's title/artist/year while a non-finalized round still references it (LF-176) |
 
 ### `lyricsflip-nft`
 
