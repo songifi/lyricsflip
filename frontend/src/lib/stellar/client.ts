@@ -49,11 +49,16 @@ export interface NextCardResult extends TimedResult<Card> {
 }
 
 export interface SystemCalls {
-  createRound: (genre: Genre, seed?: bigint) => Promise<bigint>;
+  createRound: (
+    genre: Genre,
+    seed?: bigint,
+    wagerAmount?: bigint,
+  ) => Promise<bigint>;
   createRoundWithFilter: (
     filter: RoundFilter,
     difficulty?: number,
     seed?: bigint,
+    wagerAmount?: bigint,
   ) => Promise<bigint>;
   joinRound: (roundId: bigint) => Promise<void>;
   startRound: (roundId: bigint) => Promise<void>;
@@ -284,13 +289,13 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
   };
 
   return {
-    createRound: async (genre, seed = randomSeed()) => {
+    createRound: async (genre, seed = randomSeed(), _wagerAmount) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       return submit(() => client.create_round({ caller, genre: genreToWire(genre), seed }));
     },
 
-    createRoundWithFilter: async (filter, difficulty, seed = randomSeed()) => {
+    createRoundWithFilter: async (filter, difficulty, seed = randomSeed(), _wagerAmount) => {
       const caller = requireAccount();
       const client = await getGameClient(config, caller);
       return submit(() =>

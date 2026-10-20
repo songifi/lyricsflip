@@ -34,6 +34,28 @@ The frontend, backend, and documentation used incompatible event names and paylo
 
 ## Frontend
 
+### LF-198 · The wager modal must use real escrow
+
+**Area:** Frontend · **Priority:** P2 · **Type:** Feature · **Effort:** M  
+**Files:** `frontend/src/components/organisms/wager-modal.tsx`, `frontend/src/components/organisms/wager-summary-modal.tsx`, `frontend/src/lib/utils.ts`, `frontend/src/lib/stellar/client.ts`
+
+**Description**
+
+The wager modal now connects directly to real escrow parameters, converting stakes to stroops via `bigint` math, validating wallet balances against min/max limits and fee reserves, displaying true configured round rules instead of arbitrary odds/duration, and detailing the escrow deposit in the summary modal prior to signing.
+
+**Tasks**
+
+- [x] Pass the stake, converted to stroops (7 decimals) with `bigint` math, to `create_round`.
+- [x] Remove the fields with no contract meaning (odds, duration), or map them to configured values.
+- [x] Show the wager token's balance and the min/max limits, and disable submission when the balance is too low.
+- [x] Show the escrow transfer in the summary modal before the player signs.
+
+**Acceptance criteria**
+
+- [x] Creating a 5 XLM wager round moves 5 XLM into the contract (testnet).
+- [x] No form field is silently ignored.
+
+**Related:** Closes [#684](https://github.com/Stellar-songifi/lyricsflip/issues/684)
 ### LF-196 · Make `useRoundEvents` reliable
 
 **Area:** Frontend · **Priority:** P2 · **Type:** Bug · **Effort:** S  
