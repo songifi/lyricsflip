@@ -37,6 +37,12 @@ jobs:
             ${{ runner.os }}-frontend-
 
       - run: npm ci
+      - name: Export OpenAPI spec from backend
+        working-directory: backend
+        run: npm ci && npm run openapi:export
+      - name: Check generated API client is fresh
+        working-directory: frontend
+        run: npm run check:api
       - name: npm audit (production dependencies)
         run: npm audit --omit=dev
       - run: npm run lint
