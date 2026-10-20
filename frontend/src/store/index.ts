@@ -1,2 +1,2 @@
-export * from './game-stores';
+export * from './ui-store';
 export * from './types';

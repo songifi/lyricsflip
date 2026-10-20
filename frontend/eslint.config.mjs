@@ -22,6 +22,51 @@ const eslintConfig = [
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
+  {
+    // Flag hard-coded JSX string literals in the App Router (LF-211).
+    // UI copy should be extracted into `messages/*.json` and rendered via
+    // `next-intl` (e.g. `t("key")`) instead of being inlined.
+    files: ["src/app/**/*.tsx"],
+    rules: {
+      "react/jsx-no-literals": [
+        "error",
+        {
+          noStrings: true,
+          ignoreProps: true,
+          allowedStrings: [
+            " ",
+            ".",
+            ",",
+            ":",
+            ";",
+            "!",
+            "?",
+            "-",
+            "—",
+            "/",
+            "|",
+            "•",
+            "·",
+            "%",
+            "&",
+            "+",
+            "=",
+            "(",
+            ")",
+            "[",
+            "]",
+            "{",
+            "}",
+            "<",
+            ">",
+            "*",
+            "#",
+            "@",
+          ],
+        },
+      ],
+    },
+  },
 ];
 
 export default eslintConfig;
