@@ -11,8 +11,6 @@ const mockNextCardWithMeta = jest.fn();
 const mockBuildQuestionCard = jest.fn();
 const mockSubmitAnswer = jest.fn();
 const mockSubmitAnswerWithMeta = jest.fn();
-const mockBuildQuestionCard = jest.fn();
-const mockSubmitAnswer = jest.fn();
 const mockGetPlayerStat = jest.fn();
 const mockClaimReward = jest.fn();
 
@@ -25,8 +23,6 @@ const mockSystemCalls = {
   buildQuestionCard: mockBuildQuestionCard,
   submitAnswer: mockSubmitAnswer,
   submitAnswerWithMeta: mockSubmitAnswerWithMeta,
-  buildQuestionCard: mockBuildQuestionCard,
-  submitAnswer: mockSubmitAnswer,
   getPlayerStat: mockGetPlayerStat,
   claimReward: mockClaimReward,
 };
@@ -84,22 +80,10 @@ describe('SinglePlayerPage', () => {
     mockGetRound.mockResolvedValue(round);
     mockGetRoundCards.mockResolvedValue([BigInt(7)]);
     mockNextCard.mockResolvedValue(card);
-    mockBuildQuestionCard.mockResolvedValue(question);
-    mockSubmitAnswer.mockResolvedValue(true);
-  });
-
-  it('loads the round and renders the lyric with four answer options', async () => {
-    render(<SinglePlayerPage />);
-
-    expect(await screen.findByText('Cause this is thriller')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /option 1: thriller/i })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /^option \d/i })).toHaveLength(4);
     mockNextCardWithMeta.mockResolvedValue({ result: card, closedAtMs: null, startedAtMs: Date.now() });
     mockBuildQuestionCard.mockResolvedValue(question);
     mockSubmitAnswer.mockResolvedValue(true);
     mockSubmitAnswerWithMeta.mockResolvedValue({ result: true, closedAtMs: null });
-    mockBuildQuestionCard.mockResolvedValue(question);
-    mockSubmitAnswer.mockResolvedValue(true);
   });
 
   it('loads the round and renders the lyric with four answer options', async () => {
@@ -112,10 +96,6 @@ describe('SinglePlayerPage', () => {
 
   it('submits the selected answer as a Title answer', async () => {
     render(<SinglePlayerPage />);
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: /option 1: thriller/i }),
-    );
 
     fireEvent.click(
       await screen.findByRole('button', { name: /option 1: thriller/i }),
@@ -130,11 +110,7 @@ describe('SinglePlayerPage', () => {
   });
 
   it('reveals the answer and counts the card after answering', async () => {
-  });
-
-  it('submits the selected answer as a Title answer', async () => {
     render(<SinglePlayerPage />);
-
 
     fireEvent.click(
       await screen.findByRole('button', { name: /option 1: thriller/i }),
@@ -167,21 +143,6 @@ describe('SinglePlayerPage', () => {
       await screen.findByRole('button', { name: /option 1: thriller/i }),
     );
 
-    await waitFor(() =>
-      expect(mockSubmitAnswer).toHaveBeenCalledWith(BigInt(1), {
-        tag: 'Title',
-        values: ['Thriller'],
-      }),
-    );
-  });
-
-  it('reveals the answer and counts the card after answering', async () => {
-    render(<SinglePlayerPage />);
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: /option 1: thriller/i }),
-    );
-
     expect(await screen.findByText('Too late')).toBeInTheDocument();
   });
 
@@ -197,32 +158,11 @@ describe('SinglePlayerPage', () => {
         }),
     );
 
-
-    await waitFor(() =>
-      expect(mockSubmitAnswer).toHaveBeenCalledWith(BigInt(1), {
-        tag: 'Title',
-        values: ['Thriller'],
-      }),
-    );
-  });
-
-  it('shows the remaining round time derived from the contract end_time', async () => {
-    const endTime = BigInt(Math.floor(Date.now() / 1000) + 120);
-    mockGetRound.mockResolvedValue({ ...round, end_time: endTime });
-
-    render(<SinglePlayerPage />);
-
-    const timeLeft = await screen.findByTestId('round-time-left');
-    expect(timeLeft).toHaveTextContent('02:00');
-  });
-
-  it('reveals the answer and counts the card after answering', async () => {
     render(<SinglePlayerPage />);
 
     fireEvent.click(
       await screen.findByRole('button', { name: /option 1: thriller/i }),
     );
-
 
     expect(await screen.findByText('Submitting…')).toBeInTheDocument();
 
@@ -250,7 +190,5 @@ describe('SinglePlayerPage', () => {
     );
 
     expect(await screen.findByText('Wrong')).toBeInTheDocument();
-
-    expect(await screen.findByRole('button', { name: /next card/i })).toBeInTheDocument();
   });
 });

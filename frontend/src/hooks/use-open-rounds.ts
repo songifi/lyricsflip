@@ -14,9 +14,11 @@
  * immediately instead of waiting for the next tick.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { nativeToScVal, rpc, scValToNative } from '@stellar/stellar-sdk';
 import { createConfig } from '@/lib/stellar/stellar-config';
+import { queryKeys } from '@/lib/react-query';
 import type { SystemCalls } from '@/lib/stellar/client';
 import type { Round } from '@/lib/stellar/types';
 
@@ -92,24 +94,22 @@ export function useOpenRounds({
   limit = MAX_OPEN_ROUNDS,
   pollIntervalMs = OPEN_ROUNDS_POLL_MS,
 }: UseOpenRoundsOptions): UseOpenRoundsResult {
-  const [rounds, setRounds] = useState<OpenRound[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
+  const queryClient = useQueryClient();
 
   // Wall-clock seconds per round, filled from `RoundCreated` events. The
   // `Round` struct has no created-at field, so this is the only way to show an
   // age and to hide stale lobbies.
   const createdAtRef = useRef<Map<string, number>>(new Map());
   const eventCursorRef = useRef<string | null>(null);
-  const cancelledRef = useRef(false);
 
-  const refresh = useCallback(async () => {
-    if (!systemCalls) {
-      setIsLoading(false);
-      return;
-    }
-    try {
+  const queryKey = queryKeys.openRounds(limit);
+
+  const query = useQuery({
+    queryKey,
+    enabled: systemCalls !== null,
+    refetchInterval: pollIntervalMs,
+    queryFn: async (): Promise<OpenRound[]> => {
+      if (!systemCalls) return [];
       const [ids, maxPlayers] = await Promise.all([
         systemCalls.getOpenRounds(0, limit),
         systemCalls.getMaxPlayers(),
@@ -150,43 +150,19 @@ export function useOpenRounds({
         }),
       );
 
-      const visible = enriched
+      return enriched
         .filter((entry): entry is OpenRound => entry !== null)
         .filter((entry) => !entry.isExpired && !entry.isFull)
         .sort((a, b) => Number(a.round.round_id - b.round.round_id));
+    },
+  });
 
-      if (cancelledRef.current) return;
-      setRounds(visible);
-      setError(null);
-      setLastUpdatedAt(Date.now());
-    } catch (err) {
-      if (cancelledRef.current) return;
-      setError(
-        err instanceof Error ? err.message : 'Failed to load open rounds',
-      );
-    } finally {
-      if (!cancelledRef.current) setIsLoading(false);
-    }
-  }, [systemCalls, limit]);
+  const refresh = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey });
+  }, [queryClient, queryKey]);
 
-  // List polling.
-  useEffect(() => {
-    if (!systemCalls) {
-      setIsLoading(false);
-      return;
-    }
-    cancelledRef.current = false;
-    void refresh();
-    const timer = setInterval(() => {
-      void refresh();
-    }, pollIntervalMs);
-    return () => {
-      cancelledRef.current = true;
-      clearInterval(timer);
-    };
-  }, [systemCalls, pollIntervalMs, refresh]);
-
-  // Lobby-event polling: refreshes the list as soon as anything changes.
+  // Lobby-event polling: invalidates the cached list as soon as anything
+  // changes, instead of waiting for the next refetch interval.
   useEffect(() => {
     if (!systemCalls) return;
 
@@ -233,7 +209,7 @@ export function useOpenRounds({
         }
 
         if (response.events.length > 0) {
-          await refresh();
+          await queryClient.invalidateQueries({ queryKey });
         }
       } catch {
         // Event polling is best-effort; the interval poll still refreshes.
@@ -249,7 +225,17 @@ export function useOpenRounds({
       cancelled = true;
       clearInterval(timer);
     };
-  }, [systemCalls, refresh]);
+  }, [systemCalls, queryClient, queryKey]);
 
-  return { rounds, isLoading, error, lastUpdatedAt, refresh };
+  return {
+    rounds: query.data ?? [],
+    isLoading: systemCalls !== null && query.isLoading,
+    error: query.error
+      ? query.error instanceof Error
+        ? query.error.message
+        : 'Failed to load open rounds'
+      : null,
+    lastUpdatedAt: query.dataUpdatedAt || null,
+    refresh,
+  };
 }

@@ -6,6 +6,7 @@ import {
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
 import { Public } from '../auth/decorators/public.decorator';
+import { IndexerHealthIndicator } from './indexer.health';
 import { RedisHealthIndicator } from './redis.health';
 import { StellarRpcHealthIndicator } from './stellar-rpc.health';
 import { IndexerLagHealthIndicator } from './indexer-lag.health';
@@ -19,6 +20,7 @@ export class HealthController {
     private readonly db: TypeOrmHealthIndicator,
     private readonly redis: RedisHealthIndicator,
     private readonly stellarRpc: StellarRpcHealthIndicator,
+    private readonly indexer: IndexerHealthIndicator,
     private readonly indexerLag: IndexerLagHealthIndicator,
   ) {}
 
@@ -36,6 +38,7 @@ export class HealthController {
       () => this.db.pingCheck('database', { timeout: 3000 }),
       () => this.redis.isHealthy('redis'),
       () => this.stellarRpc.isHealthy('stellarRpc'),
+      () => this.indexer.isHealthy('indexer'),
       () => this.indexerLag.isHealthy('indexerLag'),
     ]);
   }

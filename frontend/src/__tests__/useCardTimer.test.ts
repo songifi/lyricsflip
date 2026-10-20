@@ -14,7 +14,6 @@ import {
   CARD_TIMEOUT_SECONDS,
   CARD_LEDGER_LATENCY_SECONDS,
 } from '@/features/game/hooks/use-card-timer';
-import { useCardTimer, CARD_TIMEOUT_SECONDS } from '@/features/game/hooks/use-card-timer';
 
 describe('use-card-timer', () => {
   beforeEach(() => {
