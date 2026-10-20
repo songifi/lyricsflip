@@ -1,5 +1,8 @@
 const webpack = require('webpack');
 const createNextIntlPlugin = require('next-intl/plugin');
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
 const testnetDeployment = require('../deployments/testnet.json');
 
 // Build-time check: fail next build in production mode when contract IDs are empty
@@ -46,4 +49,4 @@ const nextConfig = {
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-module.exports = withNextIntl(nextConfig);
+module.exports = withBundleAnalyzer(withNextIntl(nextConfig));

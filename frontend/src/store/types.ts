@@ -27,6 +27,16 @@ export interface ThemeState {
   theme: Theme;
 }
 
+export interface WagerDetails {
+  genre: string;
+  difficulty: string;
+  duration?: string;
+  odds?: string;
+  wagerAmount: string;
+  potentialWin?: string;
+  stakeStroops?: string;
+}
+
 export interface ThemeActions {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
