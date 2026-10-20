@@ -105,9 +105,10 @@ export interface SystemCalls {
    */
   claimReward: (milestone: Milestone) => Promise<bigint>;
   /**
-   * Claims the connected wallet's share of a wagered round's pot (LF-014).
-   * Pull payment: the contract transfers the caller's share and marks it
-   * claimed, so a winner can only claim once. Returns the amount paid out.
+   * LF-183: there is no `claim_winnings` on the deployed contract —
+   * `create_round` always sets `wager_amount: 0`, so no pot ever accrues to
+   * claim. Kept as an explicit "not implemented" stub (see `getCategories`
+   * above) rather than silently removed, in case wagering comes back.
    */
   claimWinnings: (roundId: bigint) => Promise<bigint>;
   /**
@@ -134,11 +135,7 @@ export interface SystemCalls {
   getCategories: () => Promise<any>;
   getSongs: () => Promise<any>;
   getLeaderboard: () => Promise<any>;
-  /**
-   * Legacy alias for `claimWinnings`. The old Starknet/Dojo UI called this
-   * with no arguments; it now forwards to the on-chain `claim_winnings`
-   * pull-payment flow for the given round.
-   */
+  /** Legacy alias for `claimWinnings` — also not implemented on-chain (LF-183). */
   claimEarnings: (roundId: bigint) => Promise<bigint>;
 }
 
@@ -210,7 +207,6 @@ type LyricsFlipContract = {
   get_cards_of_a_year: (args: { year: bigint; seed: bigint }) => Promise<contract.AssembledTransaction<WireCard[]>>;
   build_question_card: (args: { card: WireCard; seed: bigint; kind: number }) => Promise<contract.AssembledTransaction<QuestionCard>>;
   claim_reward: (args: { caller: string; milestone: number }) => Promise<contract.AssembledTransaction<bigint>>;
-  claim_winnings: (args: { caller: string; round_id: bigint }) => Promise<contract.AssembledTransaction<bigint>>;
 };
 
 async function getGameClient(config: StellarConfig, publicKey: string | null) {
@@ -246,10 +242,9 @@ export function createSystemCalls(config: StellarConfig, publicKey: string | nul
     return publicKey;
   };
 
-  const claimWinnings = async (roundId: bigint): Promise<bigint> => {
-    const caller = requireAccount();
-    const client = await getGameClient(config, caller);
-    return submit(() => client.claim_winnings({ caller, round_id: roundId }));
+  const claimWinnings = async (_roundId: bigint): Promise<bigint> => {
+    requireAccount();
+    return notImplemented('claimWinnings')();
   };
 
   /** Signs + submits a mutating call and also reports the ledger close time. */

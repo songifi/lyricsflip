@@ -351,6 +351,10 @@ runs a full batch with Mainnet limits enforced.
 
 ## Events
 
+See [`docs/api.md`](docs/api.md) for which function emits which event
+alongside its full signature, errors, and a CLI example. The table below is a
+quick numeric/topic reference across both contracts.
+
 Topics are listed in order after the event name, which soroban-sdk adds as the
 first topic (snake_case, e.g. `card_added`). Data is a map of the remaining
 fields. The complete event list — with topics and data fields — is generated in
@@ -436,6 +440,10 @@ sequence past the default TTL and verifies that entries touched during gameplay
 `Balance`, and approvals surviving ledger advances for transfers.
 
 ## Error codes
+
+See [`docs/api.md`](docs/api.md) for which function can raise which error. The
+table below is a quick numeric-code reference across both contracts, kept in
+sync by `onchain/scripts/check-api-docs.sh` (LF-182, runs in CI).
 
 Contract errors reach clients as `Error(Contract, #<code>)`, and the frontend
 maps on the numeric code (`frontend/src/lib/stellar/errors.ts`). **Codes are

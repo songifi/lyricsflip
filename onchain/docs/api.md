@@ -31,7 +31,7 @@ stellar contract deploy \
 ### `get_round(env: Env, round_id: u64) -> Round`
 - Signer: none.
 - State changes: none.
-- Errors: round lookup errors if the id does not exist.
+- Errors: `NonExistingRound` if the id does not exist. Every other function that looks up a round by id can raise the same error.
 - Events: none.
 - Example:
 
@@ -268,6 +268,21 @@ stellar contract invoke \
   -- get-card --card_id 1
 ```
 
+### `get_question(env: Env, caller: Address, round_id: u64) -> QuestionCard`
+- Signer: caller wallet (must be a round participant).
+- State changes: none.
+- Errors: `NotAParticipant`, `RoundNotStarted`, `NoActiveCard`, `NoMoreCards`.
+- Events: none.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <LYRICSFLIP_CONTRACT_ID> \
+  --source <PLAYER_IDENTITY> \
+  --network testnet \
+  -- get-question --caller <PLAYER_ADDRESS> --round_id 1
+```
+
 ### `get_cards_of_genre(env: Env, genre: Genre, seed: u64) -> Vec<Card>`
 - Signer: none.
 - State changes: none.
@@ -328,6 +343,21 @@ stellar contract invoke \
   -- get-player-stat --player <PLAYER_ADDRESS>
 ```
 
+### `is_paused(env: Env) -> bool`
+- Signer: none.
+- State changes: none.
+- Errors: none.
+- Events: none.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <LYRICSFLIP_CONTRACT_ID> \
+  --source <READONLY_IDENTITY> \
+  --network testnet \
+  -- is-paused
+```
+
 ### `is_admin(env: Env, role: Role, address: Address) -> bool`
 - Signer: none.
 - State changes: none.
@@ -343,10 +373,40 @@ stellar contract invoke \
   -- is-admin --role 0 --address <PLAYER_ADDRESS>
 ```
 
+### `pause(env: Env, caller: Address)`
+- Signer: owner.
+- State changes: sets `Paused`. Halts new rounds, joins and reward claims; refund and cancel paths stay open.
+- Errors: `NotAuthorized`.
+- Events: `Paused {}`.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <LYRICSFLIP_CONTRACT_ID> \
+  --source <OWNER_IDENTITY> \
+  --network testnet \
+  -- pause --caller <OWNER_ADDRESS>
+```
+
+### `unpause(env: Env, caller: Address)`
+- Signer: owner.
+- State changes: clears `Paused`, resuming normal operation.
+- Errors: `NotAuthorized`.
+- Events: `Unpaused {}`.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <LYRICSFLIP_CONTRACT_ID> \
+  --source <OWNER_IDENTITY> \
+  --network testnet \
+  -- unpause --caller <OWNER_ADDRESS>
+```
+
 ### `create_round(env: Env, caller: Address, genre: Option<Genre>, seed: u64) -> u64`
 - Signer: caller wallet.
 - State changes: creates a round, stores players and round cards, pushes round onto the open-round list.
-- Errors: `NonExistingGenre` if a genre is missing.
+- Errors: `NonExistingGenre` if a genre is missing, `AmountExceedsLimit`, `LimitMustBeGreaterThanZero` if the genre's card pool is exhausted.
 - Events: `RoundCreated { round_id, admin, created_time }`.
 - Example:
 
@@ -356,6 +416,22 @@ stellar contract invoke \
   --source <PLAYER_IDENTITY> \
   --network testnet \
   -- create-round --caller <PLAYER_ADDRESS> --genre 1 --seed 123
+```
+
+### `create_round_with_filter(env: Env, caller: Address, filter: RoundFilter, difficulty: Option<u32>, seed: u64) -> u64`
+- Signer: caller wallet.
+- State changes: same as `create_round`, but cards are drawn from the subset matching `filter.genre`/`filter.decade` and the optional `difficulty`.
+- Errors: `InvalidCardDifficulty`, `InvalidDecade`, `EmptyGenreCards`, `AmountExceedsLimit`, `InvalidCardsPerRound`.
+- Events: `RoundCreated { round_id, admin, created_time }`.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <LYRICSFLIP_CONTRACT_ID> \
+  --source <PLAYER_IDENTITY> \
+  --network testnet \
+  -- create-round-with-filter --caller <PLAYER_ADDRESS> \
+     --filter '{"genre": 1, "decade": 1990}' --difficulty 2 --seed 123
 ```
 
 ### `start_round(env: Env, caller: Address, round_id: u64)`
@@ -451,7 +527,7 @@ stellar contract invoke \
 ### `add_card(env: Env, caller: Address, card: Card) -> u64`
 - Signer: admin wallet.
 - State changes: inserts a card into the canonical catalogue and indexes it by genre, artist, year.
-- Errors: validation errors and admin authorization failures.
+- Errors: `InvalidCardTitle`, `InvalidCardArtist`, `InvalidCardLyrics`, `LyricsTooLong`, `InvalidCardYear`, `InvalidCardDifficulty`, and admin authorization failures.
 - Events: `CardAdded`.
 - Example:
 
@@ -481,6 +557,7 @@ stellar contract invoke \
 ### `update_card(env: Env, caller: Address, card_id: u64, card: Card)`
 - Signer: admin wallet.
 - State changes: replaces the canonical card metadata and reindexes the card.
+- Errors: `DuplicateCard`, `InvalidCardTitle`, `InvalidCardArtist`, `InvalidCardLyrics`, `LyricsTooLong`, `InvalidCardYear`, `InvalidCardDifficulty`, admin authorization failures.
 - Errors: `DuplicateCard`, `CardInActiveRound` (LF-176: title/artist/year cannot change while a non-finalized round still references the card), validation failures, admin authorization failures.
 - Events: `CardUpdated { card_id, genre }`.
 - Example:
@@ -620,7 +697,7 @@ stellar contract invoke \
 ### `submit_answer(env: Env, caller: Address, round_id: u64, answer: Answer) -> bool`
 - Signer: player wallet.
 - State changes: records the answer, updates score and current streak, and may finalize round scoring after answer processing.
-- Errors: `NotAParticipant`, `RoundNotStarted`, `RoundAlreadyFinalized`, `RoundCompleted`.
+- Errors: `NotAParticipant`, `RoundNotStarted`, `RoundAlreadyFinalized`, `RoundCompleted`, `NoActiveCard`, `AlreadyAnswered`.
 - Events: `AnswerSubmitted { round_id, player, correct, points }`.
 - Example:
 
@@ -710,9 +787,9 @@ stellar contract deploy \
      --token_name "LyricsFlip" --token_symbol "LFLIP" --base_uri "https://example.com/metadata/"
 ```
 
-### `mint(env: Env, caller: Address, recipient: Address) -> u128`
+### `mint(env: Env, caller: Address, recipient: Address, kind: u32) -> u128`
 - Signer: the minter contract or designated minter wallet.
-- State changes: increments the token count, assigns ownership, and updates the recipient balance.
+- State changes: increments the token count, assigns ownership, updates the recipient balance, and records `kind` (the `Milestone` discriminant this badge represents; see LF-168).
 - Errors: `NotMinter`, `TokenAlreadyExists`.
 - Events: `NftMinted { token_id, recipient }`.
 - Example:
@@ -722,7 +799,7 @@ stellar contract invoke \
   --id <NFT_CONTRACT_ID> \
   --source <MINTER_IDENTITY> \
   --network testnet \
-  -- mint --caller <LYRICSFLIP_CONTRACT_ID> --recipient <PLAYER_ADDRESS>
+  -- mint --caller <LYRICSFLIP_CONTRACT_ID> --recipient <PLAYER_ADDRESS> --kind 0
 ```
 
 ### `owner_of(env: Env, token_id: u128) -> Address`
@@ -740,6 +817,21 @@ stellar contract invoke \
   -- owner-of --token_id 1
 ```
 
+### `token_kind(env: Env, token_id: u128) -> u32`
+- Signer: none.
+- State changes: none.
+- Errors: `TokenDoesNotExist` (via `owner_of`).
+- Events: none.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <NFT_CONTRACT_ID> \
+  --source <READONLY_IDENTITY> \
+  --network testnet \
+  -- token-kind --token_id 1
+```
+
 ### `balance(env: Env, owner: Address) -> u32`
 - Signer: none.
 - State changes: none.
@@ -755,11 +847,26 @@ stellar contract invoke \
   -- balance --owner <PLAYER_ADDRESS>
 ```
 
+### `tokens_of_owner(env: Env, owner: Address, start: u32, limit: u32) -> Vec<u128>`
+- Signer: none.
+- State changes: none.
+- Errors: none.
+- Events: none.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <NFT_CONTRACT_ID> \
+  --source <READONLY_IDENTITY> \
+  --network testnet \
+  -- tokens-of-owner --owner <PLAYER_ADDRESS> --start 0 --limit 50
+```
+
 ### `transfer(env: Env, from: Address, to: Address, token_id: u128)`
-- Signer: `from` wallet.
-- State changes: transfers ownership and clears prior approval.
-- Errors: `IncorrectOwner`.
-- Events: `Transfer { from, to, token_id }`.
+- Signer: none (always rejected before auth is checked).
+- State changes: none. Achievement badges are soulbound (LF-169) — this always panics.
+- Errors: `NonTransferable`.
+- Events: none.
 - Example:
 
 ```bash
@@ -771,10 +878,10 @@ stellar contract invoke \
 ```
 
 ### `transfer_from(env: Env, spender: Address, from: Address, to: Address, token_id: u128)`
-- Signer: `spender` wallet.
-- State changes: moves a token on behalf of an approved owner or operator.
-- Errors: `InsufficientApproval`.
-- Events: `Transfer { from, to, token_id }`.
+- Signer: none (always rejected before auth is checked).
+- State changes: none. Achievement badges are soulbound (LF-169) — this always panics.
+- Errors: `NonTransferable`.
+- Events: none.
 - Example:
 
 ```bash
@@ -785,11 +892,41 @@ stellar contract invoke \
   -- transfer-from --spender <SPENDER_ADDRESS> --from <OWNER_ADDRESS> --to <RECIPIENT_ADDRESS> --token_id 1
 ```
 
+### `burn(env: Env, owner: Address, token_id: u128)`
+- Signer: `owner` wallet.
+- State changes: removes the token's ownership and approval records and decrements the owner's balance.
+- Errors: `IncorrectOwner`, `InsufficientBalance` (defensive — the balance check can't actually fail given the preceding ownership check).
+- Events: `Burn { token_id, owner }`.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <NFT_CONTRACT_ID> \
+  --source <OWNER_IDENTITY> \
+  --network testnet \
+  -- burn --owner <OWNER_ADDRESS> --token_id 1
+```
+
+### `burn_from(env: Env, spender: Address, owner: Address, token_id: u128)`
+- Signer: `spender` wallet. Must be `owner`, the contract owner (badge revocation), an approved spender for the token, or an approved operator for all of `owner`'s tokens.
+- State changes: same as `burn`.
+- Errors: `InsufficientApproval`, `IncorrectOwner`.
+- Events: `Burn { token_id, owner }`.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <NFT_CONTRACT_ID> \
+  --source <SPENDER_IDENTITY> \
+  --network testnet \
+  -- burn-from --spender <SPENDER_ADDRESS> --owner <OWNER_ADDRESS> --token_id 1
+```
+
 ### `approve(env: Env, approver: Address, approved: Address, token_id: u128, live_until_ledger: u32)`
-- Signer: `approver` wallet.
-- State changes: grants or revokes an approval for a specific token.
-- Errors: `InsufficientApproval`, `InvalidLiveUntilLedger`.
-- Events: `Approve { approver, token_id, approved, live_until_ledger }`.
+- Signer: none (always rejected).
+- State changes: none. Achievement badges are soulbound (LF-169) — this always panics.
+- Errors: `NonTransferable` always; `InvalidLiveUntilLedger` and the `Approve` event exist in the contract's types but are unreachable while the soulbound panic fires first.
+- Events: none reachable.
 - Example:
 
 ```bash
@@ -801,10 +938,10 @@ stellar contract invoke \
 ```
 
 ### `approve_for_all(env: Env, owner: Address, operator: Address, live_until_ledger: u32)`
-- Signer: owner wallet.
-- State changes: sets or clears an operator approval for an owner’s full collection.
-- Errors: `InvalidLiveUntilLedger`.
-- Events: `ApproveForAll { owner, operator, live_until_ledger }`.
+- Signer: none (always rejected).
+- State changes: none. Achievement badges are soulbound (LF-169) — this always panics.
+- Errors: `NonTransferable` always; the `ApproveForAll` event exists in the contract's types but is unreachable while the soulbound panic fires first.
+- Events: none reachable.
 - Example:
 
 ```bash
@@ -983,7 +1120,7 @@ stellar contract invoke \
 ### `set_base_uri(env: Env, caller: Address, base_uri: String)`
 - Signer: owner wallet.
 - State changes: updates the metadata base URL.
-- Errors: `BaseUriTooLong`, owner-only failures.
+- Errors: `BaseUriTooLong`, `NotOwner`.
 - Events: none.
 - Example:
 
@@ -995,10 +1132,40 @@ stellar contract invoke \
   -- set-base-uri --caller <OWNER_ADDRESS> --base_uri "https://example.com/metadata/"
 ```
 
+### `pause(env: Env, caller: Address)`
+- Signer: owner wallet.
+- State changes: sets `Paused`.
+- Errors: `NotOwner`.
+- Events: `Paused { owner }`.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <NFT_CONTRACT_ID> \
+  --source <OWNER_IDENTITY> \
+  --network testnet \
+  -- pause --caller <OWNER_ADDRESS>
+```
+
+### `unpause(env: Env, caller: Address)`
+- Signer: owner wallet.
+- State changes: clears `Paused`.
+- Errors: `NotOwner`.
+- Events: `Unpaused { owner }`.
+- Example:
+
+```bash
+stellar contract invoke \
+  --id <NFT_CONTRACT_ID> \
+  --source <OWNER_IDENTITY> \
+  --network testnet \
+  -- unpause --caller <OWNER_ADDRESS>
+```
+
 ### `set_minter(env: Env, caller: Address, new_minter: Address)`
 - Signer: owner wallet.
 - State changes: rotates the allowed minter and emits the minter-change event.
-- Errors: owner-only failures.
+- Errors: `NotOwner`.
 - Events: `MinterUpdated { old_minter, new_minter }`.
 - Example:
 
