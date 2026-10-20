@@ -107,6 +107,28 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  audit:
+    name: Dependency audit (LF-243)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: onchain
+      - uses: taiki-e/install-action@cargo-audit
+      - name: cargo audit
+        working-directory: onchain
+        run: |
+          set -o pipefail
+          cargo audit 2>&1 | tee audit.log
+          {
+            echo "### cargo audit"
+            echo '```'
+            cat audit.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   bindings-check:
     name: TypeScript bindings are up to date (LF-032)
     runs-on: ubuntu-latest

@@ -228,9 +228,12 @@ const cardToWire = (card: Omit<Card, 'card_id'>): WireCard => ({
 const roundFromWire = (round: WireRound): Round => ({ ...round, genre: genreFromWire(round.genre) });
 
 export function createSystemCalls(config: StellarConfig, publicKey: string | null): SystemCalls {
-  /** Signs + submits a mutating call (with toast feedback) and returns its decoded result. */
+  /**
+   * Signs + submits a mutating call (with toast feedback and a balance
+   * pre-check) and returns its decoded result.
+   */
   const submit = <T>(build: () => Promise<contract.AssembledTransaction<T>>) =>
-    withTxToast(build, config.networkPassphrase);
+    withTxToast(build, config.networkPassphrase, undefined, publicKey);
 
   const requireAccount = (): string => {
     if (!publicKey) {

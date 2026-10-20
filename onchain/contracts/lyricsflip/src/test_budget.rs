@@ -1,4 +1,4 @@
-//! Resource-budget regression tests (LF-033). Each test records CPU and
+﻿//! Resource-budget regression tests (LF-033). Each test records CPU and
 //! memory for one call with realistic data and fails if it exceeds the
 //! ceiling in `budget_thresholds.rs`.
 
@@ -102,7 +102,7 @@ fn create_round_budget() {
         CREATE_ROUND_MAX_CPU,
         CREATE_ROUND_MAX_MEM,
         || {
-            client.create_round(&owner, &Some(Genre::Pop), &42u64);
+            client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
         },
     );
 }
@@ -110,11 +110,11 @@ fn create_round_budget() {
 #[test]
 fn start_round_budget() {
     let (env, client, owner) = setup_catalogue();
-    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64);
+    let round_id = client.create_round(&owner, &Some(Genre::Pop), &42u64, &None);
     let mut players = std::vec::Vec::new();
     for _ in 1..MAX_ROUND_PLAYERS {
         let player = Address::generate(&env);
-        client.join_round(&player, &round_id);
+        client.join_round(&player, &round_id, &None);
         players.push(player);
     }
     for player in players.iter() {
@@ -266,6 +266,16 @@ fn claim_reward_budget() {
 }
 
 #[test]
+fn create_solo_round_budget() {
+    let (env, client, owner) = setup_catalogue();
+    client.set_cards_per_round(&owner, &5);
+    measure(
+        &env,
+        "create_solo_round",
+        CREATE_SOLO_ROUND_MAX_CPU,
+        CREATE_SOLO_ROUND_MAX_MEM,
+        || {
+            client.create_solo_round(&owner, &Some(Genre::Pop), &42u64);
 fn answer_and_next_budget() {
     let (env, client, owner) = setup_catalogue();
     client.set_cards_per_round(&owner, &5);

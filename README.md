@@ -431,31 +431,18 @@ GitHub Actions (`.github/workflows/onchain.yml`) runs `cargo fmt --check`, a rel
 
 ---
 
-## Project status & known limitations
+## Project status
 
-LyricsFlip is under active development, following its migration from Starknet to Stellar. What works today, and what doesn't yet:
+LyricsFlip is under active development, following its migration from Starknet to Stellar. Rather than listing individual bugs here (they go stale quickly), progress is tracked in GitHub milestones:
 
-**✅ Working**
-- Both Soroban contracts build to WASM and pass their unit tests in CI.
-- Rounds can be created, joined, readied, and started. Cards can be added, drawn, and answered. Streaks are tracked on-chain.
-- The frontend connects Stellar wallets and can call every contract function through `SystemCalls`.
+| Area | Status | Tracked in |
+|---|---|---|
+| **Smart contracts** (`onchain/`) | Both contracts build to WASM and pass their unit tests in CI. Rounds, cards, answers, and streaks work on-chain; wagering, payouts, and NFT rewards are in progress. | [Contracts milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-001 – LF-034](ISSUES.md) |
+| **Frontend** (`frontend/`) | Wallet connection and typed contract calls work; screens are being wired to real on-chain data. | [Frontend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-035 – LF-072](ISSUES.md) |
+| **Backend** (`backend/`) | Does not compile yet; being rebuilt module by module. | [Backend milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-073 – LF-105](ISSUES.md) |
+| **DevOps & docs** | Contract CI runs on every PR; frontend/backend CI and deployment are planned. | [DevOps milestone](https://github.com/Stellar-songifi/lyricsflip/milestones) · [LF-106 – LF-125](ISSUES.md) |
 
-**🚧 Known gaps** (each is tracked in [`ISSUES.md`](ISSUES.md))
-- **Contract logic:**
-  - `create_round` doesn't restrict cards to the chosen genre (LF-001).
-  - The last card of a round can't be answered (LF-003).
-  - Players can answer the same card more than once (LF-004).
-  - `rounds_won` is never updated (LF-005).
-  - `next_card` is unauthenticated (LF-007).
-  - Answers are readable on-chain (LF-008).
-  - Storage TTLs aren't extended (LF-012).
-- **Wagering and payouts** are not implemented yet. `wager_amount` is always 0 (LF-013, LF-014).
-- **NFT rewards** aren't connected to gameplay yet (LF-017).
-- **Frontend:**
-  - The single-player and multiplayer screens still use mock lyric and room data (LF-042, LF-043).
-  - A few imports point at a missing `src/mock` module (LF-035).
-  - Some Starknet-era labels remain, such as "STRK" and "Argent" (LF-039, LF-040).
-- **Backend** doesn't compile yet and has duplicate modules (LF-073 – LF-080).
+For the current list of open work, see [`ISSUES.md`](ISSUES.md) and the repository's [milestones](https://github.com/Stellar-songifi/lyricsflip/milestones).
 
 ---
 
@@ -483,6 +470,7 @@ Contributions are welcome! Please read [`ContributionGuidelines.md`](Contributio
 2. Create a branch (never push to `main`).
 3. Keep PRs focused. Include a clear description, link the issue, and show test evidence or screenshots.
 4. Make sure `cargo fmt --check && cargo test` (contracts) and `npm run lint && npm test` (frontend/backend) pass.
+5. Update the README (and any package README) if behavior changed. Contract API details belong in the generated [`onchain/docs/api.md`](onchain/docs/api.md), not hand-copied into the README.
 
 Design references: [Figma](https://www.figma.com/design/6phOWkHKQgLRhRwmBBQDXB/LyricsFlip?node-id=0-1&t=0U8SlbaJijr7XNeG-1), [`docs/design/`](docs/README.md).
 
