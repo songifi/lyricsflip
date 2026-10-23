@@ -27,7 +27,7 @@
     "openapi:check": "npm run openapi:export && npm run openapi:generate && git diff --exit-code ../openapi.json ../frontend/src/services/generated"
   },
   "dependencies": {
-    "@nestjs/cache-manager": "^2.2.2",
+    "@nestjs/cache-manager": "^12.0.1",
     "@nestjs/common": "^10.3.3",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.3.3",
