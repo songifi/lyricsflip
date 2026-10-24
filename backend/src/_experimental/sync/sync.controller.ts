@@ -6,7 +6,7 @@ import { SyncRequestDto } from './dto/sync-request.dto';
 import { SyncResponseDto } from './dto/sync-response.dto';
 import { DeltaUpdateDto } from './dto/delta-update.dto';
 import { SyncHistory } from './entities/sync-history.entity';
-// import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+// import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('sync')
 @Controller('sync')

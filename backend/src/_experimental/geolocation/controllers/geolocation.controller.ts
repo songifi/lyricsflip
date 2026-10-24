@@ -15,9 +15,9 @@ import { GeolocationService } from '../services/geolocation.service';
 import { RegionRestrictionsService } from '../services/region-restrictions.service';
 import { LocationAnalyticsService } from '../services/location-analytics.service';
 import { LocationReportingService } from '../services/location-reporting.service';
-import { JwtAuthGuard } from '../../auth/guard/jwt-auth.guard';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../../auth/guard/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
 import { Request } from 'express';
 
 @ApiTags('geolocation')

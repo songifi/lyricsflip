@@ -137,7 +137,7 @@ export class AppModule {}
 // 7. Example Migration (in migrations/1677589200000-create-users-table.ts)
 /*
 import { QueryRunner } from 'typeorm';
-import { Migration } from '../src/db-migration/interfaces/migration.interface';
+import { Migration } from '../../src/db-migration/interfaces/migration.interface';
 
 const migration: Migration = {
   id: '1677589200000-create-users-table',

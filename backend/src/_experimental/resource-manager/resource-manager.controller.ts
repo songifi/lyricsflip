@@ -6,7 +6,7 @@ import { AlertService } from './alert.service';
 import { CostOptimizerService } from './cost-optimizer.service';
 import { CreateScalingRuleDto, UpdateScalingRuleDto } from './dto/scaling-rule.dto';
 import { CreateAlertConfigDto, UpdateAlertConfigDto } from './dto/alert-config.dto';
-// import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+// import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 
 @ApiTags('resource-manager')
 @Controller('resource-manager')

@@ -1,7 +1,7 @@
 // src/coupons/services/discount-calculator.service.ts
 import { Injectable } from '@nestjs/common';
 import { Coupon, DiscountType } from '../entities/coupon.entity';
-import { CartItem } from '../../cart/entities/cart-item.entity';
+import { CartItem } from '../../../cart/entities/cart-item.entity';
 import { StoreItem } from '../../store/entities/store-item.entity';
 
 export interface DiscountResult {
