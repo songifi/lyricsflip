@@ -3,7 +3,7 @@
  * Sync ISSUES.md backlog into GitHub issues.
  *
  * Usage:
- *   ts-node scripts/sync-issues.ts [--dry-run] [--file ISSUES.md] [--repo owner/name]
+ *   npm --prefix backend run issues:sync -- [--dry-run] [--file ISSUES.md] [--repo owner/name]
  *
  * - Parses every `### LF-xxx · Title` block (labels, description, tasks, acceptance criteria).
  * - Creates labels once (area:*, priority:*, type:*, effort:*).
@@ -94,7 +94,8 @@ function normalizeLabels(raw: string[]): string[] {
   for (const label of raw) {
     const lower = label.toLowerCase();
     if (/^p[0-3]$/.test(lower)) out.add(`priority:${lower.toUpperCase()}`);
-    else if (['bug', 'feature', 'devex', 'docs', 'chore'].includes(lower)) out.add(`type:${lower}`);
+    else if (['bug', 'feature', 'devex', 'docs', 'chore'].includes(lower))
+      out.add(`type:${lower}`);
     else if (/^s|m|l|xl$/.test(lower)) out.add(`effort:${lower.toUpperCase()}`);
     else out.add(label);
   }
@@ -111,7 +112,17 @@ function ensureLabels(labels: string[], repo: string, dryRun: boolean) {
   for (const label of labels) {
     if (dryRun) continue;
     try {
-      gh(['label', 'create', label, '--color', colors[label] ?? 'ededed', '--force'], repo);
+      gh(
+        [
+          'label',
+          'create',
+          label,
+          '--color',
+          colors[label] ?? 'ededed',
+          '--force',
+        ],
+        repo,
+      );
     } catch {
       // label already exists or cannot be created; continue
     }
@@ -120,11 +131,24 @@ function ensureLabels(labels: string[], repo: string, dryRun: boolean) {
 
 function existingIssueNumbers(repo: string): Set<string> {
   const raw = gh(
-    ['issue', 'list', '--state', 'all', '--limit', '1000', '--json', 'number,title,body'],
+    [
+      'issue',
+      'list',
+      '--state',
+      'all',
+      '--limit',
+      '1000',
+      '--json',
+      'number,title,body',
+    ],
     repo,
   );
   const found = new Set<string>();
-  const list = JSON.parse(raw) as Array<{ number: number; title: string; body: string }>;
+  const list = JSON.parse(raw) as Array<{
+    number: number;
+    title: string;
+    body: string;
+  }>;
   for (const issue of list) {
     const match = /LF-\d+/.exec(issue.title) ?? /LF-\d+/.exec(issue.body ?? '');
     if (match) found.add(match[0]);
@@ -143,9 +167,12 @@ function main() {
     return;
   }
 
-  const existing = opts.dryRun ? new Set<string>() : existingIssueNumbers(opts.repo);
+  const existing = opts.dryRun
+    ? new Set<string>()
+    : existingIssueNumbers(opts.repo);
   const allLabels = new Set<string>();
-  for (const issue of issues) for (const l of normalizeLabels(issue.labels)) allLabels.add(l);
+  for (const issue of issues)
+    for (const l of normalizeLabels(issue.labels)) allLabels.add(l);
   ensureLabels([...allLabels], opts.repo, opts.dryRun);
 
   const lines = markdown.split('\n');
@@ -159,11 +186,21 @@ function main() {
     const labels = normalizeLabels(issue.labels);
     const body = `**${issue.id}**\n\n${issue.body}`;
     if (opts.dryRun) {
-      console.log(`[dry-run] would create ${issue.id} · ${issue.title} [${labels.join(', ')}]`);
+      console.log(
+        `[dry-run] would create ${issue.id} · ${issue.title} [${labels.join(', ')}]`,
+      );
       continue;
     }
     const url = gh(
-      ['issue', 'create', '--title', `${issue.id} · ${issue.title}`, '--body', body, ...labels.flatMap((l) => ['--label', l])],
+      [
+        'issue',
+        'create',
+        '--title',
+        `${issue.id} · ${issue.title}`,
+        '--body',
+        body,
+        ...labels.flatMap((l) => ['--label', l]),
+      ],
       opts.repo,
     );
     const number = Number(url.split('/').pop());

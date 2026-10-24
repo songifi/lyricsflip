@@ -22,7 +22,6 @@ export class RoomEntity implements Room {
     if (this.participants.size >= this.maxParticipants) {
       return false;
     }
-
     this.participants.set(participant.id, participant);
     return true;
   }

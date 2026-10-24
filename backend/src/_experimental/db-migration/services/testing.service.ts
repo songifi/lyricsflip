@@ -145,7 +145,7 @@ export class TestingService {
   /**
    * Test migration down
    */
-  private async testMigrationDown(x: any,
+  private async testMigrationDown(
     migration: Migration, 
     queryRunner: any,
   ): Promise<void> {

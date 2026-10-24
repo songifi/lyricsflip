@@ -237,7 +237,10 @@ describe('IndexerService (integration)', () => {
     );
   });
 
-  async function drainEvents(events: RecordedEvent[], opts?: { pageSize?: number }) {
+  async function drainEvents(
+    events: RecordedEvent[],
+    opts?: { pageSize?: number },
+  ) {
     const pageSize = opts?.pageSize ?? events.length;
     let offset = 0;
     rpcGetEvents.mockImplementation(async (req: any) => {
@@ -325,7 +328,9 @@ describe('IndexerService (integration)', () => {
     await drainEvents(fixtures.slice(0, half));
 
     const roundsAfterFirst = await dataSource.getRepository(ChainRound).count();
-    const answersAfterFirst = await dataSource.getRepository(ChainAnswer).count();
+    const answersAfterFirst = await dataSource
+      .getRepository(ChainAnswer)
+      .count();
     const processedAfterFirst = await dataSource
       .getRepository(ProcessedEvent)
       .count();
@@ -336,8 +341,12 @@ describe('IndexerService (integration)', () => {
     // and the unique (contract_id, tx_hash, event_index) key).
     await drainEvents(fixtures);
 
-    const roundsAfterRestart = await dataSource.getRepository(ChainRound).count();
-    const answersAfterRestart = await dataSource.getRepository(ChainAnswer).count();
+    const roundsAfterRestart = await dataSource
+      .getRepository(ChainRound)
+      .count();
+    const answersAfterRestart = await dataSource
+      .getRepository(ChainAnswer)
+      .count();
     const processedAfterRestart = await dataSource
       .getRepository(ProcessedEvent)
       .count();
@@ -438,7 +447,7 @@ describe('IndexerService (integration)', () => {
 
     const results = await dataSource.getRepository(ChainRoundResult).find();
     expect(results.length).toBeGreaterThanOrEqual(1);
-    expect(results[0]).winner).toBe(PLAYER_A);
+    expect(results[0].winner).toBe(PLAYER_A);
 
     // Cursor was advanced past the retention gap.
     const state = await stateRepo.findOne({
@@ -462,7 +471,11 @@ describe('IndexerService (integration)', () => {
     rpcGetEvents
       .mockRejectedValueOnce(new Error('rpc unavailable'))
       .mockRejectedValueOnce(new Error('rpc unavailable'))
-      .mockResolvedValueOnce({ events: [], cursor: '0-0-0', latestLedger: 210 });
+      .mockResolvedValueOnce({
+        events: [],
+        cursor: '0-0-0',
+        latestLedger: 210,
+      });
 
     await service.pollAndProcessEvents();
 
@@ -556,7 +569,10 @@ describe('Leaderboard & Player API (e2e, indexed data)', () => {
          "indexer_state"
        RESTART IDENTITY CASCADE`,
     );
-    if (leaderboard && typeof (leaderboard as any).invalidateCache === 'function') {
+    if (
+      leaderboard &&
+      typeof (leaderboard as any).invalidateCache === 'function'
+    ) {
       await (leaderboard as any).invalidateCache();
     }
   });
@@ -606,7 +622,10 @@ describe('Leaderboard & Player API (e2e, indexed data)', () => {
     expect(playerRes.body.stats.points).toBeGreaterThanOrEqual(10);
     expect(Array.isArray(playerRes.body.recentRounds)).toBe(true);
     expect(playerRes.body.recentRounds.length).toBeGreaterThanOrEqual(1);
-    expect(playerRes.body.recentRounds[0].roundId ?? playerRes.body.recentRounds[0].round_id).toBe(1);
+    expect(
+      playerRes.body.recentRounds[0].roundId ??
+        playerRes.body.recentRounds[0].round_id,
+    ).toBe(1);
   });
 });
 
