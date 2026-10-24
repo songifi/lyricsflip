@@ -103,4 +103,6 @@ pub enum Error {
     /// LF-175: the caller already has `MAX_OPEN_ROUNDS_PER_ADDRESS` public
     /// lobbies open. Start, cancel, or let one expire before creating another.
     TooManyOpenRounds = 45,
+    /// LF-154: `set_max_players` got a value above `MAX_ROUND_PLAYERS`.
+    MaxPlayersTooHigh = 46,
 }
