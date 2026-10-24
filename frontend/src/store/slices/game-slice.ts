@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { GameState, GameActions, GameConfig, Store } from '../types';
+import { GameState, GameActions, GameConfig, Store } from '../game-types';
 
 export const initialGameConfig: GameConfig = {
   genre: '',

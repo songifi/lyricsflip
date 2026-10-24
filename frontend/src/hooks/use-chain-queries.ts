@@ -5,7 +5,7 @@ import {
   type UseMutationOptions,
   type UseQueryOptions,
 } from '@tanstack/react-query';
-import { useStellar } from '@/hooks/use-stellar';
+import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import {
   queryKeys,
   type Round,

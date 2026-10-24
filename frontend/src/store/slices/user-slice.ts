@@ -1,5 +1,6 @@
 import { StateCreator } from 'zustand';
-import { UserState, UserActions, UserPreferences, Store } from '../types';
+import { UserState, UserActions, Store } from '../game-types';
+import { UserPreferences } from '../types';
 
 export const initialUserPreferences: UserPreferences = {
   theme: 'light',

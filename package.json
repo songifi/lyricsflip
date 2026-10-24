@@ -26,7 +26,7 @@
     "check:frontend": "npm --prefix frontend run lint && npm --prefix frontend run typecheck && npm --prefix frontend run test -- --passWithNoTests",
     "check:backend": "npm --prefix backend run lint && npm --prefix backend exec -- tsc --noEmit && npm --prefix backend run test",
     "check:all": "npm run check:contracts && npm run check:frontend && npm run check:backend",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "engines": {
     "node": ">=20.18.0 <21"
@@ -56,6 +56,8 @@
     ]
   },
   "overrides": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0"
   }

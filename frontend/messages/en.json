@@ -2,6 +2,7 @@
   "common": {
     "appName": "LyricsFlip",
     "loading": "Loading...",
+    "pleaseWait": "Please wait while we prepare the game",
     "error": "Something went wrong",
     "retry": "Try again",
     "cancel": "Cancel",

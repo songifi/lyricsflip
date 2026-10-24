@@ -24,7 +24,7 @@ import {
   type Round,
 } from '@/lib/stellar/types';
 import { formatTime } from '@/lib/utils';
-import { useProfileStore } from '@/store/useProfileStore';
+import { useProfileStore } from '@/store/use-profile-store';
 
 /** Contract error code for `NoMoreCards` — the player has drawn every card. */
 const NO_MORE_CARDS = 34;

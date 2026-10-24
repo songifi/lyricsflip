@@ -1,12 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
 import { SongOptions } from "./song-options";
 
 const options = ["Option A", "Option B", "Option C", "Option D"];
 
 function renderOptions(overrides: Partial<React.ComponentProps<typeof SongOptions>> = {}) {
-  const onSelect = vi.fn();
+  const onSelect = jest.fn();
   const props: React.ComponentProps<typeof SongOptions> = {
     options,
     selected: null,

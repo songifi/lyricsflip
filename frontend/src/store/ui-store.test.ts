@@ -1,5 +1,3 @@
-import { beforeEach, describe, expect, it } from "vitest";
-
 import { useUIStore } from "./ui-store";
 
 const resetStore = () => {
@@ -140,7 +138,7 @@ describe("ui-store", () => {
     it("exposes only UI actions", () => {
       const state = useUIStore.getState();
       const actionKeys = Object.keys(state).filter(
-        (key) => typeof (state as Record<string, unknown>)[key] === "function",
+        (key) => typeof (state as unknown as Record<string, unknown>)[key] === "function",
       );
 
       expect(actionKeys.sort()).toEqual(

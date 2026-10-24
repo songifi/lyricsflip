@@ -3,7 +3,7 @@
 import { useModalStore } from '@/store/modal-store';
 import { Modal } from './modal';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
-import { useXlmBalance } from '@/lib/stellar/hooks/useXlmBalance';
+import { useXlmBalance } from '@/lib/stellar/hooks/use-xlm-balance';
 import { useEffect, useState } from 'react';
 import { GENRE_MAPPING, GenreKey } from './wager-modal';
 import { WagerDetails } from '@/store';
