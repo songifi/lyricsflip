@@ -63,6 +63,11 @@ pub const LOBBY_TIMEOUT_SECONDS: u64 = 600;
 pub const MIN_LOBBY_TIMEOUT_SECONDS: u64 = 30;
 pub const MAX_LOBBY_TIMEOUT_SECONDS: u64 = 86_400;
 
+/// LF-175: cap on public lobby rounds one address may leave open at once.
+/// Creating a free (0-wager) round costs only a transaction fee, so without
+/// a cap a single account could flood `OpenRounds` and drown out real lobbies.
+pub const MAX_OPEN_ROUNDS_PER_ADDRESS: u32 = 3;
+
 /// Default per-card transaction latency buffer for dynamic round duration.
 pub const DEFAULT_ROUND_BUFFER_SECONDS: u64 = 15;
 pub const MIN_ROUND_BUFFER_SECONDS: u64 = 1;
@@ -775,6 +780,7 @@ impl LyricsFlip {
             None,
             seed,
             invite_hash,
+            false,
         )
     }
 
@@ -786,7 +792,7 @@ impl LyricsFlip {
         difficulty: Option<u32>,
         seed: u64,
     ) -> u64 {
-        Self::create_round_internal(&env, caller, filter, difficulty, seed, None)
+        Self::create_round_internal(&env, caller, filter, difficulty, seed, None, false)
     }
 
     fn create_round_internal(
@@ -796,8 +802,17 @@ impl LyricsFlip {
         difficulty: Option<u32>,
         seed: u64,
         invite_hash: Option<BytesN<32>>,
+        solo: bool,
     ) -> u64 {
         caller.require_auth();
+        // LF-175: cap public open lobbies per address. Private and solo
+        // rounds never appear in `OpenRounds`, so they are exempt.
+        if !solo && invite_hash.is_none() {
+            let open_count = Self::open_rounds_of(env, &caller);
+            if open_count >= MAX_OPEN_ROUNDS_PER_ADDRESS {
+                panic_with_error!(env, Error::TooManyOpenRounds);
+            }
+        }
         if difficulty.is_some_and(|value| !(1..=3).contains(&value)) {
             panic_with_error!(env, Error::InvalidCardDifficulty);
         }
@@ -934,11 +949,14 @@ impl LyricsFlip {
         );
 
         // LF-162: private rounds are not discoverable in the public lobby.
-        if !round.is_private {
+        // LF-175: solo rounds skip the lobby entirely, so they neither
+        // appear in nor consume a slot from `OpenRounds`.
+        if !round.is_private && !solo {
             let mut open = Self::read_open_rounds(env);
             open.push_back(round_id);
             env.storage().persistent().set(&DataKey::OpenRounds, &open);
             bump_persistent(env, &DataKey::OpenRounds);
+            Self::inc_open_rounds_of(env, &caller);
         }
 
         bump_instance(env);
@@ -1020,7 +1038,7 @@ impl LyricsFlip {
                 .set(&DataKey::Round(round_id), &round);
             bump_persistent(&env, &DataKey::Round(round_id));
 
-            Self::remove_open_round(&env, round_id);
+            Self::remove_open_round(&env, round_id, &round.admin);
 
             bump_instance(&env);
 
@@ -1152,7 +1170,7 @@ impl LyricsFlip {
         env.storage()
             .persistent()
             .set(&DataKey::Round(round_id), &round);
-        Self::remove_open_round(&env, round_id);
+        Self::remove_open_round(&env, round_id, &round.admin);
         // LF-176: a cancelled round no longer constrains `update_card`.
         Self::clear_live_rounds(&env, round_id);
 
@@ -2421,11 +2439,45 @@ impl LyricsFlip {
         false
     }
 
-    fn remove_open_round(env: &Env, round_id: u64) {
+    fn remove_open_round(env: &Env, round_id: u64, admin: &Address) {
         let mut open = Self::read_open_rounds(env);
         if let Some(idx) = open.first_index_of(round_id) {
             open.remove(idx);
             env.storage().persistent().set(&DataKey::OpenRounds, &open);
+            // LF-175: the round is leaving the lobby (start, cancel, or
+            // expiry via cancel-after-timeout), so free the admin's slot.
+            Self::dec_open_rounds_of(env, admin);
+        }
+    }
+
+    // ---- LF-175: open-lobby cap per address ----
+
+    /// Number of public lobby rounds `address` currently has open.
+    fn open_rounds_of(env: &Env, address: &Address) -> u32 {
+        env.storage()
+            .persistent()
+            .get(&DataKey::OpenRoundsOf(address.clone()))
+            .unwrap_or(0)
+    }
+
+    /// Reserves one of `address`'s open-lobby slots.
+    fn inc_open_rounds_of(env: &Env, address: &Address) {
+        let key = DataKey::OpenRoundsOf(address.clone());
+        let count = Self::open_rounds_of(env, address) + 1;
+        env.storage().persistent().set(&key, &count);
+        bump_persistent(env, &key);
+    }
+
+    /// Frees one of `address`'s open-lobby slots; removes the key at zero
+    /// so empty accounts leave no storage dust behind.
+    fn dec_open_rounds_of(env: &Env, address: &Address) {
+        let key = DataKey::OpenRoundsOf(address.clone());
+        let count = Self::open_rounds_of(env, address);
+        if count <= 1 {
+            env.storage().persistent().remove(&key);
+        } else {
+            env.storage().persistent().set(&key, &(count - 1));
+            bump_persistent(env, &key);
         }
     }
 
@@ -2699,6 +2751,7 @@ impl LyricsFlip {
             panic_with_error!(env, Error::NonExistingGenre);
         }
         // create_round_internal calls caller.require_auth() -> sig #1.
+        // solo=true: the round never enters OpenRounds (LF-175).
         let round_id = Self::create_round_internal(
             &env,
             caller.clone(),
@@ -2706,9 +2759,8 @@ impl LyricsFlip {
             None,
             seed,
             None,
+            true,
         );
-        // Never leave a solo round in the multiplayer lobby.
-        Self::remove_open_round(&env, round_id);
 
         // Mark started immediately (mirrors start_round's writes for the
         // 1-player case, but without touching require_auth).

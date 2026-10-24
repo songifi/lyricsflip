@@ -57,7 +57,8 @@ export const CONTRACT_ERROR_NAMES: Record<number, string> = {
   42: 'InvalidLobbyTimeout',
   43: 'InvalidRoundDuration',
   44: 'CardInActiveRound',
-  45: 'MaxPlayersTooHigh',
+  45: 'TooManyOpenRounds',
+  46: 'MaxPlayersTooHigh',
 };
 
 /**
@@ -109,6 +110,7 @@ export const LYRICSFLIP_ERROR_MESSAGES: Record<string, string> = {
   InvalidLobbyTimeout: 'The lobby timeout must be between 30 and 86400 seconds.',
   InvalidRoundDuration: 'That round duration or buffer is out of range.',
   CardInActiveRound: 'This card is in an active round and its answer fields cannot change yet.',
+  TooManyOpenRounds: 'You already have the maximum number of open lobbies. Start or cancel one first.',
 };
 
 /**
