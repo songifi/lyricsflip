@@ -21,7 +21,7 @@ import { StrKey } from '@stellar/stellar-sdk';
 import { ConfigErrorScreen } from '@/components/organisms/config-error-screen';
 import { requestWalletChallenge, verifyWalletChallenge } from '../../services/wallet-auth';
 import { setAuthTokens, logout, restoreSession } from '../../services/api';
-import { toast } from '@/components/ui/toast';
+import { toast } from 'sonner';
 
 /** How often to poll the wallet for an address change, in milliseconds. */
 const ADDRESS_POLL_INTERVAL_MS = 5000;
@@ -151,13 +151,11 @@ export const StellarProvider = ({ children }: { children: React.ReactNode }) => 
       queryClient.clear();
 
       if (nextAddress) {
-        toast({
-          title: 'Wallet account changed',
+        toast('Wallet account changed', {
           description: `Now using ${nextAddress.slice(0, 4)}…${nextAddress.slice(-4)}.`,
         });
       } else {
-        toast({
-          title: 'Wallet disconnected',
+        toast('Wallet disconnected', {
           description: 'Your wallet is no longer connected.',
         });
       }

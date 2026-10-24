@@ -17,7 +17,7 @@ import {
 import { GENRE_VALUES } from '@/lib/stellar/types';
 import { ArrowLeft, ArrowRight, Trophy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useProfileStore } from '@/store/useProfileStore';
+import { useProfileStore } from '@/store/use-profile-store';
 
 const ITEMS_PER_PAGE = 20;
 

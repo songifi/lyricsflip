@@ -13,7 +13,7 @@ import {
   WAGER_ASSET_CODE,
 } from '@/lib/utils';
 import { useOpenRounds, type OpenRound } from '@/hooks/use-open-rounds';
-import { useProfileStore } from '@/store/useProfileStore';
+import { useProfileStore } from '@/store/use-profile-store';
 
 const relativeAge = (createdAtSeconds: number | null, nowSeconds: number) => {
   if (createdAtSeconds === null) return 'just now';

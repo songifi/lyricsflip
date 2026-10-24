@@ -17,7 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useStellar } from '@/lib/stellar/hooks/use-stellar';
 import { GENRE_OPTIONS } from '@/lib/stellar/genres';
 import type { Genre } from '@/lib/stellar/types';
-import { useXlmBalance, MIN_FEE_STROOPS } from '@/lib/stellar/hooks/useXlmBalance';
+import { useXlmBalance, MIN_FEE_STROOPS } from '@/lib/stellar/hooks/use-xlm-balance';
 import {
   WAGER_ASSET_CODE,
   MIN_WAGER_STROOPS,
